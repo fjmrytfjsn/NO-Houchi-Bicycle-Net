@@ -1,33 +1,57 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const store: Record<string, any> =
-  (global as any)._owner_store || ((global as any)._owner_store = {});
+interface Declaration {
+  declaredAt: string;
+  eligibleFinalAt: string;
+  expiresAt: string;
+  status: string;
+  finalizedAt?: string;
+}
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+interface MarkerEntry {
+  marker: { code: string };
+  report: {
+    id: string;
+    status: string;
+    imageUrl: string;
+    ocr_text: string;
+  };
+  declaration: Declaration | null;
+}
+
+const store: Record<string, MarkerEntry> = {};
+
+export default function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const { code } = req.query as { code: string };
-  if (req.method !== 'POST') return res.status(405).end();
 
-  const entry = store[code];
-  if (!entry || !entry.declaration)
+  if (!code || typeof code !== 'string') {
     return res
       .status(400)
-      .json({
-        status: 'error',
-        error: { code: 'no_declaration', message: 'no declaration' },
-      });
+      .json({ error: 'code parameter is required' });
+  }
+
+  const entry = store[code];
+
+  if (!entry || !entry.declaration) {
+    return res
+      .status(400)
+      .json({ error: 'no declaration found' });
+  }
 
   const now = new Date();
   const eligible = new Date(entry.declaration.eligibleFinalAt).getTime();
+
   if (now.getTime() < eligible) {
-    return res
-      .status(400)
-      .json({
-        status: 'error',
-        error: {
-          code: 'too_early',
-          message: 'eligibleFinalAt has not arrived',
-        },
-      });
+    return res.status(400).json({
+      error: 'eligibleFinalAt has not arrived',
+    });
   }
 
   entry.declaration.status = 'finalized';
@@ -35,10 +59,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   entry.report.status = 'resolved';
   store[code] = entry;
 
-  return res
-    .status(200)
-    .json({
-      status: 'ok',
-      data: { finalizedAt: entry.declaration.finalizedAt, status: 'resolved' },
-    });
+  return res.status(200).json({
+    finalizedAt: entry.declaration.finalizedAt,
+    status: 'resolved',
+  });
 }

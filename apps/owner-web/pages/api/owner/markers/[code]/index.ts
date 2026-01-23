@@ -1,23 +1,46 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-// in-memory store for dev
-const store: Record<string, any> = {};
+interface MarkerEntry {
+  marker: { code: string };
+  report: {
+    id: string;
+    status: string;
+    imageUrl: string;
+    ocr_text: string;
+  };
+  declaration: any;
+}
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { code } = req.query as { code: string };
-  if (req.method === 'GET') {
-    // return marker + report + declaration
-    const entry = store[code] || {
-      marker: { code },
-      report: {
-        id: 'r-' + code,
-        status: 'reported',
-        imageUrl: '',
-        ocr_text: '',
-      },
-      declaration: null,
-    };
-    return res.status(200).json({ status: 'ok', data: entry });
+// in-memory store for dev
+const store: Record<string, MarkerEntry> = {};
+
+export default function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  return res.status(405).end();
+
+  const { code } = req.query as { code: string };
+
+  if (!code || typeof code !== 'string') {
+    return res
+      .status(400)
+      .json({ error: 'code parameter is required' });
+  }
+
+  // Return marker + report + declaration
+  const entry = store[code] || {
+    marker: { code },
+    report: {
+      id: 'r-' + code,
+      status: 'reported',
+      imageUrl: '',
+      ocr_text: '',
+    },
+    declaration: null,
+  };
+
+  return res.status(200).json(entry);
 }
