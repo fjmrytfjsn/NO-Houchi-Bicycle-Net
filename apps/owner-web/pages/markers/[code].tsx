@@ -6,7 +6,14 @@ function formatDuration(ms: number) {
   if (ms <= 0) return '0秒';
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
   const sec = s % 60;
+  const min = m % 60;
+  
+  if (h > 0) {
+    if (min > 0) return `${h}時間 ${min}分 ${sec}秒`;
+    return `${h}時間 ${sec}秒`;
+  }
   if (m > 0) return `${m}分 ${sec}秒`;
   return `${sec}秒`;
 }
