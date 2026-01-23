@@ -13,8 +13,6 @@ describe('MarkerPage', () => {
   });
 
   it('can perform temporary unlock and final unlock flow', async () => {
-    // Use inline timestamps to avoid any variable name collisions
-
     // mock fetch implementation
     (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
       if (
@@ -24,21 +22,18 @@ describe('MarkerPage', () => {
         return {
           ok: true,
           json: async () => ({
-            status: 'ok',
-            data: {
-              marker: { code: 'ABC123' },
-              report: {
-                id: 'r-ABC123',
-                status: 'temporary',
-                imageUrl: '',
-                ocr_text: '',
-              },
-              declaration: {
-                declaredAt: '2026-01-19T12:00:00.000Z',
-                eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-                expiresAt: '2026-01-20T12:00:00.000Z',
-                status: 'temporary',
-              },
+            marker: { code: 'ABC123' },
+            report: {
+              id: 'r-ABC123',
+              status: 'temporary',
+              imageUrl: '',
+              ocr_text: '',
+            },
+            declaration: {
+              declaredAt: '2026-01-19T12:00:00.000Z',
+              eligibleFinalAt: '2000-01-01T00:00:00.000Z',
+              expiresAt: '2026-01-20T12:00:00.000Z',
+              status: 'temporary',
             },
           }),
         };
@@ -51,13 +46,10 @@ describe('MarkerPage', () => {
         return {
           ok: true,
           json: async () => ({
-            status: 'ok',
-            data: {
-              declaredAt: '2026-01-19T12:00:00.000Z',
-              eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-              expiresAt: '2026-01-20T12:00:00.000Z',
-              status: 'temporary',
-            },
+            declaredAt: '2026-01-19T12:00:00.000Z',
+            eligibleFinalAt: '2000-01-01T00:00:00.000Z',
+            expiresAt: '2026-01-20T12:00:00.000Z',
+            status: 'temporary',
           }),
         };
       }
@@ -69,8 +61,8 @@ describe('MarkerPage', () => {
         return {
           ok: true,
           json: async () => ({
-            status: 'ok',
-            data: { finalizedAt: new Date().toISOString(), status: 'resolved' },
+            finalizedAt: new Date().toISOString(),
+            status: 'resolved',
           }),
         };
       }

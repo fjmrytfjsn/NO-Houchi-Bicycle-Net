@@ -30,7 +30,7 @@ export default function MarkerPage() {
     setLoading(true);
     setError(null);
     getMarker(code)
-      .then((r) => setData(r.data))
+      .then((r) => setData(r))
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
   }, [code]);
@@ -43,7 +43,7 @@ export default function MarkerPage() {
       const res = await unlockTemp(code);
       setData((prev: any) => ({
         ...prev,
-        declaration: res.data,
+        declaration: res,
         report: { ...(prev?.report || {}), status: 'temporary' },
       }));
       setInfo('仮解除しました');
@@ -62,7 +62,7 @@ export default function MarkerPage() {
     try {
       await unlockFinal(code);
       const r = await getMarker(code);
-      setData(r.data);
+      setData(r);
       setInfo('本解除が完了しました');
       setTimeout(() => setInfo(null), 4000);
     } catch (e: any) {
