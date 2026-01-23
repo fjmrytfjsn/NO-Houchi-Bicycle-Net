@@ -89,11 +89,11 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ## エラーハンドリング
 
-| ステータスコード | 説明 | 例 |
-|---|---|---|
-| 400 | Bad Request | `code` が無効、declaration がない、時間条件未満 |
-| 404 | Not Found | マーカーが存在しない |
-| 405 | Method Not Allowed | GET/POST 以外のメソッド |
+| ステータスコード | 説明               | 例                                              |
+| ---------------- | ------------------ | ----------------------------------------------- |
+| 400              | Bad Request        | `code` が無効、declaration がない、時間条件未満 |
+| 404              | Not Found          | マーカーが存在しない                            |
+| 405              | Method Not Allowed | GET/POST 以外のメソッド                         |
 
 ---
 
@@ -125,4 +125,3 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 - `POST /api/owner/markers/{code}/unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
 - `POST /api/owner/markers/{code}/unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
 - 24時間経過で自動的に `resolved` になる
-

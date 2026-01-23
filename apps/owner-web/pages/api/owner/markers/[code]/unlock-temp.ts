@@ -20,10 +20,7 @@ interface MarkerEntry {
 
 const store: Record<string, MarkerEntry> = {};
 
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -31,9 +28,7 @@ export default function handler(
   const { code } = req.query as { code: string };
 
   if (!code || typeof code !== 'string') {
-    return res
-      .status(400)
-      .json({ error: 'code parameter is required' });
+    return res.status(400).json({ error: 'code parameter is required' });
   }
 
   const now = new Date();
@@ -41,9 +36,7 @@ export default function handler(
   const eligibleFinalAt = new Date(
     now.getTime() + 15 * 60 * 1000
   ).toISOString();
-  const expiresAt = new Date(
-    now.getTime() + 24 * 60 * 60 * 1000
-  ).toISOString();
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
   const declaration: Declaration = {
     declaredAt,

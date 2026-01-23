@@ -190,17 +190,17 @@ npx prisma migrate reset
 
 ### Backend (.env)
 
-| 変数名 | 説明 | 例 |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL 接続文字列 | `postgresql://user:password@localhost:5432/bicycle-net` |
-| `JWT_SECRET` | JWT トークンの署名キー | `your-secret-key` |
-| `PORT` | サーバーポート | `3000` |
-| `NODE_ENV` | 実行環境 | `development` / `production` |
+| 変数名         | 説明                   | 例                                                      |
+| -------------- | ---------------------- | ------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL 接続文字列  | `postgresql://user:password@localhost:5432/bicycle-net` |
+| `JWT_SECRET`   | JWT トークンの署名キー | `your-secret-key`                                       |
+| `PORT`         | サーバーポート         | `3000`                                                  |
+| `NODE_ENV`     | 実行環境               | `development` / `production`                            |
 
 ### Owner Web (.env.local)
 
-| 変数名 | 説明 | 例 |
-|---|---|---|
+| 変数名                | 説明            | 例                      |
+| --------------------- | --------------- | ----------------------- |
 | `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:3000` |
 
 ## 次のステップ

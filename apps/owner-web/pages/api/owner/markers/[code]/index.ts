@@ -14,10 +14,7 @@ interface MarkerEntry {
 // in-memory store for dev
 const store: Record<string, MarkerEntry> = {};
 
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -25,9 +22,7 @@ export default function handler(
   const { code } = req.query as { code: string };
 
   if (!code || typeof code !== 'string') {
-    return res
-      .status(400)
-      .json({ error: 'code parameter is required' });
+    return res.status(400).json({ error: 'code parameter is required' });
   }
 
   // Return marker + report + declaration

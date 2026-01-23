@@ -63,10 +63,12 @@ npm run e2e:headed  # ブラウザで確認したい場合
 ## テストについて
 
 ### Backend
+
 - **Vitest** を使用した単体/統合テスト
 - Prisma をモックしたテストと、必要に応じて Postgres を使った統合テスト
 
 ### Owner Web
+
 - **Jest** を使用した単体テスト（React コンポーネント）
 - **Playwright** を使用した E2E テスト
 - TypeScript の型安全性確保
