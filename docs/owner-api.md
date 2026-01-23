@@ -5,69 +5,95 @@
 QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕様です。
 目的は「警告確認 → 仮解除（unlock-temp） → 本解除（unlock-final）」を安全かつ操作しやすく提供することです。
 
+**実装状況**: Owner Web では現在インメモリストアで実装。Backend との統合は次フェーズ予定。
+
 ---
 
 ## フロー
 
-1. QR を読み取り `/owner/markers/:code` にアクセスして対象の通報 (report) を表示。
-2. 持ち主が「解除（仮）」を押すと `POST /owner/markers/{code}/unlock-temp` を呼ぶ。サーバは `status=仮解除` にし、以下を返す:
+1. QR を読み取り `/api/owner/markers/:code` にアクセスして対象の通報 (report) を表示。
+2. 持ち主が「解除（仮）」を押すと `POST /api/owner/markers/{code}/unlock-temp` を呼ぶ。サーバは `status=temporary` にし、以下を返す:
    - `declaredAt`（時刻）
    - `eligibleFinalAt` = declaredAt + 15分
    - `expiresAt` = declaredAt + 24時間
-3. 15分経過後に `POST /owner/markers/{code}/unlock-final` を呼ぶと `status=resolved`（本解除）になる。
+3. 15分経過後に `POST /api/owner/markers/{code}/unlock-final` を呼ぶと `status=resolved`（本解除）になる。
 4. 24時間経過時点で本解除されていない場合、サーバの定期ジョブで自動的に `resolved` にする。
 
 ---
 
 ## 主要エンドポイント
 
-### GET /owner/markers/{code}
+### GET /api/owner/markers/{code}
 
 - 説明: 指定 `code` の最新 `BicycleReport`（あれば）と現在の `declaration` を返す
+- ステータスコード: 200 OK
 - レスポンス例:
 
 ```json
 {
-  "status": "ok",
-  "data": {
-    "marker": { "code": "ABC123", "location": { "lat": 35.XXX, "lng": 135.XXX } },
-    "report": { "id": "...", "status": "reported", "imageUrl": "...", "ocr_text": "..." },
-    "declaration": null
-  }
+  "marker": { "code": "ABC123" },
+  "report": {
+    "id": "r-ABC123",
+    "status": "reported",
+    "imageUrl": "",
+    "ocr_text": ""
+  },
+  "declaration": null
 }
 ```
 
-### POST /owner/markers/{code}/unlock-temp
+### POST /api/owner/markers/{code}/unlock-temp
 
 - 説明: 仮解除を登録（持ち主による解除操作）
 - Body: `{ "notes"?: string }`
+- ステータスコード: 200 OK
 - レスポンス例:
 
 ```json
 {
-  "status": "ok",
-  "data": {
-    "declaredAt": "2026-01-19T12:00:00Z",
-    "eligibleFinalAt": "2026-01-19T12:15:00Z",
-    "expiresAt": "2026-01-20T12:00:00Z",
-    "status": "temporary"
-  }
+  "declaredAt": "2026-01-19T12:00:00.000Z",
+  "eligibleFinalAt": "2026-01-19T12:15:00.000Z",
+  "expiresAt": "2026-01-20T12:00:00.000Z",
+  "status": "temporary"
 }
 ```
 
-### POST /owner/markers/{code}/unlock-final
+### POST /api/owner/markers/{code}/unlock-final
 
 - 説明: 本解除（最終解除）を実行（条件: 現在は仮解除かつ server.now >= eligibleFinalAt）
+- ステータスコード: 200 OK（成功）、400 Bad Request（条件未満）
 - 成功レスポンス例:
 
 ```json
 {
-  "status": "ok",
-  "data": { "finalizedAt": "2026-01-19T12:20:00Z", "status": "resolved" }
+  "finalizedAt": "2026-01-19T12:20:00.000Z",
+  "status": "resolved"
 }
 ```
 
-- ルール: `eligibleFinalAt` 到達前は 4xx を返す
+- エラーレスポンス例:
+
+```json
+{
+  "error": "no declaration found"
+}
+```
+
+```json
+{
+  "error": "eligibleFinalAt has not arrived"
+}
+```
+
+---
+
+## エラーハンドリング
+
+| ステータスコード | 説明 | 例 |
+|---|---|---|
+| 400 | Bad Request | `code` が無効、declaration がない、時間条件未満 |
+| 404 | Not Found | マーカーが存在しない |
+| 405 | Method Not Allowed | GET/POST 以外のメソッド |
 
 ---
 
@@ -75,7 +101,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 - テーブル `move_declarations`:
   - `id`, `marker_id`, `report_id`, `declared_at`, `eligible_final_at`, `expires_at`, `status` (temporary|finalized|expired), `finalized_at`, `ip`, `user_agent`, `notes`
-- `bicycle_reports.status` は `reported|marked_for_collection|collected|resolved|仮解除(temporary)` をサポート
+- `bicycle_reports.status` は `reported|marked_for_collection|collected|resolved|temporary` をサポート
 
 ---
 
@@ -95,7 +121,8 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ## 受入基準
 
-- `/owner/markers/{code}` が該当レポートを表示する
-- `POST /unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
-- `POST /unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
+- `GET /api/owner/markers/{code}` が該当レポートを表示する
+- `POST /api/owner/markers/{code}/unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
+- `POST /api/owner/markers/{code}/unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
 - 24時間経過で自動的に `resolved` になる
+
