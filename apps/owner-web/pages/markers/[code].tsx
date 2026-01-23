@@ -26,6 +26,7 @@ export default function MarkerPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [nowTime, setNowTime] = useState(Date.now());
+  const [tempUnlockDisabled, setTempUnlockDisabled] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNowTime(Date.now()), 1000);
@@ -55,6 +56,7 @@ export default function MarkerPage() {
       }));
       setInfo('仮解除しました');
       setTimeout(() => setInfo(null), 4000);
+      setTempUnlockDisabled(true);
     } catch (e) {
       setError('仮解除に失敗しました');
     } finally {
@@ -128,12 +130,15 @@ export default function MarkerPage() {
             <div style={{ marginTop: 12 }}>
               <button
                 onClick={handleTemp}
+                disabled={tempUnlockDisabled}
                 style={{
                   background: '#ff6b6b',
                   color: '#fff',
                   padding: '12px 16px',
                   border: 'none',
                   borderRadius: 6,
+                  opacity: tempUnlockDisabled ? 0.5 : 1,
+                  cursor: tempUnlockDisabled ? 'not-allowed' : 'pointer',
                 }}
               >
                 解除（仮）
