@@ -1,0 +1,11 @@
+# Node
+/node_modules
+/.pnp
+.pnp.js
+
+# Next.js
+/.next
+
+# Playwright test artifacts
+/playwright-report
+/test-results

@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Owner Web API
+  version: "1.0.0"
+  description: API for owner (QR-access) flow: temporary unlock -> final unlock
+paths:
+  /owner/markers/{code}:
+    get:
+      summary: Get marker and latest report + declaration
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerMarkerResponse'
+  /owner/markers/{code}/unlock-temp:
+    post:
+      summary: Create temporary unlock (仮解除)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Temporary unlock created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemporaryUnlockResponse'
+  /owner/markers/{code}/unlock-final:
+    post:
+      summary: Finalize unlock (本解除) - allowed after eligibleFinalAt
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeResponse'
+        '400':
+          description: Not eligible yet
+components:
+  schemas:
+    OwnerMarkerResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        data:
+          type: object
+          properties:
+            marker:
+              type: object
+              properties:
+                code: { type: string }
+                location:
+                  type: object
+                  properties:
+                    lat: { type: number }
+                    lng: { type: number }
+            report:
+              type: object
+              nullable: true
+            declaration:
+              type: object
+              nullable: true
+    TemporaryUnlockResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        data:
+          type: object
+          properties:
+            declaredAt:
+              type: string
+              format: date-time
+            eligibleFinalAt:
+              type: string
+              format: date-time
+            expiresAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              example: temporary
+    FinalizeResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            finalizedAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              example: resolved
