@@ -102,6 +102,12 @@ npm install
 
 ```
 
+### ローカル開発方針（CI無し）
+
+- 本プロジェクトでは **CI（自動ワークフロー）は導入しません**。
+- 変更はローカルで `npm test` や `npm run lint` を実行して確認してください。
+- 詳細な手順と推奨ワークフローは `docs/developer-workflow.md` を参照してください。
+
 ### 3. 環境変数の設定 (.env)
 
 各ディレクトリの `.env.example` をコピーして `.env` を作成し、必要なAPIキー（Google Maps API, Cloud Vision API, DB接続情報など）を設定してください。
