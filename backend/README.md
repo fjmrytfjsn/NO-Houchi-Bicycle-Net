@@ -15,3 +15,9 @@ API:
 - GET / -> ヘルスチェック
 - POST /auth/register, POST /auth/login
 - GET/POST /bikes, GET/PUT/DELETE /bikes/:id
+
+開発ワークフローと方針:
+
+- CI は導入しません。ローカル検証を重視し、`docs/developer-workflow.md` に手順をまとめています。
+- ローカルでのテスト実行: `npm test`（Vitest）
+- 推奨: Docker Compose で Postgres を立ち上げ、`npx prisma generate` / `npx prisma migrate dev` を実行してから `npm run dev` でアプリを起動してください。
