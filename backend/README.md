@@ -16,6 +16,63 @@ API:
 - POST /auth/register, POST /auth/login
 - GET/POST /bikes, GET/PUT/DELETE /bikes/:id
 - **POST /bikes/ocr/recognize** -> OCR（防犯登録番号認識）
+- **POST /owner/markers/:code/unlock-temp** -> 仮解除
+- **POST /owner/markers/:code/unlock-final** -> 本解除（クーポン発行）
+- **GET /owner/markers/:code/coupons** -> クーポン一覧取得
+- **POST /owner/coupons/:id/use** -> クーポン使用
+
+## クーポンシステム
+
+持ち主が本解除を行うと、商店街で使えるクーポンが自動的に発行されます。
+
+### 機能
+
+- **自動クーポン発行**: 本解除完了時に500円分のお買い物券または割引クーポンを自動発行
+- **クーポン一覧**: マーカーコードから発行されたクーポンを確認可能
+- **クーポン使用**: 店舗でクーポンを使用済みに変更
+- **有効期限管理**: クーポンごとに有効期限を設定（デフォルト30日間）
+
+### API使用例
+
+```bash
+# 1. 仮解除（15分間の猶予期間開始）
+curl -X POST http://localhost:3000/owner/markers/ABC123/unlock-temp \
+  -H "Content-Type: application/json" \
+  -d '{"notes": "自転車を移動しました"}'
+
+# 2. 本解除（15分後、クーポン発行）
+curl -X POST http://localhost:3000/owner/markers/ABC123/unlock-final \
+  -H "Content-Type: application/json" \
+  -d '{"ownerEmail": "owner@example.com"}'
+
+# レスポンス例
+{
+  "finalizedAt": "2026-01-25T12:15:00.000Z",
+  "status": "resolved",
+  "coupon": {
+    "id": "coupon-id-123",
+    "name": "商店街お買い物券500円",
+    "description": "商店街の加盟店で使える500円分のお買い物券",
+    "shopName": "北区商店街",
+    "discount": 500,
+    "discountType": "amount",
+    "expiresAt": "2026-02-24T12:15:00.000Z"
+  },
+  "message": "クーポンを獲得しました！商店街でご利用ください。"
+}
+
+# 3. クーポン一覧取得
+curl http://localhost:3000/owner/markers/ABC123/coupons
+
+# 4. クーポン使用
+curl -X POST http://localhost:3000/owner/coupons/coupon-id-123/use
+```
+
+### データモデル
+
+- **Coupon**: クーポンマスター（商店街の店舗が提供するクーポン情報）
+- **CouponIssuance**: クーポン発行履歴（持ち主に発行されたクーポン）
+- **Declaration**: 仮解除・本解除の宣言情報
 
 ## OCR機能
 

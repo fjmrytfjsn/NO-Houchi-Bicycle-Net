@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String?
-  email       String   @unique
+  email       String            @unique
   password    String
-  role        String   @default("user")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  role        String            @default("user")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   rentals     Rental[]
+  coupons     CouponIssuance[]
 }
 
 model Bike {
@@ -37,4 +38,59 @@ model Rental {
   startAt   DateTime @default(now())
   endAt     DateTime?
   status    String   @default("active")
+}
+
+model Marker {
+  id          String            @id @default(uuid())
+  code        String            @unique
+  location    String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  declarations Declaration[]
+  coupons     CouponIssuance[]
+}
+
+model Declaration {
+  id              String    @id @default(uuid())
+  marker          Marker    @relation(fields: [markerId], references: [id])
+  markerId        String
+  declaredAt      DateTime  @default(now())
+  eligibleFinalAt DateTime
+  expiresAt       DateTime
+  finalizedAt     DateTime?
+  status          String    @default("temporary") // temporary, resolved, expired
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Coupon {
+  id          String           @id @default(uuid())
+  name        String
+  description String
+  shopName    String           // 商店街の店舗名
+  discount    Int              // 割引額（円）または割引率（%）
+  discountType String          @default("amount") // amount (金額) or percentage (%)
+  validDays   Int              @default(30) // 有効期限（日数）
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  issuances   CouponIssuance[]
+}
+
+model CouponIssuance {
+  id          String    @id @default(uuid())
+  coupon      Coupon    @relation(fields: [couponId], references: [id])
+  couponId    String
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+  marker      Marker?   @relation(fields: [markerId], references: [id])
+  markerId    String?
+  ownerEmail  String?   // 持ち主のメールアドレス（ユーザー登録不要の場合）
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime  // クーポン有効期限
+  usedAt      DateTime? // 使用日時
+  status      String    @default("active") // active, used, expired
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

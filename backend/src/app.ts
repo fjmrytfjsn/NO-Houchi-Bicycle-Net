@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import authRoutes from './routes/auth';
 import bikeRoutes from './routes/bikes';
+import ownerRoutes from './routes/owner';
 
 import prismaPlugin from './plugins/prisma';
 
@@ -38,6 +39,7 @@ export function buildServer({ prisma }: { prisma?: any } = {}) {
 
   server.register(authRoutes, { prefix: '/auth' });
   server.register(bikeRoutes, { prefix: '/bikes' });
+  server.register(ownerRoutes, { prefix: '/owner' });
 
   return server;
 }
