@@ -61,19 +61,53 @@ export class OCRService {
 
   /**
    * テキストから防犯登録番号を抽出
-   * 8~10桁の数字パターンを検索
+   * 6桁の数字パターンを検索（大阪府の防犯登録番号）
    */
   private extractRegistrationNumber(text: string): string | null {
-    // 8~10桁の連続した数字を抽出
-    const registrationPattern = /\b\d{8,10}\b/g;
-    const matches = text.match(registrationPattern);
-
-    if (!matches || matches.length === 0) {
-      return null;
+    // パターン1: "防犯登録" の後に続く6桁の数字を優先的に抽出
+    const afterRegistrationPattern = /防犯登録[\s\S]{0,50}?(\d{6})\b/;
+    const afterMatch = text.match(afterRegistrationPattern);
+    
+    if (afterMatch && afterMatch[1]) {
+      return afterMatch[1];
     }
 
-    // 最初にマッチした8~10桁の数字を返す
-    return matches[0];
+    // パターン2: a217XXXXXXXXX のようなパターンから6桁部分を抽出
+    // （大阪府の防犯登録番号シール形式）
+    const osakaPattern = /a\d{11,12}a/gi;
+    const osakaMatches = text.match(osakaPattern);
+    
+    if (osakaMatches && osakaMatches.length > 0) {
+      // a217XXXXXX から最後の6桁を抽出
+      const numbers = osakaMatches[0].match(/\d+/);
+      if (numbers && numbers[0].length >= 6) {
+        const fullNumber = numbers[0];
+        return fullNumber.substring(fullNumber.length - 6); // 最後の6桁
+      }
+    }
+
+    // パターン3: 単独の6桁の数字
+    const directPattern = /\b\d{6}\b/g;
+    const directMatches = text.match(directPattern);
+    
+    if (directMatches && directMatches.length > 0) {
+      // 複数ある場合は、"防犯登録" や "大阪府警察" に近いものを優先
+      for (const match of directMatches) {
+        const index = text.indexOf(match);
+        const before = text.substring(Math.max(0, index - 50), index);
+        const after = text.substring(index, Math.min(text.length, index + 50));
+        
+        if (before.includes('防犯登録') || before.includes('大阪府警察') || 
+            after.includes('大阪府警察')) {
+          return match;
+        }
+      }
+      
+      // 見つからなければ最初のマッチを返す
+      return directMatches[0];
+    }
+
+    return null;
   }
 
   /**
@@ -90,9 +124,15 @@ export class OCRService {
     let wordCount = 0;
 
     for (const page of pages) {
-      if (page.lines) {
+      if (page.lines && Array.isArray(page.lines)) {
         for (const line of page.lines) {
-          if (line.words) {
+          // line自体の信頼度がある場合
+          if (line.confidence !== undefined) {
+            totalConfidence += line.confidence;
+            wordCount++;
+          }
+          // wordsが配列の場合
+          if (line.words && Array.isArray(line.words)) {
             for (const word of line.words) {
               if (word.confidence !== undefined) {
                 totalConfidence += word.confidence;
@@ -102,9 +142,14 @@ export class OCRService {
           }
         }
       }
+      // ページレベルの信頼度もチェック
+      if (page.confidence !== undefined) {
+        totalConfidence += page.confidence;
+        wordCount++;
+      }
     }
 
-    return wordCount > 0 ? totalConfidence / wordCount : 0;
+    return wordCount > 0 ? totalConfidence / wordCount : 0.95; // デフォルト値
   }
 }
 
