@@ -5,7 +5,7 @@ import bikeRoutes from './routes/bikes';
 
 import prismaPlugin from './plugins/prisma';
 
-export function buildServer({ prisma } = {}) {
+export function buildServer({ prisma }: { prisma?: any } = {}) {
   const server = Fastify({ logger: false });
 
   server.register(fastifyJwt, {

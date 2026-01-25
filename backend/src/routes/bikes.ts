@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { getOCRService } from '../services/ocrService';
 
 export default async function (fastify: FastifyInstance) {
   // List bikes
@@ -67,6 +68,48 @@ export default async function (fastify: FastifyInstance) {
       return reply.status(204).send();
     } catch (err) {
       return reply.status(404).send({ error: 'not found' });
+    }
+  });
+
+  // OCR: Recognize registration number from image
+  fastify.post('/ocr/recognize', async (request, reply) => {
+    const body = request.body as any;
+    if (!body?.filePath) {
+      return reply.status(400).send({ 
+        error: 'filePath required',
+        message: 'FTPから取得した画像ファイルのパスを指定してください'
+      });
+    }
+
+    try {
+      const ocrService = getOCRService();
+      const result = await ocrService.recognizeRegistrationNumber(body.filePath);
+      
+      if (!result.success) {
+        return reply.status(400).send({ 
+          error: result.error,
+          result: {
+            registrationNumber: null,
+            confidence: 0,
+            rawText: ''
+          }
+        });
+      }
+
+      return reply.status(200).send({
+        success: true,
+        result: {
+          registrationNumber: result.registrationNumber,
+          confidence: result.confidence,
+          rawText: result.rawText
+        }
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      return reply.status(500).send({ 
+        error: 'OCR処理中にエラーが発生しました',
+        details: errorMessage
+      });
     }
   });
 }
