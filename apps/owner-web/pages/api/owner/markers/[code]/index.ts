@@ -31,7 +31,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     report: {
       id: 'r-' + code,
       status: 'reported',
-      imageUrl: '',
+      imageUrl: '/samples/放置自転車.jpg',
       ocr_text: '',
     },
     declaration: null,

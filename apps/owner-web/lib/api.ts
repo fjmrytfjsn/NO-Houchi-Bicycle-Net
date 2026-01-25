@@ -29,3 +29,11 @@ export async function unlockFinal(code: string) {
   }
   return res.json();
 }
+
+export async function getCoupons(code: string) {
+  const res = await fetch(`/api/owner/markers/${code}/coupons`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch coupons: ${res.statusText}`);
+  }
+  return res.json();
+}
