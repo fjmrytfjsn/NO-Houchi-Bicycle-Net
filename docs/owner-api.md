@@ -7,6 +7,12 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 **実装状況**: Owner Web では現在インメモリストアで実装。Backend との統合は次フェーズ予定。
 
+**中間発表Q&A反映ポイント**:
+
+- 持ち主に対して「マーカー非破壊・行政委託」であることをUI上で明示
+- 本解除時のクーポン連携を標準フローとして扱う
+- 常習犯対策/盗難照合との将来連携を考慮したイベントログ設計
+
 ---
 
 ## フロー
@@ -16,8 +22,15 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
    - `declaredAt`（時刻）
    - `eligibleFinalAt` = declaredAt + 15分
    - `expiresAt` = declaredAt + 24時間
-3. 15分経過後に `POST /api/owner/markers/{code}/unlock-final` を呼ぶと `status=resolved`（本解除）になる。
+3. 15分経過後に、同じマーカーのQRコードを再度スキャンすると本解除が実行される（jsQRによるカメラスキャン）。
+   - クライアントは `scannedCode` を `POST /api/owner/markers/{code}/unlock-final` に送信し、サーバーで `:code` と照合する。
 4. 24時間経過時点で本解除されていない場合、サーバの定期ジョブで自動的に `resolved` にする。
+
+**本解除のQR再スキャン仕様**:
+- 持ち主は本解除ボタンを押すと、カメラが起動しQRコードスキャンモードになる
+- スキャンしたQRデータと現在表示中のマーカーコードが一致した場合のみ本解除が実行される
+- 異なるQRを読み込んだ場合はエラーが表示される
+- キャンセルボタンでスキャンを中止できる
 
 ---
 
@@ -60,16 +73,30 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ### POST /api/owner/markers/{code}/unlock-final
 
-- 説明: 本解除（最終解除）を実行（条件: 現在は仮解除かつ server.now >= eligibleFinalAt）
+- 説明: 本解除（最終解除）を実行（条件: 現在は仮解除かつ server.now >= eligibleFinalAt かつ `scannedCode === code`）
+- Body: `{ "scannedCode": string, "ownerEmail"?: string }`
 - ステータスコード: 200 OK（成功）、400 Bad Request（条件未満）
 - 成功レスポンス例:
 
 ```json
 {
   "finalizedAt": "2026-01-19T12:20:00.000Z",
-  "status": "resolved"
+  "status": "resolved",
+  "coupon": {
+    "id": "coupon-id-123",
+    "name": "商店街お買い物券500円",
+    "description": "商店街の加盟店で使える500円分のお買い物券",
+    "shopName": "北区商店街",
+    "discount": 500,
+    "discountType": "amount",
+    "expiresAt": "2026-02-24T12:15:00.000Z"
+  },
+  "message": "クーポンを獲得しました！商店街でご利用ください。"
 }
 ```
+
+- `coupon` はクーポン発行成功時はオブジェクト、発行条件未達や在庫なしの場合は `null`
+- `message` は `coupon` の有無に応じて分岐（例: クーポンあり `クーポンを獲得しました！...` / なし `本解除が完了しました`）
 
 - エラーレスポンス例:
 
@@ -85,6 +112,34 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
+### GET /api/owner/markers/{code}/coupons
+
+- 説明: 指定マーカーに紐づく発行済みクーポンを取得
+- ステータスコード: 200 OK
+- レスポンス例:
+
+```json
+{
+  "markerId": "marker-id",
+  "code": "ABC123",
+  "coupons": [
+    {
+      "id": "issuance-id",
+      "name": "商店街お買い物券500円",
+      "discount": 500,
+      "discountType": "amount",
+      "expiresAt": "2026-02-24T12:15:00.000Z",
+      "status": "active"
+    }
+  ]
+}
+```
+
+### POST /api/owner/coupons/{id}/use
+
+- 説明: クーポンを利用済みに更新
+- ステータスコード: 200 OK（成功）、400 Bad Request（使用不可）
+
 ---
 
 ## エラーハンドリング
@@ -99,9 +154,16 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ## DB モデル案
 
+- 本節は **将来の統合時に向けた概念モデル案（未実装・命名未確定）**。
+- 実装済みモデル/命名は `backend/prisma/schema.prisma` を正とする。
+
 - テーブル `move_declarations`:
   - `id`, `marker_id`, `report_id`, `declared_at`, `eligible_final_at`, `expires_at`, `status` (temporary|finalized|expired), `finalized_at`, `ip`, `user_agent`, `notes`
 - `bicycle_reports.status` は `reported|marked_for_collection|collected|resolved|temporary` をサポート
+- テーブル `coupon_issuances`:
+  - `id`, `coupon_id`, `marker_id`, `owner_email`, `issued_at`, `expires_at`, `used_at`, `status`
+- テーブル `audit_logs`:
+  - `id`, `action_type`, `marker_code`, `ip`, `user_agent`, `risk_score`, `created_at`
 
 ---
 
@@ -116,12 +178,23 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 - すべての解除操作（仮/本）は `ip`, `user_agent`, `timestamp` を保存
 - 異常なパターン (短期間に大量解除) はアラート対象
+- 本解除時のクーポン発行/利用イベントも監査対象
+- 将来的な盗難照合（警察連携）のため、防犯登録番号照会イベントを監査対象に含める
 
 ---
 
 ## 受入基準
 
-- `GET /api/owner/markers/{code}` が該当レポートを表示する
+- `GET /api/owner/markers/{code}` が該当レポート（画像・OCRテキスト含む）を表示する
 - `POST /api/owner/markers/{code}/unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
-- `POST /api/owner/markers/{code}/unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
+- 仮解除後、同一マーカーQRコードをカメラで再スキャンすることで本解除が実行される
+- `unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
 - 24時間経過で自動的に `resolved` になる
+- 本解除後、`GET /api/owner/markers/{code}/coupons` で発行済みクーポンを確認できる
+- `POST /api/owner/coupons/{id}/use` でクーポンを利用済みにできる
+
+## UI表示要件（持ち主画面）
+
+- マーカーは粘着剤不使用の非破壊方式であることを明示する。
+- 行政の委託業務の一環であることを明示する。
+- 緊急時に取り外しやすい仕様であることを明示する。
