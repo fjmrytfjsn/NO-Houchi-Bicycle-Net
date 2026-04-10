@@ -23,6 +23,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
    - `eligibleFinalAt` = declaredAt + 15分
    - `expiresAt` = declaredAt + 24時間
 3. 15分経過後に、同じマーカーのQRコードを再度スキャンすると本解除が実行される（jsQRによるカメラスキャン）。
+   - クライアントは `scannedCode` を `POST /api/owner/markers/{code}/unlock-final` に送信し、サーバーで `:code` と照合する。
 4. 24時間経過時点で本解除されていない場合、サーバの定期ジョブで自動的に `resolved` にする。
 
 **本解除のQR再スキャン仕様**:
@@ -72,7 +73,8 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ### POST /api/owner/markers/{code}/unlock-final
 
-- 説明: 本解除（最終解除）を実行（条件: 現在は仮解除かつ server.now >= eligibleFinalAt）
+- 説明: 本解除（最終解除）を実行（条件: 現在は仮解除かつ server.now >= eligibleFinalAt かつ `scannedCode === code`）
+- Body: `{ "scannedCode": string, "ownerEmail"?: string }`
 - ステータスコード: 200 OK（成功）、400 Bad Request（条件未満）
 - 成功レスポンス例:
 
@@ -92,6 +94,9 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
   "message": "クーポンを獲得しました！商店街でご利用ください。"
 }
 ```
+
+- `coupon` はクーポン発行成功時はオブジェクト、発行条件未達や在庫なしの場合は `null`
+- `message` は `coupon` の有無に応じて分岐（例: クーポンあり `クーポンを獲得しました！...` / なし `本解除が完了しました`）
 
 - エラーレスポンス例:
 
@@ -148,6 +153,9 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 ---
 
 ## DB モデル案
+
+- 本節は **将来の統合時に向けた概念モデル案（未実装・命名未確定）**。
+- 実装済みモデル/命名は `backend/prisma/schema.prisma` を正とする。
 
 - テーブル `move_declarations`:
   - `id`, `marker_id`, `report_id`, `declared_at`, `eligible_final_at`, `expires_at`, `status` (temporary|finalized|expired), `finalized_at`, `ip`, `user_agent`, `notes`

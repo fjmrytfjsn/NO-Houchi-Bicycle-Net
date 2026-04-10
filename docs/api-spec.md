@@ -11,7 +11,13 @@
 { "status": "ok|error", "data": ..., "error": { "code": "", "message": "" } }
 ```
 
-実装都合により一部エンドポイントでは以下の簡易形式を返す場合がある。
+現状は移行期間のため、以下の2形式が混在する。
+
+- `/api/*`（管理者/サポーター向け）は原則ラッパー形式
+- `/owner/*`（持ち主向け）と legacy エンドポイントは簡易形式を許容
+- 将来的には API バージョニング（`/api/v1`）で形式統一を行う
+
+簡易形式:
 
 ```json
 { "error": "message" }
@@ -98,32 +104,35 @@
 
 - 説明: 管理者/サポーターのログイン
 - Body: `{ "email": string, "password": string }`
-- レスポンス: `{ "token": "<jwt>" }`
+- レスポンス: `{ "status": "ok", "data": { "token": "<jwt>" }, "error": null }`
 
 ---
 
 ## 持ち主向けエンドポイント（アカウント不要）
 
-### GET /owner/markers/:code/coupons
+- 公開パスは `/api/owner/*`（Owner Web から呼び出す経路）
+- バックエンド内部ルータでは `/owner/*` として実装される場合がある
+
+### GET /api/owner/markers/:code/coupons
 
 - 説明: 指定マーカーに紐づくクーポン発行履歴を返す
 
-### POST /owner/markers/:code/unlock-temp
+### POST /api/owner/markers/:code/unlock-temp
 
 - 説明: 持ち主が仮解除を実行
 - Body: `{ "notes"?: string }`
 
-### POST /owner/markers/:code/unlock-final
+### POST /api/owner/markers/:code/unlock-final
 
-- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後、QR再スキャンによる確認が必要）
-- Body: `{ "ownerEmail"?: string }`
-- 備考: 本解除時にQRコード再スキャンによる確認が必要。スキャン成功后、クーポン発行処理が走る。
+- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後、QR再スキャン照合が必要）
+- Body: `{ "scannedCode": string, "ownerEmail"?: string }`
+- 備考: `scannedCode` と `:code` をサーバー側で照合し、一致時のみ本解除を許可する。スキャン成功後、クーポン発行処理が走る。
 
-### POST /owner/coupons/:id/use
+### POST /api/owner/coupons/:id/use
 
 - 説明: 発行済みクーポンを利用済みに更新
 
-### POST /owner/markers/:code/move (legacy)
+### POST /api/owner/markers/:code/move (legacy)
 
 - 説明: 持ち主が移動宣言（仮措置）を行う（アカウント不要）
 - Body:

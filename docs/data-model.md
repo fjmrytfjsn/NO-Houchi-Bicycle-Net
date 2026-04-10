@@ -7,7 +7,8 @@
 ## 設計方針
 
 - 本ドキュメントは「実装済みモデル」と「次フェーズ拡張モデル」を併記する。
-- 実装済みモデルは `backend/prisma/schema.prisma` を正とする。
+- 実装済みモデルの厳密な定義（型・必須・relation・正式命名）は `backend/prisma/schema.prisma` を正とする。
+- 本ドキュメントのフィールド名は説明の可読性を優先した論理モデル表記（snake_case 含む）であり、Prisma 実装名（camelCase）とは一致しない場合がある。
 - 拡張モデルは中間発表フィードバック反映のための要件定義であり、段階導入を前提とする。
 
 ---
@@ -138,8 +139,8 @@
 
 ---
 
- 更新履歴:
+更新履歴:
 
- - v0.1 初版
- - v0.2 中間発表Q&A反映（Declaration/Coupon系の明記、Blacklist/GeofenceZone/AuditLog/CleanupRecord追加）
- - v0.3: QR再スキャン仕様対応
+- v0.1 初版
+- v0.2 中間発表Q&A反映（Declaration/Coupon系の明記、Blacklist/GeofenceZone/AuditLog/CleanupRecord追加）
+- v0.3: QR再スキャン仕様対応
