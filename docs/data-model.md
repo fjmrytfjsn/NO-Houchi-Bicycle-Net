@@ -138,7 +138,8 @@
 
 ---
 
-更新履歴:
+ 更新履歴:
 
-- v0.1 初版
-- v0.2 中間発表Q&A反映（Declaration/Coupon系の明記、Blacklist/GeofenceZone/AuditLog/CleanupRecord追加）
+ - v0.1 初版
+ - v0.2 中間発表Q&A反映（Declaration/Coupon系の明記、Blacklist/GeofenceZone/AuditLog/CleanupRecord追加）
+ - v0.3: QR再スキャン仕様対応

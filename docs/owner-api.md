@@ -22,8 +22,14 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
    - `declaredAt`（時刻）
    - `eligibleFinalAt` = declaredAt + 15分
    - `expiresAt` = declaredAt + 24時間
-3. 15分経過後に `POST /api/owner/markers/{code}/unlock-final` を呼ぶと `status=resolved`（本解除）になる。
+3. 15分経過後に、同じマーカーのQRコードを再度スキャンすると本解除が実行される（jsQRによるカメラスキャン）。
 4. 24時間経過時点で本解除されていない場合、サーバの定期ジョブで自動的に `resolved` にする。
+
+**本解除のQR再スキャン仕様**:
+- 持ち主は本解除ボタンを押すと、カメラが起動しQRコードスキャンモードになる
+- スキャンしたQRデータと現在表示中のマーカーコードが一致した場合のみ本解除が実行される
+- 異なるQRを読み込んだ場合はエラーが表示される
+- キャンセルボタンでスキャンを中止できる
 
 ---
 
@@ -171,9 +177,10 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ## 受入基準
 
-- `GET /api/owner/markers/{code}` が該当レポートを表示する
+- `GET /api/owner/markers/{code}` が該当レポート（画像・OCRテキスト含む）を表示する
 - `POST /api/owner/markers/{code}/unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
-- `POST /api/owner/markers/{code}/unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
+- 仮解除後、同一マーカーQRコードをカメラで再スキャンすることで本解除が実行される
+- `unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
 - 24時間経過で自動的に `resolved` になる
 - 本解除後、`GET /api/owner/markers/{code}/coupons` で発行済みクーポンを確認できる
 - `POST /api/owner/coupons/{id}/use` でクーポンを利用済みにできる

@@ -115,9 +115,9 @@
 
 ### POST /owner/markers/:code/unlock-final
 
-- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後）
+- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後、QR再スキャンによる確認が必要）
 - Body: `{ "ownerEmail"?: string }`
-- 備考: 本解除時にクーポン発行処理が走る
+- 備考: 本解除時にQRコード再スキャンによる確認が必要。スキャン成功后、クーポン発行処理が走る。
 
 ### POST /owner/coupons/:id/use
 
