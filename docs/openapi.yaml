@@ -1,35 +1,22 @@
 openapi: 3.0.3
 info:
-  title: NO-Houchi-Bicycle-Net API (draft)
-  version: 0.1.0
+  title: NO-Houchi-Bicycle-Net API (prototype draft)
+  version: 0.2.0
+  description: >
+    試作品スコープ向けの API 草案。通報、持ち主による解除、未解除時の回収依頼、
+    回収結果記録を中心に扱う。ブラックリスト、高度分析、外部連携、詳細インセンティブは将来構想。
 servers:
   - url: http://localhost:3000
 paths:
-  /auth/register:
+  /api/auth/login:
     post:
-      summary: ユーザー登録
+      summary: 管理者/サポーターのログイン
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserRegister"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-  /auth/login:
-    post:
-      summary: ログイン
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserLogin"
+              $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
           description: OK
@@ -37,46 +24,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
-  /users/{id}:
+  /api/reports:
     get:
-      summary: ユーザー情報取得
+      summary: 管理画面向け通報一覧
       parameters:
-        - name: id
-          in: path
-          required: true
+        - name: status
+          in: query
+          required: false
           schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-    put:
-      summary: ユーザー更新
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserUpdate"
-      responses:
-        "200":
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-  /bikes:
-    get:
-      summary: 自転車一覧取得
+            $ref: "#/components/schemas/ReportStatus"
       responses:
         "200":
           description: OK
@@ -85,97 +41,143 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Bike"
+                  $ref: "#/components/schemas/BicycleReport"
     post:
-      summary: 自転車登録
+      summary: Androidアプリから通報を作成
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BikeCreate"
+              $ref: "#/components/schemas/ReportCreate"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bike"
-  /bikes/{id}:
+                $ref: "#/components/schemas/BicycleReport"
+  /api/reports/{id}:
     get:
-      summary: 自転車取得
+      summary: 通報詳細
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/ReportId"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bike"
-    put:
-      summary: 自転車更新
+                $ref: "#/components/schemas/BicycleReport"
+  /api/reports/{id}/collection-request:
+    post:
+      summary: 未解除案件を回収依頼対象にする
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/ReportId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionRequestBody"
+      responses:
+        "200":
+          description: Collection requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleReport"
+  /api/reports/{id}/collection-result:
+    patch:
+      summary: 回収結果を記録する
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BikeUpdate"
+              $ref: "#/components/schemas/CollectionResultBody"
       responses:
         "200":
-          description: Updated
+          description: Collection result recorded
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Bike"
-    delete:
-      summary: 自転車削除
+                $ref: "#/components/schemas/BicycleReport"
+  /api/owner/markers/{code}:
+    get:
+      summary: 持ち主向けの警告内容取得
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/MarkerCode"
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerMarkerResponse"
+  /api/owner/markers/{code}/unlock-temp:
+    post:
+      summary: 持ち主による仮解除
+      parameters:
+        - $ref: "#/components/parameters/MarkerCode"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnlockTempBody"
+      responses:
+        "200":
+          description: Temporary unlock created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnlockTempResponse"
+  /api/owner/markers/{code}/unlock-final:
+    post:
+      summary: 持ち主による本解除
+      parameters:
+        - $ref: "#/components/parameters/MarkerCode"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnlockFinalBody"
+      responses:
+        "200":
+          description: Final unlock completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnlockFinalResponse"
 components:
+  parameters:
+    ReportId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    MarkerCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        email:
-          type: string
-        role:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    UserRegister:
-      type: object
-      required: [name, email, password]
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-        password:
-          type: string
-    UserLogin:
+    ReportStatus:
+      type: string
+      enum:
+        - reported
+        - temporary
+        - resolved
+        - collection_requested
+        - collected
+        - not_found_on_collection
+    LoginRequest:
       type: object
       required: [email, password]
       properties:
@@ -183,49 +185,108 @@ components:
           type: string
         password:
           type: string
-    UserUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-        email:
-          type: string
     AuthResponse:
       type: object
       properties:
-        accessToken:
+        token:
           type: string
-        tokenType:
+    ReportCreate:
+      type: object
+      required: [imageUrl, latitude, longitude]
+      properties:
+        imageUrl:
           type: string
-          example: Bearer
-    Bike:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        markerId:
+          type: string
+        identifierText:
+          type: string
+        notes:
+          type: string
+    BicycleReport:
       type: object
       properties:
         id:
           type: string
-        serialNumber:
+        markerId:
+          type: string
+        imageUrl:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        identifierText:
           type: string
         status:
-          type: string
-          enum: [available, checked_out, maintenance]
-        location:
-          type: string
+          $ref: "#/components/schemas/ReportStatus"
         createdAt:
           type: string
           format: date-time
-    BikeCreate:
-      type: object
-      required: [serialNumber]
-      properties:
-        serialNumber:
+        updatedAt:
           type: string
-        location:
-          type: string
-    BikeUpdate:
+          format: date-time
+    CollectionRequestBody:
       type: object
       properties:
+        notes:
+          type: string
+    CollectionResultBody:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: string
+          enum: [collected, not_found_on_collection]
+        notes:
+          type: string
+    OwnerMarkerResponse:
+      type: object
+      properties:
+        marker:
+          type: object
+          properties:
+            code:
+              type: string
+        report:
+          $ref: "#/components/schemas/BicycleReport"
+        declaration:
+          type: object
+          nullable: true
+    UnlockTempBody:
+      type: object
+      properties:
+        notes:
+          type: string
+    UnlockTempResponse:
+      type: object
+      properties:
+        declaredAt:
+          type: string
+          format: date-time
+        eligibleFinalAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
         status:
           type: string
-          enum: [available, checked_out, maintenance]
-        location:
+          enum: [temporary]
+    UnlockFinalBody:
+      type: object
+      properties:
+        scannedCode:
           type: string
+    UnlockFinalResponse:
+      type: object
+      properties:
+        finalizedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [resolved]

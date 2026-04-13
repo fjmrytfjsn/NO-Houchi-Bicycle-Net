@@ -1,5 +1,8 @@
 # API仕様書
 
+本書は [基本設計仕様書](./basic-design.md) の試作品スコープに合わせ、通報、持ち主による解除、未解除時の回収依頼、回収結果記録を中心に整理する。
+高度分析、ブラックリスト、外部連携、クーポン詳細機能は今回スコープ外の将来構想として扱う。
+
 ## 認証
 
 - 認証方式: JWT ベアラートークン（管理者 / サポーター向け）
@@ -38,9 +41,10 @@
   - `notes`?: string
 - レスポンス: 作成した `report` オブジェクト
 
-### POST /api/reports/validate
+### POST /api/reports/validate（将来構想）
 
-- 説明: 通報前の品質・ルール検証を行う（次フェーズ）
+- 説明: 通報前の品質・ルール検証を行う
+- 今回スコープ: 試作品では必須 API に含めない
 - Body (JSON):
   - `imageUrl`: string
   - `latitude`: number
@@ -76,28 +80,47 @@
 
 ### PATCH /api/reports/:id/status
 
-- 説明: 管理者が通報のステータスを更新（例: `marked_for_collection` | `collected` | `resolved`）
+- 説明: 管理者が通報のステータスを更新（例: `collection_requested` | `collected` | `not_found_on_collection` | `resolved`）
 - Body: `{ "status": string, "notes"?: string }`
 
-### GET /api/admin/hotspots
+### POST /api/reports/:id/collection-request
+
+- 説明: 一定時間内に持ち主による解除が行われなかった通報を、管理者が回収依頼対象にする
+- Body: `{ "notes"?: string }`
+- 期待挙動:
+  - report.status を `collection_requested` に更新する
+  - 回収依頼の操作履歴を保存する
+
+### PATCH /api/reports/:id/collection-result
+
+- 説明: 回収業者の現地結果を受けて、管理者が回収結果を記録する
+- Body: `{ "result": "collected|not_found_on_collection", "notes"?: string }`
+- 期待挙動:
+  - `collected`: 回収完了として案件を閉じる
+  - `not_found_on_collection`: 現地で現物なしとして未回収記録を残す
+
+### GET /api/admin/hotspots（将来構想）
 
 - 説明: 通報データの時空間集計（管理者向けヒートマップ）
+- 今回スコープ: 試作品では必須 API に含めない
 - Query:
   - `from` (ISO8601)
   - `to` (ISO8601)
   - `gridSize` (optional)
 - レスポンス: 集計済みセルと件数
 
-### GET /api/admin/blacklist
+### GET /api/admin/blacklist（将来構想）
 
 - 説明: 常習犯候補一覧を返す
+- 今回スコープ: 試作品では必須 API に含めない
 - Query:
   - `minViolationCount` (optional, default: 3)
 - レスポンス: `[{ registrationId, violationCount, escalationLevel, lastSeenAt }]`
 
-### POST /api/admin/blacklist/:registrationId/escalate
+### POST /api/admin/blacklist/:registrationId/escalate（将来構想）
 
 - 説明: 常習犯の対応レベルを更新（例: immediate_removal）
+- 今回スコープ: 試作品では必須 API に含めない
 - Body: `{ "escalationLevel": "warning|priority|immediate_removal" }`
 
 ### POST /api/auth/login
@@ -113,9 +136,14 @@
 - 公開パスは `/api/owner/*`（Owner Web から呼び出す経路）
 - バックエンド内部ルータでは `/owner/*` として実装される場合がある
 
-### GET /api/owner/markers/:code/coupons
+### GET /api/owner/markers/:code
+
+- 説明: QR からアクセスした持ち主に、対象マーカーの警告内容、通報状態、仮解除情報を返す
+
+### GET /api/owner/markers/:code/coupons（将来構想）
 
 - 説明: 指定マーカーに紐づくクーポン発行履歴を返す
+- 今回スコープ: ポイント/クーポンの存在は示すが、詳細な発行・利用管理は必須 API に含めない
 
 ### POST /api/owner/markers/:code/unlock-temp
 
@@ -124,13 +152,14 @@
 
 ### POST /api/owner/markers/:code/unlock-final
 
-- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後、QR再スキャン照合が必要）
+- 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後）
 - Body: `{ "scannedCode": string, "ownerEmail"?: string }`
-- 備考: `scannedCode` と `:code` をサーバー側で照合し、一致時のみ本解除を許可する。スキャン成功後、クーポン発行処理が走る。
+- 備考: QR再スキャン照合は試作品の解除体験として利用候補とする。クーポン発行処理は今回スコープ外の将来構想として扱う。
 
-### POST /api/owner/coupons/:id/use
+### POST /api/owner/coupons/:id/use（将来構想）
 
 - 説明: 発行済みクーポンを利用済みに更新
+- 今回スコープ: 試作品では必須 API に含めない
 
 ### POST /api/owner/markers/:code/move (legacy)
 
@@ -140,6 +169,8 @@
 - 期待挙動: 所有者の宣言が受理されると該当通報にフラグがつき、状況に応じて管理者に通知される。
 
 ## 外部連携インターフェース（ロードマップ）
+
+以下はソリューションの完成形に向けた将来構想であり、今回の試作品スコープには含めない。
 
 ### POST /integrations/police/stolen-check
 

@@ -6,8 +6,8 @@
 
 - 前提: マーカー `ABC123` に `reported` な `BicycleReport` がある
 - 手順:
-  1. GET /owner/markers/ABC123 を呼ぶ → report が返る
-  2. POST /owner/markers/ABC123/unlock-temp を呼ぶ
+  1. GET /api/owner/markers/ABC123 を呼ぶ → report が返る
+  2. POST /api/owner/markers/ABC123/unlock-temp を呼ぶ
 - 期待:
   - レスポンスに `declaredAt`, `eligibleFinalAt` (= now+15m), `expiresAt` (= now+24h) がある
   - report の status が `仮解除` になる
@@ -16,13 +16,13 @@
 ## シナリオ 2: 本解除の早期拒否
 
 - 前提: シナリオ1 実行後、まだ `eligibleFinalAt` に達していない
-- 手順: POST /owner/markers/ABC123/unlock-final を呼ぶ
+- 手順: POST /api/owner/markers/ABC123/unlock-final を呼ぶ
 - 期待: 4xx (400) が返る（メッセージに `too_early`）
 
 ## シナリオ 3: 本解除（正常）
 
 - 前提: `eligibleFinalAt` 到達後
-- 手順: POST /owner/markers/ABC123/unlock-final を呼ぶ
+- 手順: POST /api/owner/markers/ABC123/unlock-final を呼ぶ
 - 期待:
   - report.status == `resolved`
   - `finalizedAt` が設定される
@@ -39,9 +39,10 @@
 - 前提: 複数回 unlock-temp が押された場合
 - 期待: 最新の宣言が有効、履歴はすべて残る
 
-## シナリオ 6: 監視/不正検知
+## シナリオ 6: 監視/不正検知（将来構想）
 
-- システムは短時間に多数の解除を行うIPにアラートを出すか、レート制限で拒否する
+- 短時間に多数の解除を行うIPへのアラートやレート制限は将来構想とする
+- 今回の試作品では、解除操作の最低限の操作ログを保存することを確認対象とする
 
 ---
 

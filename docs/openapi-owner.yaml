@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Owner Web API
   version: "1.0.0"
-  description: API for owner (QR-access) flow: temporary unlock -> final unlock
+  description: "API for owner (QR-access) flow: temporary unlock -> final unlock"
 paths:
   /owner/markers/{code}:
     get:
