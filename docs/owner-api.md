@@ -4,14 +4,15 @@
 
 QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕様です。
 目的は「警告確認 → 仮解除（unlock-temp） → 本解除（unlock-final）」を安全かつ操作しやすく提供することです。
+本仕様は [基本設計仕様書](./basic-design.md) の試作品スコープに合わせ、持ち主による解除フローを中心に扱います。
 
 **実装状況**: Owner Web では現在インメモリストアで実装。Backend との統合は次フェーズ予定。
 
-**中間発表Q&A反映ポイント**:
+**試作品スコープとの関係**:
 
 - 持ち主に対して「マーカー非破壊・行政委託」であることをUI上で明示
-- 本解除時のクーポン連携を標準フローとして扱う
-- 常習犯対策/盗難照合との将来連携を考慮したイベントログ設計
+- 本解除後のクーポン発行/利用管理は今回スコープ外の将来構想として扱う
+- 常習犯対策/盗難照合との連携は今回スコープ外の将来構想として扱う
 
 ---
 
@@ -82,21 +83,11 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 {
   "finalizedAt": "2026-01-19T12:20:00.000Z",
   "status": "resolved",
-  "coupon": {
-    "id": "coupon-id-123",
-    "name": "商店街お買い物券500円",
-    "description": "商店街の加盟店で使える500円分のお買い物券",
-    "shopName": "北区商店街",
-    "discount": 500,
-    "discountType": "amount",
-    "expiresAt": "2026-02-24T12:15:00.000Z"
-  },
-  "message": "クーポンを獲得しました！商店街でご利用ください。"
+  "message": "本解除が完了しました"
 }
 ```
 
-- `coupon` はクーポン発行成功時はオブジェクト、発行条件未達や在庫なしの場合は `null`
-- `message` は `coupon` の有無に応じて分岐（例: クーポンあり `クーポンを獲得しました！...` / なし `本解除が完了しました`）
+- クーポン発行を行う場合のレスポンス拡張は将来構想とする。
 
 - エラーレスポンス例:
 
@@ -112,9 +103,10 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
-### GET /api/owner/markers/{code}/coupons
+### GET /api/owner/markers/{code}/coupons（将来構想）
 
 - 説明: 指定マーカーに紐づく発行済みクーポンを取得
+- 今回スコープ: 試作品では必須 API に含めない
 - ステータスコード: 200 OK
 - レスポンス例:
 
@@ -135,9 +127,10 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
-### POST /api/owner/coupons/{id}/use
+### POST /api/owner/coupons/{id}/use（将来構想）
 
 - 説明: クーポンを利用済みに更新
+- 今回スコープ: 試作品では必須 API に含めない
 - ステータスコード: 200 OK（成功）、400 Bad Request（使用不可）
 
 ---
@@ -159,9 +152,9 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 - テーブル `move_declarations`:
   - `id`, `marker_id`, `report_id`, `declared_at`, `eligible_final_at`, `expires_at`, `status` (temporary|finalized|expired), `finalized_at`, `ip`, `user_agent`, `notes`
-- `bicycle_reports.status` は `reported|marked_for_collection|collected|resolved|temporary` をサポート
+- `bicycle_reports.status` は `reported|temporary|resolved|collection_requested|collected|not_found_on_collection` をサポート
 - テーブル `coupon_issuances`:
-  - `id`, `coupon_id`, `marker_id`, `owner_email`, `issued_at`, `expires_at`, `used_at`, `status`
+  - 将来構想。`id`, `coupon_id`, `marker_id`, `owner_email`, `issued_at`, `expires_at`, `used_at`, `status`
 - テーブル `audit_logs`:
   - `id`, `action_type`, `marker_code`, `ip`, `user_agent`, `risk_score`, `created_at`
 
@@ -177,9 +170,9 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 ## 監査・ログ
 
 - すべての解除操作（仮/本）は `ip`, `user_agent`, `timestamp` を保存
-- 異常なパターン (短期間に大量解除) はアラート対象
-- 本解除時のクーポン発行/利用イベントも監査対象
-- 将来的な盗難照合（警察連携）のため、防犯登録番号照会イベントを監査対象に含める
+- 異常なパターン (短期間に大量解除) の高度なアラートは将来構想
+- 本解除時のクーポン発行/利用イベントは将来構想
+- 将来的な盗難照合（警察連携）のための防犯登録番号照会イベントは将来構想
 
 ---
 
@@ -190,8 +183,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 - 仮解除後、同一マーカーQRコードをカメラで再スキャンすることで本解除が実行される
 - `unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
 - 24時間経過で自動的に `resolved` になる
-- 本解除後、`GET /api/owner/markers/{code}/coupons` で発行済みクーポンを確認できる
-- `POST /api/owner/coupons/{id}/use` でクーポンを利用済みにできる
+- クーポン確認・利用 API は将来構想として扱い、今回の受入基準には含めない
 
 ## UI表示要件（持ち主画面）
 
