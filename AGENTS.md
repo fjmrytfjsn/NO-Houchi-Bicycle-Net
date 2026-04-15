@@ -32,6 +32,7 @@
 
 ## Verification
 
+- Unless the user explicitly stops before PR work, continue through verification, diff review, commit, push, and PR creation.
 - Documentation-only changes can use static review and `git diff`.
 - Backend behavior changes should usually run `cd backend && npm test`.
 - Owner web behavior changes should usually run `cd apps/owner-web && npm test && npm run type-check`.
