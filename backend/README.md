@@ -40,10 +40,10 @@ curl -X POST http://localhost:3000/owner/markers/ABC123/unlock-temp \
   -H "Content-Type: application/json" \
   -d '{"notes": "自転車を移動しました"}'
 
-# 2. 本解除（15分後、クーポン発行）
+# 2. 本解除（15分後、QR再スキャン照合のうえクーポン発行）
 curl -X POST http://localhost:3000/owner/markers/ABC123/unlock-final \
   -H "Content-Type: application/json" \
-  -d '{"ownerEmail": "owner@example.com"}'
+  -d '{"scannedCode": "ABC123", "ownerEmail": "owner@example.com"}'
 
 # レスポンス例
 {
@@ -111,7 +111,7 @@ curl -X POST http://localhost:3000/bikes/ocr/recognize \
 ### 仕様
 
 - **入力**: ローカルファイルパス（FTPから事前取得したJPG/PNG画像）
-- **出力**: 防犯登録番号（8~10桁）、信頼度スコア（0.0-1.0）、生テキスト
+- **出力**: 防犯登録番号（基本は8~10桁。大阪府シール形式は末尾6桁を特例抽出）、信頼度スコア（0.0-1.0）、生テキスト
 - **対応フォーマット**: JPEG, PNG, BMP, TIFF
 - **精度**: Azure Form Recognizer依存（一般的に95%以上）
 

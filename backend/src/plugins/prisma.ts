@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import type { FastifyInstance } from 'fastify';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -6,9 +7,7 @@ declare module 'fastify' {
   }
 }
 
-const prisma = new PrismaClient();
-
-export default async function (fastify: any, opts: any) {
+export default function registerPrisma(fastify: FastifyInstance, prisma = new PrismaClient()) {
   fastify.decorate('prisma', prisma);
   fastify.addHook('onClose', async () => {
     await prisma.$disconnect();

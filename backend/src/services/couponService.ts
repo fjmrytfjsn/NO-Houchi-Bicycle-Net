@@ -1,5 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
 export interface CouponData {
   id: string;
   name: string;
@@ -12,11 +10,77 @@ export interface CouponData {
   issuedAt: Date;
 }
 
+type CouponRecord = {
+  id: string;
+  name: string;
+  description: string;
+  shopName: string;
+  discount: number;
+  discountType: string;
+  validDays: number;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+type CouponIssuanceRecord = {
+  id: string;
+  couponId: string;
+  markerId: string | null;
+  ownerEmail: string | null;
+  expiresAt: Date;
+  issuedAt: Date;
+  usedAt: Date | null;
+  status: string;
+};
+
+type CouponPrisma = {
+  coupon: {
+    findFirst(args: {
+      where: { isActive: boolean };
+      orderBy: { createdAt: 'asc' | 'desc' };
+    }): Promise<CouponRecord | null>;
+    count(): Promise<number>;
+    createMany(args: {
+      data: Array<{
+        name: string;
+        description: string;
+        shopName: string;
+        discount: number;
+        discountType: string;
+        validDays: number;
+        isActive: boolean;
+      }>;
+    }): Promise<{ count: number }>;
+  };
+  couponIssuance: {
+    create(args: {
+      data: {
+        couponId: string;
+        markerId: string;
+        ownerEmail?: string | null;
+        expiresAt: Date;
+        status: string;
+      };
+      include: { coupon: boolean };
+    }): Promise<CouponIssuanceRecord & { coupon: CouponRecord }>;
+    findMany(args: {
+      where: { markerId: string; status: { in: string[] } };
+      include: { coupon: boolean };
+      orderBy: { issuedAt: 'asc' | 'desc' };
+    }): Promise<Array<CouponIssuanceRecord & { coupon: CouponRecord }>>;
+    findUnique(args: { where: { id: string } }): Promise<CouponIssuanceRecord | null>;
+    update(args: {
+      where: { id: string };
+      data: { status: string; usedAt?: Date | null };
+    }): Promise<CouponIssuanceRecord>;
+  };
+};
+
 /**
  * クーポンサービス - クーポンの発行・取得・使用を管理
  */
 export class CouponService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private readonly prisma: CouponPrisma) {}
 
   /**
    * 本解除時にクーポンを自動発行
@@ -26,57 +90,49 @@ export class CouponService {
    */
   async issueCouponForFinalUnlock(
     markerId: string,
-    ownerEmail?: string
+    ownerEmail?: string | null,
+    issuedAt: Date = new Date()
   ): Promise<CouponData | null> {
-    try {
-      // アクティブなクーポンを1つ取得（商店街のクーポン）
-      const availableCoupon = await this.prisma.coupon.findFirst({
-        where: {
-          isActive: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+    const availableCoupon = await this.prisma.coupon.findFirst({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-      if (!availableCoupon) {
-        console.warn('利用可能なクーポンが見つかりません');
-        return null;
-      }
-
-      // クーポン有効期限を計算
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + availableCoupon.validDays);
-
-      // クーポンを発行
-      const issuance = await this.prisma.couponIssuance.create({
-        data: {
-          couponId: availableCoupon.id,
-          markerId,
-          ownerEmail,
-          expiresAt,
-          status: 'active',
-        },
-        include: {
-          coupon: true,
-        },
-      });
-
-      return {
-        id: issuance.id,
-        name: issuance.coupon.name,
-        description: issuance.coupon.description,
-        shopName: issuance.coupon.shopName,
-        discount: issuance.coupon.discount,
-        discountType: issuance.coupon.discountType,
-        expiresAt: issuance.expiresAt,
-        status: issuance.status,
-        issuedAt: issuance.issuedAt,
-      };
-    } catch (error) {
-      console.error('クーポン発行エラー:', error);
+    if (!availableCoupon) {
       return null;
     }
+
+    const expiresAt = new Date(issuedAt);
+    expiresAt.setDate(expiresAt.getDate() + availableCoupon.validDays);
+
+    const issuance = await this.prisma.couponIssuance.create({
+      data: {
+        couponId: availableCoupon.id,
+        markerId,
+        ownerEmail,
+        expiresAt,
+        status: 'active',
+      },
+      include: {
+        coupon: true,
+      },
+    });
+
+    return {
+      id: issuance.id,
+      name: issuance.coupon.name,
+      description: issuance.coupon.description,
+      shopName: issuance.coupon.shopName,
+      discount: issuance.coupon.discount,
+      discountType: issuance.coupon.discountType,
+      expiresAt: issuance.expiresAt,
+      status: issuance.status,
+      issuedAt: issuance.issuedAt,
+    };
   }
 
   /**
@@ -118,38 +174,32 @@ export class CouponService {
    * @param couponIssuanceId クーポン発行ID
    * @returns 成功したかどうか
    */
-  async useCoupon(couponIssuanceId: string): Promise<boolean> {
-    try {
-      const issuance = await this.prisma.couponIssuance.findUnique({
-        where: { id: couponIssuanceId },
-      });
+  async useCoupon(couponIssuanceId: string, now: Date = new Date()): Promise<boolean> {
+    const issuance = await this.prisma.couponIssuance.findUnique({
+      where: { id: couponIssuanceId },
+    });
 
-      if (!issuance || issuance.status !== 'active') {
-        return false;
-      }
-
-      // 有効期限チェック
-      if (new Date() > issuance.expiresAt) {
-        await this.prisma.couponIssuance.update({
-          where: { id: couponIssuanceId },
-          data: { status: 'expired' },
-        });
-        return false;
-      }
-
-      await this.prisma.couponIssuance.update({
-        where: { id: couponIssuanceId },
-        data: {
-          status: 'used',
-          usedAt: new Date(),
-        },
-      });
-
-      return true;
-    } catch (error) {
-      console.error('クーポン使用エラー:', error);
+    if (!issuance || issuance.status !== 'active') {
       return false;
     }
+
+    if (now > issuance.expiresAt) {
+      await this.prisma.couponIssuance.update({
+        where: { id: couponIssuanceId },
+        data: { status: 'expired' },
+      });
+      return false;
+    }
+
+    await this.prisma.couponIssuance.update({
+      where: { id: couponIssuanceId },
+      data: {
+        status: 'used',
+        usedAt: now,
+      },
+    });
+
+    return true;
   }
 
   /**

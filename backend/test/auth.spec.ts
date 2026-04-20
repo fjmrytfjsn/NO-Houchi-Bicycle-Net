@@ -1,36 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildServer } from '../src/app';
 import bcrypt from 'bcryptjs';
-
-function makeMockPrisma() {
-  const users = new Map();
-  return {
-    user: {
-      findUnique: async ({ where: { email, id } }: any) => {
-        if (email) {
-          for (const u of users.values()) if (u.email === email) return u;
-          return null;
-        }
-        if (id) return users.get(id) || null;
-        return null;
-      },
-      create: async ({ data }: any) => {
-        const id = 'u-' + (users.size + 1);
-        const user = { id, ...data, createdAt: new Date() };
-        users.set(id, user);
-        return user;
-      },
-    },
-  };
-}
+import { createMockPrisma } from './helpers/mockPrisma';
 
 describe('auth', () => {
   let server: any;
   let mockPrisma: any;
 
   beforeAll(() => {
-    mockPrisma = makeMockPrisma();
-    server = buildServer({ prisma: mockPrisma });
+    mockPrisma = createMockPrisma();
+    server = buildServer({ prisma: mockPrisma.prisma as any });
   });
 
   afterAll(async () => {
@@ -53,7 +32,7 @@ describe('auth', () => {
     // create with hashed password
     const plain = 'secret123';
     const hashed = await bcrypt.hash(plain, 10);
-    const created = await mockPrisma.user.create({
+    await mockPrisma.prisma.user.create({
       data: { name: 'LoginUser', email: 'login@example.com', password: hashed },
     });
 
@@ -68,9 +47,31 @@ describe('auth', () => {
     expect(body).toHaveProperty('accessToken');
   });
 
+  it('rejects duplicate email on register', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'vt@example.com', password: 'pass' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'email already in use' });
+  });
+
+  it('rejects invalid credentials on login', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'login@example.com', password: 'wrong-password' },
+    });
+
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'invalid credentials' });
+  });
+
   it('accesses protected route /users/me', async () => {
     const hashed = await bcrypt.hash('p', 10);
-    const user = await mockPrisma.user.create({
+    const user = await mockPrisma.prisma.user.create({
       data: { name: 'Me', email: 'me@example.com', password: hashed },
     });
     // sign with server's jwt
@@ -84,5 +85,15 @@ describe('auth', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload);
     expect(body.email).toBe('me@example.com');
+  });
+
+  it('rejects unauthorized access to /users/me', async () => {
+    const res = await server.inject({
+      method: 'GET',
+      url: '/users/me',
+    });
+
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'Unauthorized' });
   });
 });
