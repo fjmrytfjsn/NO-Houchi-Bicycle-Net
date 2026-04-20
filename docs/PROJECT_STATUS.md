@@ -1,7 +1,8 @@
 # プロジェクト状態レポート
 
-**更新日**: 2026年4月13日  
-**現在のブランチ**: `codex/mvp-basic-design-doc`
+**更新日**: 2026年4月20日
+
+**参照Project**: [NO-Houchi Bicycle Net MVP](https://github.com/users/fjmrytfjsn/projects/3)
 
 ## 方針
 
@@ -17,6 +18,18 @@
 | Owner Web       | 🔄 修正完了 | 25%    | API 実装済み、インメモリストア動作 |
 | Admin Dashboard | ⏳ 未開始   | 0%     | 試作品では通報一覧・回収依頼・回収結果記録を優先 |
 | Android App     | ⏳ 未開始   | 0%     | 試作品では撮影・位置情報付き通報を優先 |
+
+## GitHub Project 同期状況
+
+2026年4月20日に、現状の実装・仕様書とGitHub Issue / Project Statusの同期を行った。
+
+- Projectアイテム数: 56件
+- `Done`: 21件
+- `Todo`: 35件
+- Issue状態とProject Statusの不整合: 0件
+- 現時点では `In Progress` と `Review` は未運用
+
+今後は [GitHub Project 運用ルール](./project-management.md) に従い、作業開始時に `In Progress`、PR確認時に `Review`、完了時にIssue CloseとProject `Done` を同期する。
 
 ## ✅ 完了した作業
 

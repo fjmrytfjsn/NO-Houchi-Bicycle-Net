@@ -176,5 +176,6 @@ cd apps/android-app
 - [基本設計仕様書](./docs/basic-design.md)
 - [API仕様書](./docs/api-spec.md)
 - [データモデル定義](./docs/data-model.md)
+- [GitHub Project 運用ルール](./docs/project-management.md)
 
 ---

@@ -26,6 +26,7 @@
 - Read `README.md` and `docs/developer-workflow.md` before changing setup, verification, or repo structure.
 - For API or data changes, inspect `docs/api-spec.md`, `docs/owner-api.md`, `docs/data-model.md`, `docs/openapi*.yaml`, and `backend/prisma/schema.prisma`.
 - This repo intentionally has no CI; use local verification and report commands that were not run.
+- For GitHub Project or Issue management, read `docs/project-management.md` and keep Issue state and Project Status synchronized.
 - For broad or multi-session work, create `plan/YYYY-MM-DD__task-slug.md`.
 - Before finishing broad changes, check whether `AGENTS.md`, `ARCHITECTURE.md`, or `plan/README.md` should be updated.
 - Move durable project facts discovered during work into project docs instead of relying on chat history.
