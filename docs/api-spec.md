@@ -140,10 +140,10 @@
 
 - 説明: QR からアクセスした持ち主に、対象マーカーの警告内容、通報状態、仮解除情報を返す
 
-### GET /api/owner/markers/:code/coupons（将来構想）
+### GET /api/owner/markers/:code/coupons（実装済み・将来拡張）
 
 - 説明: 指定マーカーに紐づくクーポン発行履歴を返す
-- 今回スコープ: ポイント/クーポンの存在は示すが、詳細な発行・利用管理は必須 API に含めない
+- 今回スコープ: 実装は存在するが、詳細な発行・利用管理は必須 API に含めない
 
 ### POST /api/owner/markers/:code/unlock-temp
 
@@ -154,9 +154,9 @@
 
 - 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後）
 - Body: `{ "scannedCode": string, "ownerEmail"?: string }`
-- 備考: QR再スキャン照合は試作品の解除体験として利用候補とする。クーポン発行処理は今回スコープ外の将来構想として扱う。
+- 備考: `scannedCode` は必須。QR再スキャン照合で `:code` と一致した場合のみ本解除される。クーポン発行処理は backend に実装されているが、試作品の必須要件には含めない。
 
-### POST /api/owner/coupons/:id/use（将来構想）
+### POST /api/owner/coupons/:id/use（実装済み・将来拡張）
 
 - 説明: 発行済みクーポンを利用済みに更新
 - 今回スコープ: 試作品では必須 API に含めない

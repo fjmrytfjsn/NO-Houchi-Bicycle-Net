@@ -87,13 +87,14 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
-- クーポン発行を行う場合のレスポンス拡張は将来構想とする。
+- 実装上はクーポンが有効な場合に `coupon` オブジェクトを含めて返す。
+- クーポン発行/利用 API 自体は backend に存在するが、試作品の必須受入基準には含めない。
 
 - エラーレスポンス例:
 
 ```json
 {
-  "error": "no declaration found"
+  "error": "No temporary declaration found"
 }
 ```
 
@@ -103,10 +104,10 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
-### GET /api/owner/markers/{code}/coupons（将来構想）
+### GET /api/owner/markers/{code}/coupons（実装済み・将来拡張）
 
 - 説明: 指定マーカーに紐づく発行済みクーポンを取得
-- 今回スコープ: 試作品では必須 API に含めない
+- 今回スコープ: backend には実装済みだが、試作品では必須 API に含めない
 - ステータスコード: 200 OK
 - レスポンス例:
 
@@ -127,10 +128,10 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 }
 ```
 
-### POST /api/owner/coupons/{id}/use（将来構想）
+### POST /api/owner/coupons/{id}/use（実装済み・将来拡張）
 
 - 説明: クーポンを利用済みに更新
-- 今回スコープ: 試作品では必須 API に含めない
+- 今回スコープ: backend には実装済みだが、試作品では必須 API に含めない
 - ステータスコード: 200 OK（成功）、400 Bad Request（使用不可）
 
 ---
@@ -154,7 +155,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
   - `id`, `marker_id`, `report_id`, `declared_at`, `eligible_final_at`, `expires_at`, `status` (temporary|finalized|expired), `finalized_at`, `ip`, `user_agent`, `notes`
 - `bicycle_reports.status` は `reported|temporary|resolved|collection_requested|collected|not_found_on_collection` をサポート
 - テーブル `coupon_issuances`:
-  - 将来構想。`id`, `coupon_id`, `marker_id`, `owner_email`, `issued_at`, `expires_at`, `used_at`, `status`
+  - backend 実装済み。`id`, `coupon_id`, `marker_id`, `owner_email`, `issued_at`, `expires_at`, `used_at`, `status`
 - テーブル `audit_logs`:
   - `id`, `action_type`, `marker_code`, `ip`, `user_agent`, `risk_score`, `created_at`
 
@@ -171,7 +172,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 - すべての解除操作（仮/本）は `ip`, `user_agent`, `timestamp` を保存
 - 異常なパターン (短期間に大量解除) の高度なアラートは将来構想
-- 本解除時のクーポン発行/利用イベントは将来構想
+- 本解除時のクーポン発行/利用イベントは backend に試作実装あり。運用設計は将来構想
 - 将来的な盗難照合（警察連携）のための防犯登録番号照会イベントは将来構想
 
 ---

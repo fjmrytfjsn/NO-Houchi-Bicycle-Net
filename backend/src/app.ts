@@ -1,12 +1,22 @@
 import Fastify from 'fastify';
 import fastifyJwt from '@fastify/jwt';
+import type { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import bikeRoutes from './routes/bikes';
 import ownerRoutes from './routes/owner';
+import { sendError, UnauthorizedError } from './lib/errors';
+import { AuthService } from './services/authService';
+import type { OCRService } from './services/ocrService';
 
 import prismaPlugin from './plugins/prisma';
 
-export function buildServer({ prisma }: { prisma?: any } = {}) {
+type BuildServerOptions = {
+  prisma?: PrismaClient;
+  ocrService?: OCRService;
+  now?: () => Date;
+};
+
+export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}) {
   const server = Fastify({ logger: false });
 
   server.register(fastifyJwt, {
@@ -16,7 +26,7 @@ export function buildServer({ prisma }: { prisma?: any } = {}) {
   if (prisma) {
     server.decorate('prisma', prisma);
   } else {
-    server.register(prismaPlugin);
+    prismaPlugin(server);
   }
 
   server.get('/', async () => ({ ok: true, version: '0.1.0' }));
@@ -24,22 +34,24 @@ export function buildServer({ prisma }: { prisma?: any } = {}) {
   // Protected route example
   server.get('/users/me', async (request, reply) => {
     try {
-      await (request as any).jwtVerify();
-    } catch (err) {
-      return reply.status(401).send({ error: 'Unauthorized' });
+      await request.jwtVerify();
+      const tokenPayload = request.user as { sub?: string | number } | undefined;
+      const userId = tokenPayload?.sub ? String(tokenPayload.sub) : '';
+      const authService = new AuthService(server.prisma as any);
+      const user = await authService.getUserProfile(userId);
+      return reply.send(user);
+    } catch (error) {
+      const normalizedError =
+        error instanceof Error && error.message.toLowerCase().includes('authorization')
+          ? new UnauthorizedError('Unauthorized')
+          : error;
+      return sendError(reply, server.log, normalizedError);
     }
-    const userId = (request as any).user.sub;
-    const user = await (server as any).prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true, role: true },
-    });
-    if (!user) return reply.status(404).send({ error: 'User not found' });
-    return reply.send(user);
   });
 
   server.register(authRoutes, { prefix: '/auth' });
-  server.register(bikeRoutes, { prefix: '/bikes' });
-  server.register(ownerRoutes, { prefix: '/owner' });
+  server.register(bikeRoutes({ ocrService }), { prefix: '/bikes' });
+  server.register(ownerRoutes({ now }), { prefix: '/owner' });
 
   return server;
 }

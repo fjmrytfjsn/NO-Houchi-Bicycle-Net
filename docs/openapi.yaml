@@ -141,7 +141,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/MarkerCode"
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -278,9 +278,14 @@ components:
           enum: [temporary]
     UnlockFinalBody:
       type: object
+      required:
+        - scannedCode
       properties:
         scannedCode:
           type: string
+        ownerEmail:
+          type: string
+          format: email
     UnlockFinalResponse:
       type: object
       properties:
@@ -290,3 +295,24 @@ components:
         status:
           type: string
           enum: [resolved]
+        message:
+          type: string
+        coupon:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            description:
+              type: string
+            shopName:
+              type: string
+            discount:
+              type: number
+            discountType:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
