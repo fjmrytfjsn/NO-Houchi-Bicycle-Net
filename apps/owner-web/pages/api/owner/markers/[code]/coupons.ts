@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { finalizeUnlock } from '../../../../../lib/owner/store';
+import { getCouponsForMarker } from '../../../../../lib/owner/store';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -12,11 +12,5 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'code parameter is required' });
   }
 
-  try {
-    return res.status(200).json(finalizeUnlock(code));
-  } catch (error) {
-    return res.status(400).json({
-      error: error instanceof Error ? error.message : 'unlock failed',
-    });
-  }
+  return res.status(200).json({ coupons: getCouponsForMarker(code) });
 }
