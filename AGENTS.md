@@ -5,6 +5,7 @@
 - NO-Houchi Bicycle Net is a civic-tech prototype monorepo for abandoned bicycle reporting, owner unlock flow, recovery operations, and related documentation.
 - Keep prototype scope separate from future ideas such as advanced analytics, blacklist handling, detailed incentive design, and external integrations.
 - Prefer repository docs for durable project facts; do not put repo-specific details in global memory.
+- Put durable architecture, data model, external service, security, or operations decisions in `docs/adr/`.
 
 ## Structure
 
@@ -28,7 +29,7 @@
 - This repo intentionally has no CI; use local verification and report commands that were not run.
 - For GitHub Project or Issue management, read `docs/project-management.md` and keep Issue state and Project Status synchronized.
 - For broad or multi-session work, create `plan/YYYY-MM-DD__task-slug.md`.
-- Before finishing broad changes, check whether `AGENTS.md`, `ARCHITECTURE.md`, or `plan/README.md` should be updated.
+- Before finishing broad changes, check whether `AGENTS.md`, `ARCHITECTURE.md`, `docs/adr/`, or `plan/README.md` should be updated.
 - Move durable project facts discovered during work into project docs instead of relying on chat history.
 
 ## Verification
