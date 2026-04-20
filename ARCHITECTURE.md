@@ -29,6 +29,7 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 - Update this file when components, major flows, data boundaries, or prototype/future-scope decisions change.
 - Update `AGENTS.md` when setup, commands, verification, or repository operating rules change.
+- Create or update an ADR in `docs/adr/` when a long-lived architecture, data model, external service, security, or operations decision should guide future work.
 - Prefer short, current descriptions over historical detail; move task-specific notes into `plan/`.
 
 ## Unknowns

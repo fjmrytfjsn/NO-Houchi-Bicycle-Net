@@ -18,7 +18,8 @@ Include:
 - verification commands
 - data/API assumptions
 - risks and follow-ups
-- whether `AGENTS.md` or `ARCHITECTURE.md` need updates
+- whether `AGENTS.md`, `ARCHITECTURE.md`, or `docs/adr/` need updates
 
 Do not create a plan file for small typo fixes or narrow documentation edits.
 When a plan produces durable project knowledge, update `AGENTS.md` or `ARCHITECTURE.md` before closing the task.
+When a plan produces an accepted long-lived decision, record it in `docs/adr/`.
