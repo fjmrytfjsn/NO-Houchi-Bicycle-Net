@@ -7,6 +7,17 @@ jest.mock('next/router', () => ({
   useRouter: () => ({ query: { code: 'ABC123' }, back: jest.fn() }),
 }));
 
+jest.mock('../hooks/useQrScanner', () => {
+  const React = require('react');
+  return {
+    useQrScanner: ({ active, onDetected }: any) => {
+      React.useEffect(() => {
+        if (active) onDetected('ABC123');
+      }, [active, onDetected]);
+    },
+  };
+});
+
 describe('MarkerPage', () => {
   afterEach(() => {
     jest.resetAllMocks();
@@ -67,6 +78,21 @@ describe('MarkerPage', () => {
         };
       }
 
+      if (url.endsWith('/api/owner/markers/ABC123/coupons')) {
+        return {
+          ok: true,
+          json: async () => ({
+            coupons: [
+              {
+                name: '商店街応援クーポン',
+                discount: '100円',
+                discountType: 'fixed',
+              },
+            ],
+          }),
+        };
+      }
+
       return { ok: false, status: 404, json: async () => ({}) };
     });
 
@@ -80,11 +106,11 @@ describe('MarkerPage', () => {
 
     await waitFor(() => screen.getByText('仮解除しました'));
 
-    const finalBtn = await screen.findByText('本解除を実行');
+    const finalBtn = await screen.findByText('📱 QRコードを読み込んで本解除');
     expect(finalBtn).toBeEnabled();
 
     fireEvent.click(finalBtn);
 
-    await waitFor(() => screen.getByText('本解除が完了しました'));
+    await waitFor(() => screen.getByText(/本解除が完了しました/));
   });
 });

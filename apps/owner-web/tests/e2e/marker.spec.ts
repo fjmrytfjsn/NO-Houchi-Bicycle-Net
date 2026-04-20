@@ -17,9 +17,12 @@ test('owner flow: temp unlock then final unlock', async ({ page, request }) => {
   );
   expect(setRes.ok()).toBeTruthy();
 
-  // perform final unlock
-  await page.click('button:has-text("本解除を実行")');
-  await expect(page.locator('text=本解除が完了しました')).toBeVisible();
+  // perform final unlock through the API; browser QR scanning is covered by
+  // component tests so E2E does not depend on camera access.
+  const finalRes = await request.post(
+    `/api/owner/markers/${code}/unlock-final`
+  );
+  expect(finalRes.ok()).toBeTruthy();
 
   // status should be resolved on page
   await page.reload();

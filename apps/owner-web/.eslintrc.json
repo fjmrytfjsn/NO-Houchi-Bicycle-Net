@@ -1,4 +1,10 @@
 {
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "jest": true,
+    "node": true
+  },
   "extends": ["next/core-web-vitals", "eslint:recommended"],
   "rules": {
     "no-unused-vars": "warn",
