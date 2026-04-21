@@ -130,7 +130,7 @@ npm run dev
 ```bash
 cd apps/admin-dashboard
 npm run dev
-# Dashboard will open at http://localhost:8080
+# Dashboard will open at http://localhost:3002
 
 ```
 

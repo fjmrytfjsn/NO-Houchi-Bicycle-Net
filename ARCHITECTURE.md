@@ -8,6 +8,7 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 - `backend/`: TypeScript Fastify API server with Prisma models, migrations, routes, services, and Vitest tests.
 - `apps/owner-web/`: Next.js owner web flow for marker pages, temporary unlock, final unlock, mocks, unit tests, and Playwright tests.
+- `apps/admin-dashboard/`: Next.js admin dashboard scaffold with shared layout, report list/detail pages, unresolved-case views, and mock-driven recovery request/result forms.
 - `docs/`: source documents for setup, developer workflow, API specs, owner API, data model, acceptance criteria, wireframes, and project status.
 - `README.md`: high-level project scope, monorepo shape, setup notes, and prototype/future-scope distinction.
 
@@ -34,6 +35,6 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 ## Unknowns
 
-- Current status of `apps/android-app/` and `apps/admin-dashboard/` in the implementation tree.
+- Current status of `apps/android-app/` in the implementation tree.
 - Final production infrastructure and external integration choices.
 - Which future-scope features will be promoted into prototype scope.

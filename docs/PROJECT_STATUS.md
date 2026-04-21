@@ -16,7 +16,7 @@
 | --------------- | ----------- | ------ | ---------------------------------- |
 | Backend Server  | ✅ 実装中   | 30%    | Fastify, Prisma, JWT 認証基盤完成  |
 | Owner Web       | 🔄 修正完了 | 25%    | API 実装済み、インメモリストア動作 |
-| Admin Dashboard | ⏳ 設計中   | 0%     | 画面構成作成済み、実装未開始。試作品では通報一覧・回収依頼・回収結果記録を優先 |
+| Admin Dashboard | 🔄 実装中   | 15%    | Next.js 基盤、通報一覧/詳細/未解除案件/回収依頼/回収結果記録のモック画面を追加 |
 | Android App     | ⏳ 未開始   | 0%     | 試作品では撮影・位置情報付き通報を優先 |
 
 ## GitHub Project 同期状況
@@ -87,12 +87,11 @@
    - Owner Web への JWT 認証追加（必要な場合）
    - Backend との連携確認
 
-4. **Admin Dashboard の実装**
-   - 通報一覧の表示
-   - 未解除案件の確認
+4. **Admin Dashboard の Backend API 連携**
+   - モック画面を実 API 取得に差し替え
    - 回収依頼登録
    - 回収結果（回収完了/現地で現物なし）の記録
-   - Backend API 連携
+   - 認証・権限制御
 
 ### 中優先度
 
@@ -173,7 +172,7 @@ NO-Houchi-Bicycle-Net/
 │   │   ├── __tests__/         # Jest テスト
 │   │   ├── tests/e2e/         # Playwright E2E テスト
 │   │   └── package.json
-│   └── admin-dashboard/       # (未実装)
+│   └── admin-dashboard/       # Next.js 管理画面基盤（モック画面）
 └── docs/
     ├── basic-design.md
     ├── api-spec.md
