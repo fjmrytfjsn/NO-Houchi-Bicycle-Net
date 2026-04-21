@@ -144,6 +144,8 @@
 ### GET /api/owner/markers/:code
 
 - 説明: QR からアクセスした持ち主に、対象マーカーの警告内容、通報状態、仮解除情報を返す
+- 挙動: `marker.code` と、該当 marker に紐づく最新 `BicycleReport`・最新 `Declaration` を返す。`report` と `declaration` は存在しない場合 `null`
+- エラー: marker が存在しない場合は `404` で `{ "error": "Marker not found" }`
 
 ### GET /api/owner/markers/:code/coupons（実装済み・将来拡張）
 
