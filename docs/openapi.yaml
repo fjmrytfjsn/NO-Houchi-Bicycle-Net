@@ -192,7 +192,7 @@ components:
           type: string
     ReportCreate:
       type: object
-      required: [imageUrl, latitude, longitude]
+      required: [imageUrl, latitude, longitude, markerCode, identifierText]
       properties:
         imageUrl:
           type: string
@@ -200,7 +200,7 @@ components:
           type: number
         longitude:
           type: number
-        markerId:
+        markerCode:
           type: string
         identifierText:
           type: string
@@ -223,6 +223,9 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ReportStatus"
+        notes:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time

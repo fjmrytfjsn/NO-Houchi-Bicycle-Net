@@ -32,11 +32,11 @@
 
 - `id` (UUID, PK)
 - `marker_id` (FK -> Marker)
-- `reporter_id` (FK -> User)
 - `image_url` (string)
 - `latitude`, `longitude` (decimal)
-- `ocr_text` (text)
+- `identifier_text` (text)
 - `status` (enum: reported | temporary | resolved | collection_requested | collected | not_found_on_collection)
+- `notes` (text, nullable)
 - `created_at`, `updated_at`
 
 ## Declaration（移動宣言）

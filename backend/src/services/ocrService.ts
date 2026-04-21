@@ -1,4 +1,9 @@
-import { DocumentAnalysisClient, AzureKeyCredential } from '@azure/ai-form-recognizer';
+import {
+  DocumentAnalysisClient,
+  AzureKeyCredential,
+  type AnalyzeResult,
+  type AnalyzedDocument,
+} from '@azure/ai-form-recognizer';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -38,8 +43,22 @@ class AzureDocumentAnalyzer implements DocumentAnalyzer {
 
   async analyzeDocument(buffer: Buffer): Promise<OCRAnalysis> {
     const poller = await this.client.beginAnalyzeDocument('prebuilt-read', buffer);
-    return poller.pollUntilDone();
+    const result = await poller.pollUntilDone();
+    return normalizeAnalysis(result);
   }
+}
+
+function normalizeAnalysis(result: AnalyzeResult<AnalyzedDocument>): OCRAnalysis {
+  return {
+    content: result.content ?? '',
+    pages: result.pages?.map((page) => ({
+      lines: page.lines?.map((line) => ({
+        words: Array.from(line.words?.() ?? []).map((word) => ({
+          confidence: word.confidence,
+        })),
+      })),
+    })),
+  };
 }
 
 export function extractRegistrationNumber(text: string): string | null {

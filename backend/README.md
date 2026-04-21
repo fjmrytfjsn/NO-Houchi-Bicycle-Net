@@ -14,6 +14,7 @@ API:
 
 - GET / -> ヘルスチェック
 - POST /auth/register, POST /auth/login
+- POST /api/reports
 - GET/POST /bikes, GET/PUT/DELETE /bikes/:id
 - **POST /bikes/ocr/recognize** -> OCR（防犯登録番号認識）
 - **POST /owner/markers/:code/unlock-temp** -> 仮解除
@@ -33,6 +34,20 @@ API:
 - **有効期限管理**: クーポンごとに有効期限を設定（デフォルト30日間）
 
 ### API使用例
+
+```bash
+# 放置自転車の通報登録
+curl -X POST http://localhost:3000/api/reports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageUrl": "https://example.com/report.jpg",
+    "latitude": 34.7055,
+    "longitude": 135.4983,
+    "markerCode": "ABC123",
+    "identifierText": "OSAKA-1234",
+    "notes": "歩道の端に駐輪"
+  }'
+```
 
 ```bash
 # 1. 仮解除（15分間の猶予期間開始）

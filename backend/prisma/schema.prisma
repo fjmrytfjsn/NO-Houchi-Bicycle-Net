@@ -46,8 +46,23 @@ model Marker {
   location    String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  reports     BicycleReport[]
   declarations Declaration[]
   coupons     CouponIssuance[]
+}
+
+model BicycleReport {
+  id             String   @id @default(uuid())
+  marker         Marker   @relation(fields: [markerId], references: [id])
+  markerId       String
+  imageUrl       String
+  latitude       Float
+  longitude      Float
+  identifierText String
+  status         String   @default("reported")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Declaration {

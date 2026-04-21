@@ -13,7 +13,7 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 ## Main Flows
 
-- Supporter/reporting flow: abandoned bicycle information is recorded through backend APIs and data models.
+- Supporter/reporting flow: abandoned bicycle information is recorded through the backend report registration API and persisted in backend data models.
 - Owner flow: a marker code opens owner web pages, then temporary unlock and final unlock actions are handled through owner-facing routes and backend/API mock paths.
 - Recovery operations: unresolved cases can move toward recovery request and recovery result tracking according to the design docs.
 - Coupon/OCR features exist in backend documentation and code and should be checked against current implementation before changing behavior.
