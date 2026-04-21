@@ -268,6 +268,21 @@ export function createMockPrisma() {
       },
     },
     bicycleReport: {
+      findFirst: async ({
+        where,
+        orderBy,
+      }: {
+        where: { markerId: string };
+        orderBy: { createdAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(reports.values()).filter((entry) => entry.markerId === where.markerId);
+
+        if (orderBy.createdAt === 'asc') {
+          return [...filtered].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())[0] ?? null;
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.createdAt)[0] ?? null;
+      },
       findMany: async ({
         where,
         orderBy,
