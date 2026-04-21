@@ -38,6 +38,19 @@ type DeclarationRecord = {
   updatedAt: Date;
 };
 
+type BicycleReportRecord = {
+  id: string;
+  markerId: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  identifierText: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type CouponRecord = {
   id: string;
   name: string;
@@ -87,6 +100,7 @@ export function createMockPrisma() {
   const users = new Map<string, UserRecord>();
   const bikes = new Map<string, BikeRecord>();
   const markers = new Map<string, MarkerRecord>();
+  const reports = new Map<string, BicycleReportRecord>();
   const declarations = new Map<string, DeclarationRecord>();
   const coupons = new Map<string, CouponRecord>();
   const couponIssuances = new Map<string, CouponIssuanceRecord>();
@@ -95,6 +109,7 @@ export function createMockPrisma() {
     user: 0,
     bike: 0,
     marker: 0,
+    report: 0,
     declaration: 0,
     coupon: 0,
     issuance: 0,
@@ -224,6 +239,38 @@ export function createMockPrisma() {
           updatedAt: now,
         };
         markers.set(record.id, record);
+        return record;
+      },
+    },
+    bicycleReport: {
+      create: async ({
+        data,
+      }: {
+        data: {
+          markerId: string;
+          imageUrl: string;
+          latitude: number;
+          longitude: number;
+          identifierText: string;
+          status: string;
+          notes?: string | null;
+        };
+      }) => {
+        counters.report += 1;
+        const now = new Date();
+        const record: BicycleReportRecord = {
+          id: `r-${counters.report}`,
+          markerId: data.markerId,
+          imageUrl: data.imageUrl,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          identifierText: data.identifierText,
+          status: data.status,
+          notes: data.notes ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        reports.set(record.id, record);
         return record;
       },
     },
@@ -420,6 +467,7 @@ export function createMockPrisma() {
       users,
       bikes,
       markers,
+      reports,
       declarations,
       coupons,
       couponIssuances,

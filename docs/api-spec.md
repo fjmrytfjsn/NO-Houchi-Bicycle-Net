@@ -37,9 +37,14 @@
   - `imageUrl`: string
   - `latitude`: number
   - `longitude`: number
-  - `markerId`?: string
+  - `markerCode`: string
+  - `identifierText`: string
   - `notes`?: string
 - レスポンス: 作成した `report` オブジェクト
+- 実装方針:
+  - `markerCode` は必須
+  - 該当マーカーが存在しない場合は backend 側で新規作成して紐づける
+  - 初期 `status` は `reported`
 
 ### POST /api/reports/validate（将来構想）
 

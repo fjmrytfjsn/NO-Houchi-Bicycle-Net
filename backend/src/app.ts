@@ -4,6 +4,7 @@ import type { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import bikeRoutes from './routes/bikes';
 import ownerRoutes from './routes/owner';
+import reportRoutes from './routes/reports';
 import { sendError, UnauthorizedError } from './lib/errors';
 import { AuthService } from './services/authService';
 import type { OCRService } from './services/ocrService';
@@ -50,6 +51,7 @@ export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}
   });
 
   server.register(authRoutes, { prefix: '/auth' });
+  server.register(reportRoutes, { prefix: '/api/reports' });
   server.register(bikeRoutes({ ocrService }), { prefix: '/bikes' });
   server.register(ownerRoutes({ now }), { prefix: '/owner' });
 
