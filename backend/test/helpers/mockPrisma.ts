@@ -268,6 +268,32 @@ export function createMockPrisma() {
       },
     },
     bicycleReport: {
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where?: { status?: string };
+        orderBy?: { createdAt: 'asc' | 'desc' };
+      }) => {
+        let filtered = Array.from(reports.values());
+
+        if (where?.status) {
+          filtered = filtered.filter((entry) => entry.status === where.status);
+        }
+
+        if (orderBy?.createdAt === 'desc') {
+          return sortByDateDesc(filtered, (entry) => entry.createdAt);
+        }
+
+        if (orderBy?.createdAt === 'asc') {
+          return [...filtered].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
+        }
+
+        return filtered;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        return reports.get(where.id) ?? null;
+      },
       create: async ({
         data,
       }: {

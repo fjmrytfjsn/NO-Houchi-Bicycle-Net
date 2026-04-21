@@ -1,4 +1,4 @@
-import { BadRequestError } from '../lib/errors';
+import { BadRequestError, NotFoundError } from '../lib/errors';
 
 type MarkerRecord = {
   id: string;
@@ -27,6 +27,13 @@ type ReportPrisma = {
     }): Promise<MarkerRecord>;
   };
   bicycleReport: {
+    findMany(args: {
+      where?: { status?: string };
+      orderBy?: { createdAt: 'asc' | 'desc' };
+    }): Promise<ReportRecord[]>;
+    findUnique(args: {
+      where: { id: string };
+    }): Promise<ReportRecord | null>;
     create(args: {
       data: {
         markerId: string;
@@ -43,6 +50,25 @@ type ReportPrisma = {
 
 export class ReportService {
   constructor(private readonly prisma: ReportPrisma) {}
+
+  async listReports(input: { status?: string }) {
+    return this.prisma.bicycleReport.findMany({
+      where: input.status ? { status: input.status } : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getReport(id: string) {
+    const report = await this.prisma.bicycleReport.findUnique({
+      where: { id },
+    });
+
+    if (!report) {
+      throw new NotFoundError('report not found');
+    }
+
+    return report;
+  }
 
   async createReport(input: {
     imageUrl?: string;

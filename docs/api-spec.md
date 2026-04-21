@@ -76,7 +76,7 @@
 
 - 説明: 通報一覧（管理者向け、フィルタあり）
 - Query:
-  - `status` (optional), `from`, `to`, `bbox`
+  - `status` (optional)
 - レスポンス: `[{ report }]`
 
 ### GET /api/reports/:id

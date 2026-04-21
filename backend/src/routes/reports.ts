@@ -11,8 +11,34 @@ type CreateReportBody = {
   notes?: string;
 };
 
+type ListReportsQuery = {
+  status?: string;
+};
+
+type ReportParams = {
+  id: string;
+};
+
 const reportRoutes: FastifyPluginAsync = async (fastify) => {
   const reportService = new ReportService(fastify.prisma as any);
+
+  fastify.get<{ Querystring: ListReportsQuery }>('/', async (request, reply) => {
+    try {
+      const reports = await reportService.listReports(request.query ?? {});
+      return reply.send(reports);
+    } catch (error) {
+      return sendError(reply, fastify.log, error);
+    }
+  });
+
+  fastify.get<{ Params: ReportParams }>('/:id', async (request, reply) => {
+    try {
+      const report = await reportService.getReport(request.params.id);
+      return reply.send(report);
+    } catch (error) {
+      return sendError(reply, fastify.log, error);
+    }
+  });
 
   fastify.post<{ Body: CreateReportBody }>('/', async (request, reply) => {
     try {
