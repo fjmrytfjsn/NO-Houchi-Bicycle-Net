@@ -17,7 +17,7 @@ const { useRouter } = jest.requireMock('next/router') as {
 
 describe('Admin Dashboard pages', () => {
   it('shows report summary and main columns on the report list page', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {} });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
 
     render(<HomePage />);
 
@@ -33,7 +33,11 @@ describe('Admin Dashboard pages', () => {
   });
 
   it('shows only reported and temporary items on the unresolved page', () => {
-    useRouter.mockReturnValue({ pathname: '/unresolved', query: {} });
+    useRouter.mockReturnValue({
+      pathname: '/unresolved',
+      query: {},
+      isReady: true,
+    });
 
     render(<UnresolvedPage />);
 
@@ -49,6 +53,7 @@ describe('Admin Dashboard pages', () => {
     useRouter.mockReturnValue({
       pathname: '/reports/[id]',
       query: { id: 'R-002' },
+      isReady: true,
     });
 
     render(<ReportDetailPage />);
@@ -65,6 +70,7 @@ describe('Admin Dashboard pages', () => {
     useRouter.mockReturnValue({
       pathname: '/collection-request/[id]',
       query: { id: 'R-001' },
+      isReady: true,
     });
 
     render(<CollectionRequestPage />);
@@ -79,6 +85,7 @@ describe('Admin Dashboard pages', () => {
     useRouter.mockReturnValue({
       pathname: '/collection-result/[id]',
       query: { id: 'R-003' },
+      isReady: true,
     });
 
     render(<CollectionResultPage />);
@@ -87,5 +94,18 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByLabelText('回収完了')).toBeInTheDocument();
     expect(screen.getByLabelText('現地で現物なし')).toBeInTheDocument();
     expect(screen.getByText('結果メモ')).toBeInTheDocument();
+  });
+
+  it('shows loading state until dynamic route params are ready', () => {
+    useRouter.mockReturnValue({
+      pathname: '/reports/[id]',
+      query: {},
+      isReady: false,
+    });
+
+    render(<ReportDetailPage />);
+
+    expect(screen.getByText('読み込み中…')).toBeInTheDocument();
+    expect(screen.queryByText('対象の通報が見つかりません。')).not.toBeInTheDocument();
   });
 });

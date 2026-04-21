@@ -7,12 +7,26 @@ import { getReportById } from '../../lib/mockReports';
 
 export default function CollectionResultPage() {
   const router = useRouter();
-  const report = getReportById(router.query.id);
+  const isReady = router.isReady ?? true;
+  const report = isReady ? getReportById(router.query.id) : undefined;
   const [result, setResult] = useState<'collected' | 'not_found_on_collection'>(
     'collected',
   );
   const [memo, setMemo] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  if (!isReady) {
+    return (
+      <AppLayout
+        title="回収結果記録"
+        description="回収完了または現地で現物なしの結果を記録する雛形です。"
+      >
+        <section className="panel">
+          <p>読み込み中…</p>
+        </section>
+      </AppLayout>
+    );
+  }
 
   if (!report) {
     return (

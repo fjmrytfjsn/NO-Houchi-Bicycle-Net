@@ -7,9 +7,23 @@ import { getReportById } from '../../lib/mockReports';
 
 export default function CollectionRequestPage() {
   const router = useRouter();
-  const report = getReportById(router.query.id);
+  const isReady = router.isReady ?? true;
+  const report = isReady ? getReportById(router.query.id) : undefined;
   const [memo, setMemo] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  if (!isReady) {
+    return (
+      <AppLayout
+        title="回収依頼"
+        description="対象案件に依頼メモを付け、回収依頼状態へ更新する雛形です。"
+      >
+        <section className="panel">
+          <p>読み込み中…</p>
+        </section>
+      </AppLayout>
+    );
+  }
 
   if (!report) {
     return (

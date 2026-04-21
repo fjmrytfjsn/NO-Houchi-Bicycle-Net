@@ -7,7 +7,21 @@ import { getReportById } from '../../lib/mockReports';
 
 export default function ReportDetailPage() {
   const router = useRouter();
-  const report = getReportById(router.query.id);
+  const isReady = router.isReady ?? true;
+  const report = isReady ? getReportById(router.query.id) : undefined;
+
+  if (!isReady) {
+    return (
+      <AppLayout
+        title="通報詳細"
+        description="写真、位置、識別情報、現在ステータス、履歴を確認します。"
+      >
+        <section className="panel">
+          <p>読み込み中…</p>
+        </section>
+      </AppLayout>
+    );
+  }
 
   if (!report) {
     return (
