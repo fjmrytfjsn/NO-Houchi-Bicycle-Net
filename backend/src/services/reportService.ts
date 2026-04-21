@@ -20,8 +20,11 @@ type ReportRecord = {
 
 type ReportPrisma = {
   marker: {
-    findUnique(args: { where: { code?: string; id?: string } }): Promise<MarkerRecord | null>;
-    create(args: { data: { code: string; location?: string | null } }): Promise<MarkerRecord>;
+    upsert(args: {
+      where: { code: string };
+      update: { location?: string | null };
+      create: { code: string; location?: string | null };
+    }): Promise<MarkerRecord>;
   };
   bicycleReport: {
     create(args: {
@@ -81,16 +84,10 @@ export class ReportService {
   }
 
   private async getOrCreateMarker(code: string) {
-    const existing = await this.prisma.marker.findUnique({
+    return this.prisma.marker.upsert({
       where: { code },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    return this.prisma.marker.create({
-      data: { code },
+      update: {},
+      create: { code },
     });
   }
 }

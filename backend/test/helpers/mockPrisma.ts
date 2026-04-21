@@ -241,6 +241,31 @@ export function createMockPrisma() {
         markers.set(record.id, record);
         return record;
       },
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { code: string };
+        update: { location?: string | null };
+        create: { code: string; location?: string | null };
+      }) => {
+        const existing = Array.from(markers.values()).find((entry) => entry.code === where.code) ?? null;
+        if (existing) {
+          return existing;
+        }
+
+        counters.marker += 1;
+        const now = new Date();
+        const record: MarkerRecord = {
+          id: `m-${counters.marker}`,
+          code: create.code,
+          location: create.location ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        markers.set(record.id, record);
+        return record;
+      },
     },
     bicycleReport: {
       create: async ({
