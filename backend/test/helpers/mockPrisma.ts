@@ -38,6 +38,32 @@ type DeclarationRecord = {
   updatedAt: Date;
 };
 
+type BicycleReportRecord = {
+  id: string;
+  markerId: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  identifierText: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type CollectionRequestRecord = {
+  id: string;
+  reportId: string;
+  requestedBy: string | null;
+  requestedAt: Date;
+  result: string;
+  resultRecordedBy: string | null;
+  resultRecordedAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type CouponRecord = {
   id: string;
   name: string;
@@ -87,6 +113,8 @@ export function createMockPrisma() {
   const users = new Map<string, UserRecord>();
   const bikes = new Map<string, BikeRecord>();
   const markers = new Map<string, MarkerRecord>();
+  const reports = new Map<string, BicycleReportRecord>();
+  const collectionRequests = new Map<string, CollectionRequestRecord>();
   const declarations = new Map<string, DeclarationRecord>();
   const coupons = new Map<string, CouponRecord>();
   const couponIssuances = new Map<string, CouponIssuanceRecord>();
@@ -95,6 +123,8 @@ export function createMockPrisma() {
     user: 0,
     bike: 0,
     marker: 0,
+    report: 0,
+    collectionRequest: 0,
     declaration: 0,
     coupon: 0,
     issuance: 0,
@@ -224,6 +254,176 @@ export function createMockPrisma() {
           updatedAt: now,
         };
         markers.set(record.id, record);
+        return record;
+      },
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: { code: string };
+        update: { location?: string | null };
+        create: { code: string; location?: string | null };
+      }) => {
+        const existing = Array.from(markers.values()).find((entry) => entry.code === where.code) ?? null;
+        if (existing) {
+          return existing;
+        }
+
+        counters.marker += 1;
+        const now = new Date();
+        const record: MarkerRecord = {
+          id: `m-${counters.marker}`,
+          code: create.code,
+          location: create.location ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        markers.set(record.id, record);
+        return record;
+      },
+    },
+    bicycleReport: {
+      findFirst: async ({
+        where,
+        orderBy,
+      }: {
+        where: { markerId: string };
+        orderBy: { createdAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(reports.values()).filter((entry) => entry.markerId === where.markerId);
+
+        if (orderBy.createdAt === 'asc') {
+          return [...filtered].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())[0] ?? null;
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.createdAt)[0] ?? null;
+      },
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where?: { status?: string };
+        orderBy?: { createdAt: 'asc' | 'desc' };
+      }) => {
+        let filtered = Array.from(reports.values());
+
+        if (where?.status) {
+          filtered = filtered.filter((entry) => entry.status === where.status);
+        }
+
+        if (orderBy?.createdAt === 'desc') {
+          return sortByDateDesc(filtered, (entry) => entry.createdAt);
+        }
+
+        if (orderBy?.createdAt === 'asc') {
+          return [...filtered].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
+        }
+
+        return filtered;
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        return reports.get(where.id) ?? null;
+      },
+      create: async ({
+        data,
+      }: {
+        data: {
+          markerId: string;
+          imageUrl: string;
+          latitude: number;
+          longitude: number;
+          identifierText: string;
+          status: string;
+          notes?: string | null;
+        };
+      }) => {
+        counters.report += 1;
+        const now = new Date();
+        const record: BicycleReportRecord = {
+          id: `r-${counters.report}`,
+          markerId: data.markerId,
+          imageUrl: data.imageUrl,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          identifierText: data.identifierText,
+          status: data.status,
+          notes: data.notes ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        reports.set(record.id, record);
+        return record;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: { status?: string; notes?: string | null };
+      }) => {
+        const existing = reports.get(where.id);
+        if (!existing) {
+          throw new Error('not found');
+        }
+
+        const updated: BicycleReportRecord = {
+          ...existing,
+          status: data.status ?? existing.status,
+          notes: data.notes ?? existing.notes,
+          updatedAt: new Date(),
+        };
+        reports.set(where.id, updated);
+        return updated;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: string; status?: string };
+        data: { status?: string; notes?: string | null };
+      }) => {
+        const existing = reports.get(where.id);
+        if (!existing || (where.status && existing.status !== where.status)) {
+          return { count: 0 };
+        }
+
+        const updated: BicycleReportRecord = {
+          ...existing,
+          status: data.status ?? existing.status,
+          notes: data.notes ?? existing.notes,
+          updatedAt: new Date(),
+        };
+        reports.set(where.id, updated);
+        return { count: 1 };
+      },
+    },
+    collectionRequest: {
+      create: async ({
+        data,
+      }: {
+        data: {
+          reportId: string;
+          requestedBy?: string | null;
+          requestedAt: Date;
+          result: string;
+          notes?: string | null;
+        };
+      }) => {
+        counters.collectionRequest += 1;
+        const now = new Date();
+        const record: CollectionRequestRecord = {
+          id: `cr-${counters.collectionRequest}`,
+          reportId: data.reportId,
+          requestedBy: data.requestedBy ?? null,
+          requestedAt: data.requestedAt,
+          result: data.result,
+          resultRecordedBy: null,
+          resultRecordedAt: null,
+          notes: data.notes ?? null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        collectionRequests.set(record.id, record);
         return record;
       },
     },
@@ -412,6 +612,7 @@ export function createMockPrisma() {
         return updated;
       },
     },
+    $transaction: async <T>(fn: (tx: typeof prisma) => Promise<T>) => fn(prisma),
   };
 
   return {
@@ -420,6 +621,8 @@ export function createMockPrisma() {
       users,
       bikes,
       markers,
+      reports,
+      collectionRequests,
       declarations,
       coupons,
       couponIssuances,

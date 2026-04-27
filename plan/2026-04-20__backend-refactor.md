@@ -14,10 +14,10 @@
 - `backend/test/*.spec.ts`
 - `backend/prisma/schema.prisma`
 - `backend/README.md`
-- `docs/owner-api.md`
-- `docs/api-spec.md`
-- `docs/openapi.yaml`
-- `docs/openapi-owner.yaml`
+- `docs/api/owner-api.md`
+- `docs/api/api-spec.md`
+- `docs/api/openapi.yaml`
+- `docs/api/openapi-owner.yaml`
 
 ## Planned changes
 
@@ -43,7 +43,7 @@
 ## Risks and follow-ups
 
 - 実行環境に Node.js / npm が無い場合、ローカル検証は未実施になる。
-- `docs/backend-spec.md` には将来構想寄りの概念モデルが残るため、次回 API 実装拡張時に再整理が必要。
+- `docs/design/backend-spec.md` には将来構想寄りの概念モデルが残るため、次回 API 実装拡張時に再整理が必要。
 
 ## Project docs updates
 

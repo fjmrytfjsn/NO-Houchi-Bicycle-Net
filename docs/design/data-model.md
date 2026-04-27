@@ -32,11 +32,11 @@
 
 - `id` (UUID, PK)
 - `marker_id` (FK -> Marker)
-- `reporter_id` (FK -> User)
 - `image_url` (string)
 - `latitude`, `longitude` (decimal)
-- `ocr_text` (text)
+- `identifier_text` (text)
 - `status` (enum: reported | temporary | resolved | collection_requested | collected | not_found_on_collection)
+- `notes` (text, nullable)
 - `created_at`, `updated_at`
 
 ## Declaration（移動宣言）
@@ -55,10 +55,10 @@
 
 - `id` (UUID, PK)
 - `report_id` (FK -> BicycleReport)
-- `requested_by` (FK -> User)
+- `requested_by` (string, nullable; 試作品では認証連携なしで行政側の操作主体を任意保存)
 - `requested_at` (timestamp)
 - `result` (enum: pending | collected | not_found_on_collection)
-- `result_recorded_by` (FK -> User, nullable)
+- `result_recorded_by` (string, nullable; 試作品では認証連携なしで任意保存)
 - `result_recorded_at` (timestamp, nullable)
 - `notes` (text, nullable)
 - `created_at`, `updated_at`

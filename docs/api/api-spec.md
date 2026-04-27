@@ -1,6 +1,6 @@
 # API仕様書
 
-本書は [基本設計仕様書](./basic-design.md) の試作品スコープに合わせ、通報、持ち主による解除、未解除時の回収依頼、回収結果記録を中心に整理する。
+本書は [基本設計仕様書](../design/basic-design.md) の試作品スコープに合わせ、通報、持ち主による解除、未解除時の回収依頼、回収結果記録を中心に整理する。
 高度分析、ブラックリスト、外部連携、クーポン詳細機能は今回スコープ外の将来構想として扱う。
 
 ## 認証
@@ -37,9 +37,14 @@
   - `imageUrl`: string
   - `latitude`: number
   - `longitude`: number
-  - `markerId`?: string
+  - `markerCode`: string
+  - `identifierText`: string
   - `notes`?: string
 - レスポンス: 作成した `report` オブジェクト
+- 実装方針:
+  - `markerCode` は必須
+  - 該当マーカーが存在しない場合は backend 側で新規作成して紐づける
+  - 初期 `status` は `reported`
 
 ### POST /api/reports/validate（将来構想）
 
@@ -71,7 +76,7 @@
 
 - 説明: 通報一覧（管理者向け、フィルタあり）
 - Query:
-  - `status` (optional), `from`, `to`, `bbox`
+  - `status` (optional)
 - レスポンス: `[{ report }]`
 
 ### GET /api/reports/:id
@@ -86,7 +91,7 @@
 ### POST /api/reports/:id/collection-request
 
 - 説明: 一定時間内に持ち主による解除が行われなかった通報を、管理者が回収依頼対象にする
-- Body: `{ "notes"?: string }`
+- Body: `{ "notes"?: string, "requestedBy"?: string }`
 - 期待挙動:
   - report.status を `collection_requested` に更新する
   - 回収依頼の操作履歴を保存する
@@ -139,6 +144,8 @@
 ### GET /api/owner/markers/:code
 
 - 説明: QR からアクセスした持ち主に、対象マーカーの警告内容、通報状態、仮解除情報を返す
+- 挙動: `marker.code` と、該当 marker に紐づく最新 `BicycleReport`・最新 `Declaration` を返す。`report` と `declaration` は存在しない場合 `null`
+- エラー: marker が存在しない場合は `404` で `{ "error": "Marker not found" }`
 
 ### GET /api/owner/markers/:code/coupons（実装済み・将来拡張）
 

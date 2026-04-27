@@ -46,8 +46,38 @@ model Marker {
   location    String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  reports     BicycleReport[]
   declarations Declaration[]
   coupons     CouponIssuance[]
+}
+
+model BicycleReport {
+  id                 String              @id @default(uuid())
+  marker             Marker              @relation(fields: [markerId], references: [id])
+  markerId           String
+  imageUrl           String
+  latitude           Float
+  longitude          Float
+  identifierText     String
+  status             String              @default("reported")
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  collectionRequests CollectionRequest[]
+}
+
+model CollectionRequest {
+  id               String        @id @default(uuid())
+  report           BicycleReport @relation(fields: [reportId], references: [id])
+  reportId         String
+  requestedBy      String?
+  requestedAt      DateTime      @default(now())
+  result           String        @default("pending") // pending, collected, not_found_on_collection
+  resultRecordedBy String?
+  resultRecordedAt DateTime?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Declaration {

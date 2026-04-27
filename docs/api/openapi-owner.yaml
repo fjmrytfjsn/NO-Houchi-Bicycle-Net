@@ -20,6 +20,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OwnerMarkerResponse'
+        '404':
+          description: Marker not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /owner/markers/{code}/unlock-temp:
     post:
       summary: Create temporary unlock (仮解除)
@@ -73,27 +79,75 @@ components:
     OwnerMarkerResponse:
       type: object
       properties:
-        status:
-          type: string
-          example: ok
-        data:
+        marker:
           type: object
           properties:
-            marker:
-              type: object
-              properties:
-                code: { type: string }
-                location:
-                  type: object
-                  properties:
-                    lat: { type: number }
-                    lng: { type: number }
-            report:
-              type: object
-              nullable: true
-            declaration:
-              type: object
-              nullable: true
+            code:
+              type: string
+        report:
+          allOf:
+            - $ref: '#/components/schemas/BicycleReport'
+          nullable: true
+        declaration:
+          $ref: '#/components/schemas/Declaration'
+    BicycleReport:
+      type: object
+      properties:
+        id:
+          type: string
+        markerId:
+          type: string
+        imageUrl:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        identifierText:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Declaration:
+      type: object
+      properties:
+        id:
+          type: string
+        markerId:
+          type: string
+        declaredAt:
+          type: string
+          format: date-time
+        eligibleFinalAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        finalizedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      nullable: true
     TemporaryUnlockResponse:
       type: object
       properties:
@@ -149,3 +203,8 @@ components:
         ownerEmail:
           type: string
           format: email
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string

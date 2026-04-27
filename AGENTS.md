@@ -11,7 +11,7 @@
 
 - `backend/`: Fastify + Prisma API server and backend tests.
 - `apps/owner-web/`: Next.js owner-facing web app, API mocks, Jest tests, and Playwright tests.
-- `docs/`: design, setup, API, data model, acceptance, workflow, and status documents.
+- `docs/`: categorized design, API, UI, testing, operations, ADR, and status documents.
 - `apps/android-app/` and `apps/admin-dashboard/` are described in project docs, but may not exist or may be incomplete in the current tree.
 
 ## Commands
@@ -24,10 +24,10 @@
 
 ## Workflow
 
-- Read `README.md` and `docs/developer-workflow.md` before changing setup, verification, or repo structure.
-- For API or data changes, inspect `docs/api-spec.md`, `docs/owner-api.md`, `docs/data-model.md`, `docs/openapi*.yaml`, and `backend/prisma/schema.prisma`.
+- Read `README.md` and `docs/operations/developer-workflow.md` before changing setup, verification, or repo structure.
+- For API or data changes, inspect `docs/api/`, `docs/design/data-model.md`, and `backend/prisma/schema.prisma`.
 - This repo intentionally has no CI; use local verification and report commands that were not run.
-- For GitHub Project or Issue management, read `docs/project-management.md` and keep Issue state and Project Status synchronized.
+- For GitHub Project or Issue management, read `docs/operations/project-management.md` and keep Issue state and Project Status synchronized.
 - For broad or multi-session work, create `plan/YYYY-MM-DD__task-slug.md`.
 - Before finishing broad changes, check whether `AGENTS.md`, `ARCHITECTURE.md`, `docs/adr/`, or `plan/README.md` should be updated.
 - Move durable project facts discovered during work into project docs instead of relying on chat history.

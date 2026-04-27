@@ -206,5 +206,5 @@ npx prisma migrate reset
 ## 次のステップ
 
 - [開発者ワークフロー](./developer-workflow.md) を確認
-- [API 仕様](./api-spec.md) を確認
-- [Owner Web API 仕様](./owner-api.md) を確認
+- [API 仕様](../api/api-spec.md) を確認
+- [Owner Web API 仕様](../api/owner-api.md) を確認

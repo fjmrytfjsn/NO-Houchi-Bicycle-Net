@@ -8,12 +8,13 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 - `backend/`: TypeScript Fastify API server with Prisma models, migrations, routes, services, and Vitest tests.
 - `apps/owner-web/`: Next.js owner web flow for marker pages, temporary unlock, final unlock, mocks, unit tests, and Playwright tests.
-- `docs/`: source documents for setup, developer workflow, API specs, owner API, data model, acceptance criteria, wireframes, and project status.
+- `apps/admin-dashboard/`: Next.js admin dashboard scaffold with shared layout, Backend-driven report list/detail pages, mock-backed unresolved-case views, and mock-driven recovery request/result forms.
+- `docs/`: categorized source documents for design, API specs, UI wireframes, testing, operations, ADRs, and project status.
 - `README.md`: high-level project scope, monorepo shape, setup notes, and prototype/future-scope distinction.
 
 ## Main Flows
 
-- Supporter/reporting flow: abandoned bicycle information is recorded through backend APIs and data models.
+- Supporter/reporting flow: abandoned bicycle information is recorded through the backend report registration API and persisted in backend data models.
 - Owner flow: a marker code opens owner web pages, then temporary unlock and final unlock actions are handled through owner-facing routes and backend/API mock paths.
 - Recovery operations: unresolved cases can move toward recovery request and recovery result tracking according to the design docs.
 - Coupon/OCR features exist in backend documentation and code and should be checked against current implementation before changing behavior.
@@ -34,6 +35,6 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 
 ## Unknowns
 
-- Current status of `apps/android-app/` and `apps/admin-dashboard/` in the implementation tree.
+- Current status of `apps/android-app/` in the implementation tree.
 - Final production infrastructure and external integration choices.
 - Which future-scope features will be promoted into prototype scope.

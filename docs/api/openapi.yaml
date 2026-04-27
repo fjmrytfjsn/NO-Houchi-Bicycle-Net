@@ -117,6 +117,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OwnerMarkerResponse"
+        "404":
+          description: Marker not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/owner/markers/{code}/unlock-temp:
     post:
       summary: 持ち主による仮解除
@@ -192,7 +198,7 @@ components:
           type: string
     ReportCreate:
       type: object
-      required: [imageUrl, latitude, longitude]
+      required: [imageUrl, latitude, longitude, markerCode, identifierText]
       properties:
         imageUrl:
           type: string
@@ -200,7 +206,7 @@ components:
           type: number
         longitude:
           type: number
-        markerId:
+        markerCode:
           type: string
         identifierText:
           type: string
@@ -223,6 +229,9 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ReportStatus"
+        notes:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -233,6 +242,8 @@ components:
       type: object
       properties:
         notes:
+          type: string
+        requestedBy:
           type: string
     CollectionResultBody:
       type: object
@@ -252,9 +263,48 @@ components:
             code:
               type: string
         report:
-          $ref: "#/components/schemas/BicycleReport"
+          allOf:
+            - $ref: "#/components/schemas/BicycleReport"
+          nullable: true
         declaration:
-          type: object
+          $ref: "#/components/schemas/Declaration"
+    Declaration:
+      type: object
+      properties:
+        id:
+          type: string
+        markerId:
+          type: string
+        declaredAt:
+          type: string
+          format: date-time
+        eligibleFinalAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        finalizedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      nullable: true
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
           nullable: true
     UnlockTempBody:
       type: object

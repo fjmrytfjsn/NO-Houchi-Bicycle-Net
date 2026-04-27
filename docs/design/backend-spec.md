@@ -60,6 +60,6 @@
 
 ## 次のステップ
 
-1. `docs/api-spec.md` と実装ルートの差分を確認する
+1. `docs/api/api-spec.md` と実装ルートの差分を確認する
 2. 通報、解除、回収依頼、回収結果記録の最小 API を実装する
-3. `docs/data-model.md` の論理モデルと Prisma schema の対応を整理する
+3. `docs/design/data-model.md` の論理モデルと Prisma schema の対応を整理する

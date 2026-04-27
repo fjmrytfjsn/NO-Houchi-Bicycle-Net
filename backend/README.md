@@ -14,6 +14,7 @@ API:
 
 - GET / -> ヘルスチェック
 - POST /auth/register, POST /auth/login
+- POST /api/reports
 - GET/POST /bikes, GET/PUT/DELETE /bikes/:id
 - **POST /bikes/ocr/recognize** -> OCR（防犯登録番号認識）
 - **POST /owner/markers/:code/unlock-temp** -> 仮解除
@@ -33,6 +34,20 @@ API:
 - **有効期限管理**: クーポンごとに有効期限を設定（デフォルト30日間）
 
 ### API使用例
+
+```bash
+# 放置自転車の通報登録
+curl -X POST http://localhost:3000/api/reports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageUrl": "https://example.com/report.jpg",
+    "latitude": 34.7055,
+    "longitude": 135.4983,
+    "markerCode": "ABC123",
+    "identifierText": "OSAKA-1234",
+    "notes": "歩道の端に駐輪"
+  }'
+```
 
 ```bash
 # 1. 仮解除（15分間の猶予期間開始）
@@ -117,6 +132,6 @@ curl -X POST http://localhost:3000/bikes/ocr/recognize \
 
 開発ワークフローと方針:
 
-- CI は導入しません。ローカル検証を重視し、`docs/developer-workflow.md` に手順をまとめています。
+- CI は導入しません。ローカル検証を重視し、[`docs/operations/developer-workflow.md`](../docs/operations/developer-workflow.md) に手順をまとめています。
 - ローカルでのテスト実行: `npm test`（Vitest）
 - 推奨: Docker Compose で Postgres を立ち上げ、`npx prisma generate` / `npx prisma migrate dev` を実行してから `npm run dev` でアプリを起動してください。
