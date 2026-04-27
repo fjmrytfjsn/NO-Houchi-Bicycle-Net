@@ -1,6 +1,7 @@
 export type ReportStatus =
   | 'reported'
   | 'temporary'
+  | 'resolved'
   | 'collection_requested'
   | 'collected'
   | 'not_found_on_collection';

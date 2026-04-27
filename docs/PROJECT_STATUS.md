@@ -1,6 +1,6 @@
 # プロジェクト状態レポート
 
-**更新日**: 2026年4月20日
+**更新日**: 2026年4月27日
 
 **参照Project**: [NO-Houchi Bicycle Net MVP](https://github.com/users/fjmrytfjsn/projects/3)
 
@@ -16,7 +16,7 @@
 | --------------- | ----------- | ------ | ---------------------------------- |
 | Backend Server  | ✅ 実装中   | 30%    | Fastify, Prisma, JWT 認証基盤完成  |
 | Owner Web       | 🔄 修正完了 | 25%    | API 実装済み、インメモリストア動作 |
-| Admin Dashboard | 🔄 実装中   | 15%    | Next.js 基盤、通報一覧/詳細/未解除案件/回収依頼/回収結果記録のモック画面を追加 |
+| Admin Dashboard | 🔄 実装中   | 20%    | 通報一覧/詳細は Backend API 取得に対応、未解除案件/回収依頼/回収結果記録はモック画面 |
 | Android App     | ⏳ 未開始   | 0%     | 試作品では撮影・位置情報付き通報を優先 |
 
 ## GitHub Project 同期状況
@@ -88,7 +88,8 @@
    - Backend との連携確認
 
 4. **Admin Dashboard の Backend API 連携**
-   - モック画面を実 API 取得に差し替え
+   - 通報一覧/詳細は実 API 取得に差し替え済み
+   - 未解除案件の実 API 取得
    - 回収依頼登録
    - 回収結果（回収完了/現地で現物なし）の記録
    - 認証・権限制御

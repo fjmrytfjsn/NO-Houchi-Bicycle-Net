@@ -12,7 +12,7 @@ export function DetailCard({ report }: DetailCardProps) {
       <div className="detail-grid">
         <div>
           <p className="section-label">写真</p>
-          <ReportImageThumb alt={`${report.id} の写真`} />
+          <ReportImageThumb alt={`${report.id} の写真`} imageUrl={report.imageUrl} />
         </div>
         <div className="detail-list">
           <div>
