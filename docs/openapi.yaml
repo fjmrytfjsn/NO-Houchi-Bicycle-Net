@@ -243,6 +243,8 @@ components:
       properties:
         notes:
           type: string
+        requestedBy:
+          type: string
     CollectionResultBody:
       type: object
       required: [result]

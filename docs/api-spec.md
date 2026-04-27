@@ -91,7 +91,7 @@
 ### POST /api/reports/:id/collection-request
 
 - 説明: 一定時間内に持ち主による解除が行われなかった通報を、管理者が回収依頼対象にする
-- Body: `{ "notes"?: string }`
+- Body: `{ "notes"?: string, "requestedBy"?: string }`
 - 期待挙動:
   - report.status を `collection_requested` に更新する
   - 回収依頼の操作履歴を保存する
