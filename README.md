@@ -175,6 +175,7 @@ cd apps/android-app
 
 - [基本設計仕様書](./docs/basic-design.md)
 - [ビジネスモデル試算メモ](./docs/business-model-estimate.md)
+- [クーポン費用試算メモ](./docs/coupon-cost-model.md)
 - [API仕様書](./docs/api-spec.md)
 - [データモデル定義](./docs/data-model.md)
 - [GitHub Project 運用ルール](./docs/project-management.md)
