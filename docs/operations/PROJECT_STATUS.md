@@ -175,21 +175,21 @@ NO-Houchi-Bicycle-Net/
 │   │   └── package.json
 │   └── admin-dashboard/       # Next.js 管理画面基盤（モック画面）
 └── docs/
-    ├── basic-design.md
-    ├── api-spec.md
-    ├── owner-api.md           # (更新)
-    ├── developer-workflow.md   # (更新)
-    ├── SETUP.md               # (新規)
-    └── PROJECT_STATUS.md      # このファイル
+    ├── README.md
+    ├── api/
+    ├── design/
+    ├── operations/
+    ├── testing/
+    └── ui/
 ```
 
 ## 🔗 関連リンク
 
 - [開発者ワークフロー](./developer-workflow.md)
 - [セットアップガイド](./SETUP.md)
-- [Owner Web API 仕様](./owner-api.md)
-- [Backend API 仕様](./api-spec.md)
-- [データモデル定義](./data-model.md)
+- [Owner Web API 仕様](../api/owner-api.md)
+- [Backend API 仕様](../api/api-spec.md)
+- [データモデル定義](../design/data-model.md)
 
 ## 📝 メモ
 

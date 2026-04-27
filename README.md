@@ -105,7 +105,7 @@ npm install
 
 - 本プロジェクトでは **CI（自動ワークフロー）は導入しません**。
 - 変更はローカルで `npm test` や `npm run lint` を実行して確認してください。
-- 詳細な手順と推奨ワークフローは `docs/developer-workflow.md` を参照してください。
+- 詳細な手順と推奨ワークフローは `docs/operations/developer-workflow.md` を参照してください。
 
 ### 3. 環境変数の設定 (.env)
 
@@ -171,11 +171,11 @@ cd apps/android-app
 
 ## 📝 ドキュメント
 
-詳細な仕様書は `docs` ディレクトリを参照してください。
+詳細な仕様書は [docs](./docs/README.md) ディレクトリを参照してください。
 
-- [基本設計仕様書](./docs/basic-design.md)
-- [API仕様書](./docs/api-spec.md)
-- [データモデル定義](./docs/data-model.md)
-- [GitHub Project 運用ルール](./docs/project-management.md)
+- [基本設計仕様書](./docs/design/basic-design.md)
+- [API仕様書](./docs/api/api-spec.md)
+- [データモデル定義](./docs/design/data-model.md)
+- [GitHub Project 運用ルール](./docs/operations/project-management.md)
 
 ---

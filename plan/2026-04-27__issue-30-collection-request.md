@@ -15,7 +15,7 @@
 - `CollectionRequest` Prismaモデルとmigrationを追加する。
 - 回収依頼APIは `notes` と任意の `requestedBy` を受け取り、履歴へ保存する。
 - 回収依頼対象は `reported` のみとし、それ以外のstatusは400で拒否する。
-- `docs/api-spec.md`、`docs/openapi.yaml`、`docs/data-model.md` を実装に合わせて更新する。
+- `docs/api/api-spec.md`、`docs/api/openapi.yaml`、`docs/design/data-model.md` を実装に合わせて更新する。
 
 ## Verification
 
