@@ -3,6 +3,7 @@ import type { ReportDetail, ReportStatus } from './types';
 export const reportStatusFilters = [
   'reported',
   'temporary',
+  'resolved',
   'collection_requested',
   'collected',
   'not_found_on_collection',
@@ -74,6 +75,18 @@ export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
 
   const reports = (await response.json()) as ApiReport[];
   return reports.map(mapApiReportToDetail);
+}
+
+export async function fetchAdminReport(id: string) {
+  const response = await fetch(
+    `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`GET /api/reports/${id} failed: ${response.status}`);
+  }
+
+  return mapApiReportToDetail((await response.json()) as ApiReport);
 }
 
 function formatDateTime(value: string) {

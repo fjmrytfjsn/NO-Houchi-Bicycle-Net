@@ -3,7 +3,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import HomePage, { getServerSideProps } from '../pages';
 import UnresolvedPage from '../pages/unresolved';
-import ReportDetailPage from '../pages/reports/[id]';
+import ReportDetailPage, {
+  getServerSideProps as getReportDetailServerSideProps,
+} from '../pages/reports/[id]';
 import CollectionRequestPage from '../pages/collection-request/[id]';
 import CollectionResultPage from '../pages/collection-result/[id]';
 
@@ -75,6 +77,37 @@ describe('Admin Dashboard pages', () => {
     expect(
       screen.getByRole('link', { name: 'temporary' }),
     ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('marks resolved as a valid selected status filter', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/',
+      query: { status: 'resolved' },
+      isReady: true,
+    });
+
+    render(<HomePage reports={[]} selectedStatus="resolved" />);
+
+    expect(
+      screen.getByRole('link', { name: 'resolved' }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    } as Response);
+    global.fetch = fetchMock;
+
+    await getServerSideProps({
+      query: { status: 'resolved' },
+    } as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports?status=resolved',
+    );
+
+    global.fetch = originalFetch;
   });
 
   it('shows an error when report list API fetch fails', () => {
@@ -172,6 +205,76 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
     expect(screen.getByText('履歴')).toBeInTheDocument();
     expect(screen.getByText('持ち主が仮解除')).toBeInTheDocument();
+  });
+
+  it('shows API-backed report detail for IDs from the report list', () => {
+    useRouter.mockReturnValue({
+      pathname: '/reports/[id]',
+      query: { id: 'r-api-3' },
+      isReady: true,
+    });
+
+    render(
+      <ReportDetailPage
+        report={{
+          id: 'r-api-3',
+          imageUrl: 'https://example.com/report-api-3.jpg',
+          reportedAt: '2026-04-21 08:30',
+          location: '34.710000, 135.500000',
+          identifierText: 'API-0003 / 白のミニベロ',
+          status: 'reported',
+          elapsedLabel: '',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: '通報詳細' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('API-0003 / 白のミニベロ')).toBeInTheDocument();
+    expect(screen.getByText('34.710000, 135.500000')).toBeInTheDocument();
+  });
+
+  it('fetches report detail by id on the server side', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'r-api-4',
+        markerId: 'm-api-4',
+        imageUrl: 'https://example.com/report-api-4.jpg',
+        latitude: 34.71,
+        longitude: 135.5,
+        identifierText: 'API-0004',
+        status: 'collection_requested',
+        notes: null,
+        createdAt: '2026-04-21T00:30:00.000Z',
+        updatedAt: '2026-04-21T00:30:00.000Z',
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    const result = await getReportDetailServerSideProps({
+      params: { id: 'r-api-4' },
+    } as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports/r-api-4',
+    );
+    expect(result).toMatchObject({
+      props: {
+        report: {
+          id: 'r-api-4',
+          reportedAt: '2026-04-21 09:30',
+          location: '34.710000, 135.500000',
+          status: 'collection_requested',
+        },
+      },
+    });
+
+    global.fetch = originalFetch;
   });
 
   it('shows the collection request form and confirmation text', () => {
