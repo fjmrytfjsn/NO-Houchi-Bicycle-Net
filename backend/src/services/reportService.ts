@@ -18,14 +18,20 @@ type ReportRecord = {
   updatedAt: Date;
 };
 
-type ReportPrisma = {
-  marker: {
-    upsert(args: {
-      where: { code: string };
-      update: { location?: string | null };
-      create: { code: string; location?: string | null };
-    }): Promise<MarkerRecord>;
-  };
+type CollectionRequestRecord = {
+  id: string;
+  reportId: string;
+  requestedBy: string | null;
+  requestedAt: Date;
+  result: string;
+  resultRecordedBy: string | null;
+  resultRecordedAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ReportTransactionPrisma = {
   bicycleReport: {
     findMany(args: {
       where?: { status?: string };
@@ -45,7 +51,43 @@ type ReportPrisma = {
         notes?: string | null;
       };
     }): Promise<ReportRecord>;
+    update(args: {
+      where: { id: string };
+      data: {
+        status?: string;
+        notes?: string | null;
+      };
+    }): Promise<ReportRecord>;
+    updateMany(args: {
+      where: { id: string; status?: string };
+      data: {
+        status?: string;
+        notes?: string | null;
+      };
+    }): Promise<{ count: number }>;
   };
+  collectionRequest: {
+    create(args: {
+      data: {
+        reportId: string;
+        requestedBy?: string | null;
+        requestedAt: Date;
+        result: string;
+        notes?: string | null;
+      };
+    }): Promise<CollectionRequestRecord>;
+  };
+};
+
+type ReportPrisma = ReportTransactionPrisma & {
+  marker: {
+    upsert(args: {
+      where: { code: string };
+      update: { location?: string | null };
+      create: { code: string; location?: string | null };
+    }): Promise<MarkerRecord>;
+  };
+  $transaction<T>(fn: (tx: ReportTransactionPrisma) => Promise<T>): Promise<T>;
 };
 
 export class ReportService {
@@ -106,6 +148,58 @@ export class ReportService {
         status: 'reported',
         notes: input.notes ?? null,
       },
+    });
+  }
+
+  async requestCollection(id: string, input: { notes?: string | null; requestedBy?: string | null }) {
+    const report = await this.prisma.bicycleReport.findUnique({
+      where: { id },
+    });
+
+    if (!report) {
+      throw new NotFoundError('report not found');
+    }
+
+    if (report.status !== 'reported') {
+      throw new BadRequestError('report is not eligible for collection request');
+    }
+
+    const requestedAt = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      const updateResult = await tx.bicycleReport.updateMany({
+        where: {
+          id: report.id,
+          status: 'reported',
+        },
+        data: {
+          status: 'collection_requested',
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        throw new BadRequestError('report is not eligible for collection request');
+      }
+
+      await tx.collectionRequest.create({
+        data: {
+          reportId: report.id,
+          requestedBy: input.requestedBy ?? null,
+          requestedAt,
+          result: 'pending',
+          notes: input.notes ?? null,
+        },
+      });
+
+      const updatedReport = await tx.bicycleReport.findUnique({
+        where: { id: report.id },
+      });
+
+      if (!updatedReport) {
+        throw new NotFoundError('report not found');
+      }
+
+      return updatedReport;
     });
   }
 

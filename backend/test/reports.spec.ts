@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../src/app';
+import { BadRequestError } from '../src/lib/errors';
+import { ReportService } from '../src/services/reportService';
 import { createMockPrisma } from './helpers/mockPrisma';
 
 describe('reports', () => {
@@ -128,6 +130,114 @@ describe('reports', () => {
 
     expect(response.statusCode).toBe(404);
     expect(JSON.parse(response.payload)).toEqual({ error: 'report not found' });
+  });
+
+  it('requests collection for a reported report and stores request history', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/reports/r-2/collection-request',
+      payload: {
+        notes: '歩道上のため回収依頼',
+        requestedBy: '北区役所 管理担当',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: 'r-2',
+      status: 'collection_requested',
+    });
+
+    expect(prismaBundle.state.reports.get('r-2')!.status).toBe('collection_requested');
+    expect(Array.from(prismaBundle.state.collectionRequests.values())).toEqual([
+      expect.objectContaining({
+        reportId: 'r-2',
+        requestedBy: '北区役所 管理担当',
+        result: 'pending',
+        resultRecordedBy: null,
+        resultRecordedAt: null,
+        notes: '歩道上のため回収依頼',
+      }),
+    ]);
+  });
+
+  it('returns 404 when requesting collection for a missing report', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/reports/r-999/collection-request',
+      payload: {
+        requestedBy: '北区役所 管理担当',
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'report not found' });
+  });
+
+  it('rejects collection request when report is not reported', async () => {
+    for (const status of ['temporary', 'resolved', 'collection_requested']) {
+      const report = await prismaBundle.prisma.bicycleReport.create({
+        data: {
+          markerId: 'm-2',
+          imageUrl: `https://example.com/report-${status}.jpg`,
+          latitude: 34.701,
+          longitude: 135.491,
+          identifierText: `STATUS-${status}`,
+          status,
+        },
+      });
+
+      const response = await server.inject({
+        method: 'POST',
+        url: `/api/reports/${report.id}/collection-request`,
+        payload: {
+          requestedBy: '北区役所 管理担当',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.payload)).toEqual({ error: 'report is not eligible for collection request' });
+      expect(prismaBundle.state.reports.get(report.id)!.status).toBe(status);
+    }
+  });
+
+  it('does not store request history when status changes before transactional update', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'RACE-MARKER-001',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-race.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'RACE-0001',
+        status: 'reported',
+      },
+    });
+
+    const originalFindUnique = isolatedPrismaBundle.prisma.bicycleReport.findUnique;
+    isolatedPrismaBundle.prisma.bicycleReport.findUnique = async (args) => {
+      const found = await originalFindUnique(args);
+      if (args.where.id === report.id && found?.status === 'reported') {
+        isolatedPrismaBundle.state.reports.get(report.id)!.status = 'collection_requested';
+      }
+      return found;
+    };
+
+    const reportService = new ReportService(isolatedPrismaBundle.prisma as any);
+
+    await expect(
+      reportService.requestCollection(report.id, {
+        requestedBy: '北区役所 管理担当',
+      })
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    expect(isolatedPrismaBundle.state.collectionRequests.size).toBe(0);
+    expect(isolatedPrismaBundle.state.reports.get(report.id)!.status).toBe('collection_requested');
   });
 
   it('creates a report for an existing marker', async () => {
