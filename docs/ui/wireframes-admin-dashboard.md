@@ -164,7 +164,7 @@ flowchart LR
 - 通報一覧、未解除案件、回収依頼、回収結果記録の低忠実度ワイヤーフレームが明示されている。
 - 通報詳細から未解除案件確認へ進む導線が整理されている。
 - 回収依頼後のステータス `collection_requested` と、結果記録後の `collected` / `not_found_on_collection` が明示されている。
-- 参照APIが `docs/api-spec.md` と `docs/openapi.yaml` の主要APIと矛盾していない。
+- 参照APIが `docs/api/api-spec.md` と `docs/api/openapi.yaml` の主要APIと矛盾していない。
 - Figma / FigJam の画面構成図とワイヤーフレームへのリンクが記録されている。
 
 ## 次のアクション

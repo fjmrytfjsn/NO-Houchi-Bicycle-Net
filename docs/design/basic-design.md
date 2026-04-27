@@ -196,7 +196,7 @@ stateDiagram-v2
 
 ## 6. ユーザインタフェース設計
 
-本章では、試作品でユーザーが対話する主要画面と操作を定義する。持ち主用 Web アプリの詳細なワイヤーフレームは [Owner Web ワイヤーフレーム](./wireframes-owner.md) を参照する。
+本章では、試作品でユーザーが対話する主要画面と操作を定義する。持ち主用 Web アプリの詳細なワイヤーフレームは [Owner Web ワイヤーフレーム](../ui/wireframes-owner.md) を参照する。
 
 ### 6.1 サポーター用 Android アプリ
 
@@ -310,7 +310,7 @@ sequenceDiagram
 - クライアントとバックエンド API の通信は HTTPS + REST API を前提とする
 - 管理者/サポーター向け API は JWT ベアラートークンによる認証を前提とする
 - 持ち主向け Owner Web API は、QR コード経由の公開アクセスを前提とする
-- API の詳細仕様は [API 仕様書](./api-spec.md) と [OpenAPI 定義](./openapi.yaml) を参照する
+- API の詳細仕様は [API 仕様書](../api/api-spec.md) と [OpenAPI 定義](../api/openapi.yaml) を参照する
 
 ### 8.2 主要 API
 
