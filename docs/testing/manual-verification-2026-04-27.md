@@ -15,8 +15,8 @@
 
 | コンポーネント | 確認した現状 |
 | --- | --- |
-| Backend | Fastify + Prisma API、認証、bikes/reports/owner 系API、回収依頼APIの実装とテストを確認。ブラウザ確認時の `/api/reports` は 500 応答。 |
-| Owner Web | マーカー詳細、仮解除、本解除、クーポン表示までブラウザで確認。データはインメモリストア。 |
+| Backend | Fastify + Prisma API、認証、bikes/reports/owner 系API、回収依頼APIの実装とテストを確認。ブラウザ確認時の `/api/reports` は 500 応答。原因は `DATABASE_URL` 未設定により Prisma が接続情報を解決できなかったこと。 |
+| Owner Web | マーカー詳細、仮解除、本解除API実行後の `resolved` 表示までブラウザで確認。データはインメモリストア。クーポン一覧表示はこの手順では未確認。 |
 | Admin Dashboard | 通報一覧/詳細は Backend API 取得経由だが、今回の環境では API 500 によりエラー表示。未解除案件、回収依頼、回収結果記録はモック画面として操作確認。 |
 | Android App | 現在のツリーでは未確認。 |
 
@@ -45,7 +45,7 @@
 | 1 | `http://localhost:3001/markers/ABC123` を表示 | 通報概要と仮解除ボタンが表示される | 表示された | ![](./screenshots/2026-04-27/owner-01-initial.png) |
 | 2 | `解除（仮）` を押下 | 仮解除完了メッセージと仮解除状態が表示される | `仮解除しました` が表示された | ![](./screenshots/2026-04-27/owner-02-temp-unlocked.png) |
 | 3 | テストAPIで本解除可能時刻を過去化し、画面を再読み込み | 本解除可能な状態になる | 本解除導線が有効な状態になった | ![](./screenshots/2026-04-27/owner-03-final-eligible.png) |
-| 4 | 本解除APIを実行し、画面を再読み込み | `resolved` 状態とクーポンが表示される | `resolved` とクーポンが表示された | ![](./screenshots/2026-04-27/owner-04-resolved-coupon.png) |
+| 4 | 本解除APIを実行し、画面を再読み込み | `resolved` 状態が表示される | `resolved` は表示されたが、クーポン一覧（`獲得したクーポン`）は未表示。黄色の「本解除でクーポンをゲット！」案内が残っている | ![](./screenshots/2026-04-27/owner-04-resolved-coupon.png) |
 
 ## Admin Dashboard 動作確認
 
@@ -67,12 +67,15 @@
 - `TMPDIR=/tmp` を付けない場合、Jest/Vitest の一時ファイル作成先が Windows 側 read-only 扱いになり失敗することがある。
 - Owner Web の lint/build では [ReportSummary.tsx](../../apps/owner-web/components/owner/ReportSummary.tsx) の `<img>` 利用に対する `@next/next/no-img-element` 警告が出る。終了コードは成功。
 - Admin Dashboard の通報一覧/詳細は Backend API 連携済みだが、今回の環境では Backend `/api/reports` が 500 を返したため、API連携成功画面は確認できていない。
+- `/api/reports` の 500 は、ホスト実行時に `DATABASE_URL` が未設定で、Prisma が `schema.prisma` の `env("DATABASE_URL")` を解決できないことが主因。`backend/src/index.ts` は `dotenv/config` を読み込んでおらず、現状 `backend/.env` も存在しない。
+- ホスト上で Backend を起動する場合は、Postgres を起動したうえで `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/no_houchi_dev` を設定して `npx prisma generate` / `npx prisma migrate dev` を実行する。Docker Compose の `app` コンテナ内では `.env.example` の `postgres` ホスト名を使えるが、ホスト実行では通常 `localhost` が必要。
+- 将来の実装修正候補として、`backend/src/index.ts` に `import 'dotenv/config';` を追加する、または npm script 側で dotenv を preload する方法がある。今回はレポート修正のみでコード変更はしていない。
 - Admin Dashboard の回収依頼・回収結果記録は現状モック登録で、DB永続化や Backend への更新は行われない。
 - Android App は未確認。
 
 ## 未実施・制約
 
-- 実機カメラを使ったQR読み取りは未実施。本解除はテストAPIと本解除APIでE2E相当に確認した。
+- 実機カメラを使ったQR読み取りは未実施。本解除はテストAPIと本解除APIで確認したが、UIの `handleFinal()` 経由ではないためクーポン一覧表示は未確認。
 - 実DB永続化を伴う Backend / Admin Dashboard の一連の運用シナリオは未確認。
 - Android 実機またはエミュレータでの動作確認は未実施。
 
