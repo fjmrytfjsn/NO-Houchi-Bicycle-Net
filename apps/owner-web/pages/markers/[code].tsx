@@ -11,6 +11,13 @@ import { getCoupons, getMarker, unlockFinal, unlockTemp } from '../../lib/api';
 import { getUnlockTiming } from '../../lib/owner/time';
 import type { Coupon, MarkerEntry } from '../../lib/owner/types';
 
+function isFinalUnlocked(entry: MarkerEntry) {
+  return (
+    entry.report.status === 'resolved' ||
+    entry.declaration?.status === 'finalized'
+  );
+}
+
 export default function MarkerPage() {
   const router = useRouter();
   const { code } = router.query as { code?: string };
@@ -31,7 +38,17 @@ export default function MarkerPage() {
     setLoading(true);
     setError(null);
     getMarker(code)
-      .then((result) => setData(result))
+      .then(async (result) => {
+        setData(result);
+
+        if (!isFinalUnlocked(result)) {
+          setCoupons([]);
+          return;
+        }
+
+        const couponData = await getCoupons(code);
+        setCoupons(couponData.coupons || []);
+      })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
   }, [code]);
@@ -117,6 +134,7 @@ export default function MarkerPage() {
   });
 
   const declaration = data?.declaration;
+  const finalUnlocked = data ? isFinalUnlocked(data) : false;
   const timing = declaration
     ? getUnlockTiming(
         nowTime,
@@ -143,7 +161,7 @@ export default function MarkerPage() {
               disabled={tempUnlockDisabled}
             />
 
-            {declaration && timing && (
+            {declaration && timing && !finalUnlocked && (
               <DeclarationPanel
                 declaration={declaration}
                 eligible={timing.eligible}
