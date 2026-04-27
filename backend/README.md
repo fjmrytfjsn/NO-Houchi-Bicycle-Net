@@ -2,13 +2,23 @@
 
 TypeScript + Fastify + Prisma ベースの API サーバーのスキャフォールドです。
 
-セットアップ:
+セットアップ（ホスト上で `npm run dev` する場合）:
 
-1. .env を作成（`cp .env.example .env`）
-2. Docker Compose で起動: `docker-compose up -d`（Postgres を起動）
-3. 依存関係をインストール: `npm install`
+1. 依存関係をインストール: `npm install`
+2. .env を作成: `cp .env.example .env`
+3. Docker Compose で Postgres を起動: `docker-compose up -d`
 4. Prisma 生成/マイグレート: `npm run prisma:generate && npm run prisma:migrate`
 5. 開発サーバー起動: `npm run dev`
+
+`backend/.env.example` の `DATABASE_URL` はホスト実行向けに `localhost` を使います。Docker Compose の `app` コンテナ内から Backend を起動する場合のみ、DB ホスト名を Compose サービス名の `postgres` に変更してください。
+
+DB 接続とマイグレーション状態の確認:
+
+```bash
+npx prisma validate
+npx prisma migrate status
+curl http://localhost:3000/api/reports
+```
 
 API:
 
@@ -134,4 +144,4 @@ curl -X POST http://localhost:3000/bikes/ocr/recognize \
 
 - CI は導入しません。ローカル検証を重視し、[`docs/operations/developer-workflow.md`](../docs/operations/developer-workflow.md) に手順をまとめています。
 - ローカルでのテスト実行: `npm test`（Vitest）
-- 推奨: Docker Compose で Postgres を立ち上げ、`npx prisma generate` / `npx prisma migrate dev` を実行してから `npm run dev` でアプリを起動してください。
+- 推奨: Docker Compose で Postgres を立ち上げ、`npm run prisma:generate` / `npm run prisma:migrate` を実行してから `npm run dev` でアプリを起動してください。
