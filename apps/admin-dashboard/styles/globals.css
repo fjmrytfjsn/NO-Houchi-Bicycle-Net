@@ -104,7 +104,8 @@ button {
 
 .header-actions,
 .header-links,
-.inline-links {
+.inline-links,
+.filter-nav {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -185,6 +186,40 @@ button {
   letter-spacing: 0.08em;
 }
 
+.thumb-image {
+  display: block;
+  object-fit: cover;
+}
+
+.filter-nav {
+  margin-bottom: 20px;
+}
+
+.filter-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd2d9;
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2933;
+  font-weight: 700;
+}
+
+.filter-link.active {
+  border-color: #0f5f4b;
+  background: #0f5f4b;
+  color: #fff;
+}
+
+.error-panel {
+  border-color: #f5b5a4;
+  background: #fff4ef;
+  color: #8a341f;
+  font-weight: 700;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -200,6 +235,10 @@ button {
 
 .status-temporary {
   background: #d9eef7;
+}
+
+.status-resolved {
+  background: #e5e7eb;
 }
 
 .status-collection_requested {

@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import HomePage from '../pages';
+import HomePage, { getServerSideProps } from '../pages';
 import UnresolvedPage from '../pages/unresolved';
 import ReportDetailPage from '../pages/reports/[id]';
 import CollectionRequestPage from '../pages/collection-request/[id]';
@@ -19,7 +19,7 @@ describe('Admin Dashboard pages', () => {
   it('shows report summary and main columns on the report list page', () => {
     useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
 
-    render(<HomePage />);
+    render(<HomePage reports={[]} selectedStatus="all" />);
 
     expect(
       screen.getByRole('heading', { level: 2, name: '通報一覧' }),
@@ -30,6 +30,114 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByText('通報日時')).toBeInTheDocument();
     expect(screen.getByText('位置')).toBeInTheDocument();
     expect(screen.getByText('識別情報')).toBeInTheDocument();
+  });
+
+  it('shows API report fields on the report list page', () => {
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+
+    render(
+      <HomePage
+        reports={[
+          {
+            id: 'r-api-1',
+            imageUrl: 'https://example.com/report-api-1.jpg',
+            reportedAt: '2026-04-20 18:15',
+            location: '34.705500, 135.498300',
+            identifierText: 'API-0001 / 黒のシティサイクル',
+            status: 'reported',
+            elapsedLabel: '',
+            currentStatusLabel: 'reported',
+            history: [],
+          },
+        ]}
+        selectedStatus="all"
+      />,
+    );
+
+    expect(screen.getByText('2026-04-20 18:15')).toBeInTheDocument();
+    expect(screen.getByText('34.705500, 135.498300')).toBeInTheDocument();
+    expect(screen.getByText('API-0001 / 黒のシティサイクル')).toBeInTheDocument();
+    expect(screen.getAllByText('reported')).toHaveLength(2);
+    expect(
+      screen.getByRole('img', { name: 'r-api-1 の写真サムネイル' }),
+    ).toHaveAttribute('src', 'https://example.com/report-api-1.jpg');
+  });
+
+  it('marks the selected status filter on the report list page', () => {
+    useRouter.mockReturnValue({
+      pathname: '/',
+      query: { status: 'temporary' },
+      isReady: true,
+    });
+
+    render(<HomePage reports={[]} selectedStatus="temporary" />);
+
+    expect(
+      screen.getByRole('link', { name: 'temporary' }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('shows an error when report list API fetch fails', () => {
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+
+    render(
+      <HomePage
+        reports={[]}
+        selectedStatus="all"
+        errorMessage="通報一覧を取得できませんでした。Backend API の起動状態を確認してください。"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        '通報一覧を取得できませんでした。Backend API の起動状態を確認してください。',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('fetches reports with the selected status query on the server side', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'r-api-2',
+          markerId: 'm-api-2',
+          imageUrl: 'https://example.com/report-api-2.jpg',
+          latitude: 34.7,
+          longitude: 135.49,
+          identifierText: 'API-0002',
+          status: 'temporary',
+          notes: null,
+          createdAt: '2026-04-20T09:15:00.000Z',
+          updatedAt: '2026-04-20T09:15:00.000Z',
+        },
+      ],
+    } as Response);
+    global.fetch = fetchMock;
+
+    const result = await getServerSideProps({
+      query: { status: 'temporary' },
+    } as never);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports?status=temporary',
+    );
+    expect(result).toMatchObject({
+      props: {
+        selectedStatus: 'temporary',
+        reports: [
+          {
+            id: 'r-api-2',
+            reportedAt: '2026-04-20 18:15',
+            location: '34.700000, 135.490000',
+            status: 'temporary',
+          },
+        ],
+      },
+    });
+
+    global.fetch = originalFetch;
   });
 
   it('shows only reported and temporary items on the unresolved page', () => {

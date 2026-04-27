@@ -31,7 +31,10 @@ export function ReportsTable({
           {reports.map((report) => (
             <tr key={report.id}>
               <td>
-                <ReportImageThumb alt={`${report.id} の写真サムネイル`} />
+                <ReportImageThumb
+                  alt={`${report.id} の写真サムネイル`}
+                  imageUrl={report.imageUrl}
+                />
               </td>
               <td>{showElapsed ? report.identifierText : report.reportedAt}</td>
               <td>{showElapsed ? report.reportedAt : report.location}</td>
