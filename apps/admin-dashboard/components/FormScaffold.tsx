@@ -3,7 +3,6 @@ import type { PropsWithChildren, ReactNode } from 'react';
 
 interface FormScaffoldProps extends PropsWithChildren {
   title: string;
-  description: string;
   confirmation: string;
   successMessage?: string | null;
   fields: ReactNode;
@@ -13,7 +12,6 @@ interface FormScaffoldProps extends PropsWithChildren {
 
 export function FormScaffold({
   title,
-  description,
   confirmation,
   successMessage,
   fields,
@@ -25,7 +23,6 @@ export function FormScaffold({
     <section className="panel">
       <div className="panel-header">
         <h3>{title}</h3>
-        <p>{description}</p>
       </div>
       {children}
       <div className="form-section">{fields}</div>

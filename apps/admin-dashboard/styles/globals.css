@@ -51,14 +51,8 @@ button {
   margin: 0;
 }
 
-.brand-description,
-.page-description,
 .panel-header p {
   color: #52606d;
-}
-
-.sidebar .brand-description {
-  color: #d9e2ec;
 }
 
 .eyebrow {

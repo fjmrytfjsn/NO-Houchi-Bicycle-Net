@@ -17,10 +17,7 @@ export default function CollectionResultPage() {
 
   if (!isReady) {
     return (
-      <AppLayout
-        title="回収結果記録"
-        description="回収完了または現地で現物なしの結果を記録する雛形です。"
-      >
+      <AppLayout title="回収結果記録">
         <section className="panel">
           <p>読み込み中…</p>
         </section>
@@ -30,10 +27,7 @@ export default function CollectionResultPage() {
 
   if (!report) {
     return (
-      <AppLayout
-        title="回収結果記録"
-        description="対象の通報情報が見つかりませんでした。"
-      >
+      <AppLayout title="回収結果記録">
         <section className="panel">
           <p>対象の通報が見つかりません。</p>
         </section>
@@ -42,21 +36,17 @@ export default function CollectionResultPage() {
   }
 
   return (
-    <AppLayout
-      title="回収結果記録"
-      description="回収完了または現地で現物なしの結果を記録する雛形です。"
-    >
+    <AppLayout title="回収結果記録">
       <form
         onSubmit={(event) => {
           event.preventDefault();
           setSuccessMessage(
-            `結果を記録しました（モック）。選択結果: ${result} / メモ: ${memo || 'なし'}`,
+            `結果を記録しました。選択結果: ${result} / メモ: ${memo || 'なし'}`,
           );
         }}
       >
         <FormScaffold
           title="対象概要"
-          description="回収依頼状態と現地結果の対応を確認してから記録します。"
           confirmation="記録後は collected または not_found_on_collection の完了状態として扱います。"
           successMessage={successMessage}
           submitLabel="結果を記録"

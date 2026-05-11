@@ -25,7 +25,6 @@ export default function HomePage({
   return (
     <AppLayout
       title="通報一覧"
-      description="全通報を状態、日時、位置で確認する起点画面です。"
       actions={
         <div className="header-links">
           <Link href="/unresolved">未解除案件へ</Link>
@@ -35,7 +34,6 @@ export default function HomePage({
       <section className="panel">
         <div className="panel-header">
           <h3>フィルター</h3>
-          <p>状態で通報一覧を絞り込みます。</p>
         </div>
         <nav className="filter-nav" aria-label="状態フィルター">
           <Link
