@@ -46,7 +46,7 @@ export default function ReportDetailPage({
       actions={
         <div className="header-links">
           {['reported', 'temporary'].includes(report.status) ? (
-            <Link href="/unresolved">未解除案件として確認</Link>
+            <Link href="/unresolved">回収依頼候補として確認</Link>
           ) : null}
           {report.status === 'collection_requested' ? (
             <Link href={`/collection-result/${report.id}`}>回収結果記録へ</Link>

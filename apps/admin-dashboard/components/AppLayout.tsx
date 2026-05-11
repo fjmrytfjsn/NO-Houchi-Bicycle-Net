@@ -10,7 +10,7 @@ interface AppLayoutProps extends PropsWithChildren {
 
 const navItems = [
   { href: '/', label: '通報一覧' },
-  { href: '/unresolved', label: '未解除案件' },
+  { href: '/unresolved', label: '回収依頼候補' },
 ];
 
 export function AppLayout({
@@ -23,7 +23,7 @@ export function AppLayout({
   return (
     <>
       <Head>
-        <title>{title} | Admin Dashboard</title>
+        <title>{`${title} | Admin Dashboard`}</title>
       </Head>
       <div className="app-shell">
         <aside className="sidebar">
