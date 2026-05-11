@@ -1,18 +1,13 @@
-import type { RefObject } from 'react';
 import type { Declaration } from '../../lib/owner/types';
 import { formatDuration } from '../../lib/owner/time';
-import { QrScannerPanel } from './QrScannerPanel';
+import styles from './DeclarationPanel.module.css';
 
 interface DeclarationPanelProps {
   declaration: Declaration;
   eligible: boolean;
   timeToEligible: number;
   timeToExpires: number;
-  showQRScanner: boolean;
-  videoRef: RefObject<HTMLVideoElement>;
-  canvasRef: RefObject<HTMLCanvasElement>;
   onStartScanner: () => void;
-  onCancelScanner: () => void;
 }
 
 export function DeclarationPanel({
@@ -20,72 +15,109 @@ export function DeclarationPanel({
   eligible,
   timeToEligible,
   timeToExpires,
-  showQRScanner,
-  videoRef,
-  canvasRef,
   onStartScanner,
-  onCancelScanner,
 }: DeclarationPanelProps) {
+  const isResolved = declaration.status === 'finalized' || declaration.status === 'resolved';
+  const isExpired = declaration.status === 'expired' || timeToExpires <= 0;
+
   return (
-    <div
-      style={{
-        marginTop: 12,
-        padding: 8,
-        background: '#f7f7f7',
-        borderRadius: 6,
-      }}
-    >
-      <div>仮解除: {new Date(declaration.declaredAt).toLocaleString()}</div>
-      <div>
-        本解除可能: {new Date(declaration.eligibleFinalAt).toLocaleString()}
+    <div className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <h2 className={styles.panelTitle}>
+          <span>📋</span>
+          解除ステータス
+        </h2>
       </div>
-      <div>自動解除: {new Date(declaration.expiresAt).toLocaleString()}</div>
-      <div
-        style={{
-          marginTop: 12,
-          padding: 12,
-          background: '#fff3cd',
-          borderRadius: 6,
-          border: '1px solid #ffc107',
-        }}
-      >
-        <strong>💰 本解除でクーポンをゲット！</strong>
-        <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
-          QRコードを再度読み込んで本解除をしてください。
-          <br />
-          商店街で使えるお得なクーポンがもらえます。
-        </p>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <div style={{ marginBottom: 8 }}>
-          本解除可能まで: <strong>{formatDuration(timeToEligible)}</strong>
+
+      <div className={styles.panelBody}>
+        {/* Compact Timeline */}
+        <div className={styles.timeline}>
+          <div className={styles.timelineItem}>
+            <span className={`${styles.timelineDot} ${styles.dotDeclared}`} />
+            <span className={styles.timelineLabel}>仮解除:</span>
+            <span className={styles.timelineValue}>
+              {new Date(declaration.declaredAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <div className={styles.timelineItem}>
+            <span className={`${styles.timelineDot} ${styles.dotEligible}`} />
+            <span className={styles.timelineLabel}>本解除可能:</span>
+            <span className={styles.timelineValue}>
+              {new Date(declaration.eligibleFinalAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
         </div>
-        <div style={{ marginBottom: 8 }}>
-          自動解除まで: <strong>{formatDuration(timeToExpires)}</strong>
-        </div>
-        {!showQRScanner ? (
-          <button
-            onClick={onStartScanner}
-            disabled={!eligible}
-            aria-disabled={!eligible}
-            style={{
-              padding: '10px 16px',
-              background: eligible ? '#28a745' : '#ccc',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: eligible ? 'pointer' : 'not-allowed',
-              fontWeight: 'bold',
-            }}
-          >
-            📱 QRコードを読み込んで本解除
-          </button>
-        ) : (
-          <QrScannerPanel
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            onCancel={onCancelScanner}
-          />
+
+        {/* === Resolved State === */}
+        {isResolved && (
+          <div className={`${styles.statusBanner} ${styles.statusBannerResolved}`}>
+            <span className={styles.statusIcon}>✅</span>
+            <div className={`${styles.statusTitle} ${styles.statusTitleResolved}`}>
+              本解除が完了しました
+            </div>
+            <div className={styles.statusMessage}>
+              自転車の解除手続きが完了しました。<br />
+              発行されたクーポンをご利用ください。
+            </div>
+          </div>
+        )}
+
+        {/* === Expired State === */}
+        {isExpired && !isResolved && (
+          <div className={`${styles.statusBanner} ${styles.statusBannerExpired}`}>
+            <span className={styles.statusIcon}>⏰</span>
+            <div className={`${styles.statusTitle} ${styles.statusTitleExpired}`}>
+              期限切れになりました
+            </div>
+            <div className={styles.statusMessage}>
+              仮解除から24時間が経過したため、期限切れとなりました。<br />
+              再度「仮解除」から手続きを行ってください。
+            </div>
+          </div>
+        )}
+
+        {/* === Temporary (active) State === */}
+        {!isResolved && !isExpired && (
+          <>
+            {/* Slim Promo Banner */}
+            <div className={styles.promoCard}>
+              <div className={styles.promoTitle}>
+                <span>💰</span>
+                本解除でクーポンをゲット！
+              </div>
+            </div>
+
+            {/* Compact Countdown Row */}
+            <div className={styles.countdownGrid}>
+              <div className={styles.countdownItem}>
+                <div className={styles.countdownLabel}>{eligible ? '準備完了' : '本解除まで'}</div>
+                <div
+                  className={`${styles.countdownValue} ${
+                    eligible ? styles.countdownValueReady : ''
+                  }`}
+                  style={{ fontSize: 'var(--text-base)' }}
+                >
+                  {eligible ? '✓' : formatDuration(timeToEligible)}
+                </div>
+              </div>
+              <div className={styles.countdownItem}>
+                <div className={styles.countdownLabel}>期限まで</div>
+                <div className={styles.countdownValue} style={{ fontSize: 'var(--text-base)' }}>
+                  {formatDuration(timeToExpires)}
+                </div>
+              </div>
+            </div>
+
+            {/* Action */}
+            <button
+              onClick={onStartScanner}
+              disabled={!eligible}
+              aria-disabled={!eligible}
+              className={styles.finalButton}
+            >
+              📱 QRコードを読み込んで本解除
+            </button>
+          </>
         )}
       </div>
     </div>

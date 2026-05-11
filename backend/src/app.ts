@@ -19,15 +19,19 @@ type BuildServerOptions = {
 
 export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}) {
   const server = Fastify({ logger: false });
+  console.log('Fastify instance created.');
 
   server.register(fastifyJwt, {
     secret: process.env.JWT_SECRET || 'change-me',
   });
+  console.log('JWT plugin registered.');
 
   if (prisma) {
     server.decorate('prisma', prisma);
+    console.log('Prisma decorated (provided).');
   } else {
     prismaPlugin(server);
+    console.log('Prisma plugin registered.');
   }
 
   server.get('/', async () => ({ ok: true, version: '0.1.0' }));
@@ -50,10 +54,19 @@ export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}
     }
   });
 
+  console.log('Registering auth routes...');
   server.register(authRoutes, { prefix: '/auth' });
+
+  console.log('Registering report routes...');
   server.register(reportRoutes, { prefix: '/api/reports' });
+
+  console.log('Registering bike routes...');
   server.register(bikeRoutes({ ocrService }), { prefix: '/bikes' });
+
+  console.log('Registering owner routes...');
   server.register(ownerRoutes({ now }), { prefix: '/owner' });
+
+  console.log('All routes registered.');
 
   return server;
 }

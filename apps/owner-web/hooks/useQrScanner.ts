@@ -37,6 +37,12 @@ export function useQrScanner({
 
         if (qrCode) {
           onDetected(qrCode.data);
+          // 0.5秒待機してからスキャンを再開
+          setTimeout(() => {
+            if (active) {
+              requestAnimationFrame(scanLoop);
+            }
+          }, 500);
           return;
         }
       }

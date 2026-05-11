@@ -1,54 +1,58 @@
 import type { RefObject } from 'react';
+import styles from './QrScannerPanel.module.css';
 
 interface QrScannerPanelProps {
   videoRef: RefObject<HTMLVideoElement>;
   canvasRef: RefObject<HTMLCanvasElement>;
+  errorMessage?: string | null;
   onCancel: () => void;
 }
 
 export function QrScannerPanel({
   videoRef,
   canvasRef,
+  errorMessage,
   onCancel,
 }: QrScannerPanelProps) {
   return (
-    <div
-      style={{
-        marginTop: 12,
-        padding: 12,
-        background: '#e8f5e9',
-        borderRadius: 6,
-        border: '2px solid #28a745',
-      }}
-    >
-      <div style={{ marginBottom: 8, fontWeight: 'bold' }}>
-        📷 QRコードを読み込み中...
+    <div className={styles.overlay}>
+      {/* Header */}
+      <div className={styles.header}>
+        <span className={styles.pulsingDot} />
+        QRコードを読み込み中...
       </div>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        style={{
-          width: '100%',
-          maxWidth: '100%',
-          borderRadius: 6,
-          marginBottom: 8,
-        }}
-      />
+
+      {/* Camera */}
+      <div className={styles.videoWrap}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className={styles.video}
+        />
+        {/* Scan frame corners */}
+        <div className={styles.scanFrame} />
+        <div className={styles.scanFrameBottom} />
+      </div>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <button
-        onClick={onCancel}
-        style={{
-          padding: '8px 12px',
-          background: '#999',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          width: '100%',
-        }}
-      >
-        キャンセル
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className={styles.errorBanner}>
+          ⚠️ {errorMessage}
+        </div>
+      )}
+
+      {/* Guide */}
+      {!errorMessage && (
+        <p className={styles.guideText}>
+          マーカーのQRコードを枠内に合わせてください
+        </p>
+      )}
+
+      {/* Cancel */}
+      <button onClick={onCancel} className={styles.cancelButton}>
+        ✕ キャンセル
       </button>
     </div>
   );

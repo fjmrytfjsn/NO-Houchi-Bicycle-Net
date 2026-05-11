@@ -25,7 +25,7 @@ export async function unlockTemp(
   const res = await fetch(`/api/owner/markers/${code}/unlock-temp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: notes ? JSON.stringify({ notes }) : undefined,
+    body: JSON.stringify({ notes: notes || undefined }),
   });
   if (!res.ok) {
     throw await parseError(res, 'Failed to unlock temporarily');
@@ -36,6 +36,8 @@ export async function unlockTemp(
 export async function unlockFinal(code: string): Promise<FinalUnlockResult> {
   const res = await fetch(`/api/owner/markers/${code}/unlock-final`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scannedCode: code }),
   });
   if (!res.ok) {
     throw await parseError(res, 'Failed to unlock finally');
