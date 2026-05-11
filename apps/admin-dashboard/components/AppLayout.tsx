@@ -23,7 +23,7 @@ export function AppLayout({
   return (
     <>
       <Head>
-        <title>{title} | Admin Dashboard</title>
+        <title>{`${title} | Admin Dashboard`}</title>
       </Head>
       <div className="app-shell">
         <aside className="sidebar">
