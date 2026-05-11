@@ -190,6 +190,7 @@ describe('Admin Dashboard pages', () => {
 
     render(
       <UnresolvedPage
+        selectedStatus="all"
         reports={[
           {
             id: 'r-1',
@@ -217,7 +218,13 @@ describe('Admin Dashboard pages', () => {
       />,
     );
 
-    expect(screen.getByText('reported / temporary')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: '未解除状態フィルター' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'すべて' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(
       screen.queryByText(
         'reported または temporary の案件を回収依頼候補として確認します。',
@@ -225,6 +232,39 @@ describe('Admin Dashboard pages', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
     expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
+  });
+
+  it('filters unresolved reports by selected status on the unresolved page', () => {
+    useRouter.mockReturnValue({
+      pathname: '/unresolved',
+      query: { status: 'reported' },
+      isReady: true,
+    });
+
+    render(
+      <UnresolvedPage
+        selectedStatus="reported"
+        reports={[
+          {
+            id: 'r-1',
+            imageUrl: 'https://example.com/r-1.jpg',
+            reportedAt: '2026-04-20 09:15',
+            location: '大阪市北区中之島 1-2-3',
+            identifierText: '防犯登録 1234 / 黒のシティサイクル',
+            status: 'reported',
+            elapsedLabel: '3時間',
+            currentStatusLabel: 'reported',
+            history: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'reported' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
+    expect(screen.queryByText('シール 8842 / 銀のクロスバイク')).not.toBeInTheDocument();
   });
 
   it('fetches unresolved reports from the server side', async () => {
@@ -269,10 +309,79 @@ describe('Admin Dashboard pages', () => {
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/reports');
     expect(result).toMatchObject({
       props: {
+        selectedStatus: 'all',
         reports: [
           expect.objectContaining({ id: 'r-api-1', status: 'reported' }),
           expect.objectContaining({ id: 'r-api-2', status: 'temporary' }),
         ],
+      },
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it('fetches temporary unresolved reports from the server side', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'r-api-1',
+          imageUrl: 'https://example.com/report-api-1.jpg',
+          latitude: 34.7055,
+          longitude: 135.4983,
+          identifierText: 'API-0001 / 黒のシティサイクル',
+          status: 'reported',
+          createdAt: '2026-04-20T00:15:00.000Z',
+        },
+        {
+          id: 'r-api-2',
+          imageUrl: 'https://example.com/report-api-2.jpg',
+          latitude: 34.706,
+          longitude: 135.4984,
+          identifierText: 'API-0002 / 銀のクロスバイク',
+          status: 'temporary',
+          createdAt: '2026-04-20T00:20:00.000Z',
+        },
+      ],
+    } as Response);
+    global.fetch = fetchMock;
+
+    const { getServerSideProps } = await import('../pages/unresolved');
+    const result = await getServerSideProps({
+      query: { status: 'temporary' },
+    } as never);
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/reports');
+    expect(result).toMatchObject({
+      props: {
+        selectedStatus: 'temporary',
+        reports: [
+          expect.objectContaining({ id: 'r-api-2', status: 'temporary' }),
+        ],
+      },
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it('normalizes invalid unresolved status filters to all', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    } as Response);
+    global.fetch = fetchMock;
+
+    const { getServerSideProps } = await import('../pages/unresolved');
+    const result = await getServerSideProps({
+      query: { status: 'resolved' },
+    } as never);
+
+    expect(result).toMatchObject({
+      props: {
+        selectedStatus: 'all',
+        reports: [],
       },
     });
 
