@@ -1,14 +1,23 @@
+import type { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { FormScaffold } from '../../components/FormScaffold';
-import { getReportById } from '../../lib/mockReports';
+import { fetchAdminReport } from '../../lib/adminReports';
+import type { ReportDetail } from '../../lib/types';
 
-export default function CollectionRequestPage() {
+type CollectionRequestPageProps = {
+  report?: ReportDetail;
+  errorMessage?: string;
+};
+
+export default function CollectionRequestPage({
+  report,
+  errorMessage,
+}: CollectionRequestPageProps = {}) {
   const router = useRouter();
   const isReady = router.isReady ?? true;
-  const report = isReady ? getReportById(router.query.id) : undefined;
   const [memo, setMemo] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -25,14 +34,14 @@ export default function CollectionRequestPage() {
     );
   }
 
-  if (!report) {
+  if (errorMessage || !report) {
     return (
       <AppLayout
         title="回収依頼"
         description="対象の通報情報が見つかりませんでした。"
       >
         <section className="panel">
-          <p>対象の通報が見つかりません。</p>
+          <p>{errorMessage ?? '対象の通報が見つかりません。'}</p>
         </section>
       </AppLayout>
     );
@@ -76,3 +85,34 @@ export default function CollectionRequestPage() {
     </AppLayout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<CollectionRequestPageProps> = async ({
+  params,
+}) => {
+  const id = typeof params?.id === 'string' ? params.id : undefined;
+
+  if (!id) {
+    return {
+      props: {
+        errorMessage: '対象の通報が見つかりません。',
+      },
+    };
+  }
+
+  try {
+    const report = await fetchAdminReport(id);
+
+    return {
+      props: {
+        report,
+      },
+    };
+  } catch (error) {
+    return {
+      props: {
+        errorMessage:
+          '回収依頼対象を取得できませんでした。Backend API の起動状態を確認してください。',
+      },
+    };
+  }
+};

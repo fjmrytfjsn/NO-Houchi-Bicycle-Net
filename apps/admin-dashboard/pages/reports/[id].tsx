@@ -5,7 +5,6 @@ import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { HistoryList } from '../../components/HistoryList';
 import { fetchAdminReport } from '../../lib/adminReports';
-import { getReportById } from '../../lib/mockReports';
 import type { ReportDetail } from '../../lib/types';
 
 type ReportDetailPageProps = {
@@ -19,7 +18,7 @@ export default function ReportDetailPage({
 }: ReportDetailPageProps = {}) {
   const router = useRouter();
   const isReady = router.isReady ?? true;
-  const report = reportFromProps ?? (isReady ? getReportById(router.query.id) : undefined);
+  const report = reportFromProps;
 
   if (!isReady) {
     return (

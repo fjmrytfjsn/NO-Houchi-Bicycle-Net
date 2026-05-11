@@ -1,5 +1,5 @@
 import type { ReportStatus } from '../lib/types';
-import { statusLabelMap } from '../lib/mockReports';
+import { statusLabelMap } from '../lib/reportLabels';
 
 interface StatusBadgeProps {
   status: ReportStatus;
