@@ -1,14 +1,23 @@
+import type { GetServerSideProps } from 'next';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { FormScaffold } from '../../components/FormScaffold';
-import { getReportById } from '../../lib/mockReports';
+import { fetchAdminReport } from '../../lib/adminReports';
+import type { ReportDetail } from '../../lib/types';
 
-export default function CollectionResultPage() {
+type CollectionResultPageProps = {
+  report?: ReportDetail;
+  errorMessage?: string;
+};
+
+export default function CollectionResultPage({
+  report,
+  errorMessage,
+}: CollectionResultPageProps = {}) {
   const router = useRouter();
   const isReady = router.isReady ?? true;
-  const report = isReady ? getReportById(router.query.id) : undefined;
   const [result, setResult] = useState<'collected' | 'not_found_on_collection'>(
     'collected',
   );
@@ -25,11 +34,11 @@ export default function CollectionResultPage() {
     );
   }
 
-  if (!report) {
+  if (errorMessage || !report) {
     return (
       <AppLayout title="回収結果記録">
         <section className="panel">
-          <p>対象の通報が見つかりません。</p>
+          <p>{errorMessage ?? '対象の通報が見つかりません。'}</p>
         </section>
       </AppLayout>
     );
@@ -92,3 +101,34 @@ export default function CollectionResultPage() {
     </AppLayout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<CollectionResultPageProps> = async ({
+  params,
+}) => {
+  const id = typeof params?.id === 'string' ? params.id : undefined;
+
+  if (!id) {
+    return {
+      props: {
+        errorMessage: '対象の通報が見つかりません。',
+      },
+    };
+  }
+
+  try {
+    const report = await fetchAdminReport(id);
+
+    return {
+      props: {
+        report,
+      },
+    };
+  } catch (error) {
+    return {
+      props: {
+        errorMessage:
+          '回収結果対象を取得できませんでした。Backend API の起動状態を確認してください。',
+      },
+    };
+  }
+};

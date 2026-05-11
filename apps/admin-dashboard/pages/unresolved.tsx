@@ -1,8 +1,18 @@
+import type { GetServerSideProps } from 'next';
 import { AppLayout } from '../components/AppLayout';
 import { ReportsTable } from '../components/ReportsTable';
-import { unresolvedReports } from '../lib/mockReports';
+import { fetchAdminReports } from '../lib/adminReports';
+import type { ReportDetail } from '../lib/types';
 
-export default function UnresolvedPage() {
+type UnresolvedPageProps = {
+  reports: ReportDetail[];
+  errorMessage?: string;
+};
+
+export default function UnresolvedPage({
+  reports,
+  errorMessage,
+}: UnresolvedPageProps) {
   return (
     <AppLayout title="未解除案件">
       <section className="panel">
@@ -11,11 +21,39 @@ export default function UnresolvedPage() {
           <p>reported / temporary</p>
         </div>
       </section>
-      <ReportsTable
-        reports={unresolvedReports}
-        showElapsed
-        actionMode="collectionRequest"
-      />
+      {errorMessage ? (
+        <section className="panel error-panel" role="alert">
+          {errorMessage}
+        </section>
+      ) : (
+        <ReportsTable
+          reports={reports}
+          showElapsed
+          actionMode="collectionRequest"
+        />
+      )}
     </AppLayout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<UnresolvedPageProps> = async () => {
+  try {
+    const reports = await fetchAdminReports('all');
+
+    return {
+      props: {
+        reports: reports.filter((report) =>
+          ['reported', 'temporary'].includes(report.status),
+        ),
+      },
+    };
+  } catch (error) {
+    return {
+      props: {
+        reports: [],
+        errorMessage:
+          '未解除案件を取得できませんでした。Backend API の起動状態を確認してください。',
+      },
+    };
+  }
+};

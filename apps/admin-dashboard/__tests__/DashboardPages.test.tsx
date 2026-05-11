@@ -188,7 +188,34 @@ describe('Admin Dashboard pages', () => {
       isReady: true,
     });
 
-    render(<UnresolvedPage />);
+    render(
+      <UnresolvedPage
+        reports={[
+          {
+            id: 'r-1',
+            imageUrl: 'https://example.com/r-1.jpg',
+            reportedAt: '2026-04-20 09:15',
+            location: '大阪市北区中之島 1-2-3',
+            identifierText: '防犯登録 1234 / 黒のシティサイクル',
+            status: 'reported',
+            elapsedLabel: '3時間',
+            currentStatusLabel: 'reported',
+            history: [],
+          },
+          {
+            id: 'r-2',
+            imageUrl: 'https://example.com/r-2.jpg',
+            reportedAt: '2026-04-19 18:40',
+            location: '大阪市北区梅田 2-4-9',
+            identifierText: 'シール 8842 / 銀のクロスバイク',
+            status: 'temporary',
+            elapsedLabel: '17時間',
+            currentStatusLabel: 'temporary',
+            history: [],
+          },
+        ]}
+      />,
+    );
 
     expect(screen.getByText('reported / temporary')).toBeInTheDocument();
     expect(
@@ -198,9 +225,58 @@ describe('Admin Dashboard pages', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
     expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
-    expect(
-      screen.queryByText('防犯登録 9981 / 青のママチャリ'),
-    ).not.toBeInTheDocument();
+  });
+
+  it('fetches unresolved reports from the server side', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'r-api-1',
+          imageUrl: 'https://example.com/report-api-1.jpg',
+          latitude: 34.7055,
+          longitude: 135.4983,
+          identifierText: 'API-0001 / 黒のシティサイクル',
+          status: 'reported',
+          createdAt: '2026-04-20T00:15:00.000Z',
+        },
+        {
+          id: 'r-api-2',
+          imageUrl: 'https://example.com/report-api-2.jpg',
+          latitude: 34.706,
+          longitude: 135.4984,
+          identifierText: 'API-0002 / 銀のクロスバイク',
+          status: 'temporary',
+          createdAt: '2026-04-20T00:20:00.000Z',
+        },
+        {
+          id: 'r-api-3',
+          imageUrl: 'https://example.com/report-api-3.jpg',
+          latitude: 34.707,
+          longitude: 135.4985,
+          identifierText: 'API-0003 / 白のミニベロ',
+          status: 'resolved',
+          createdAt: '2026-04-20T00:25:00.000Z',
+        },
+      ],
+    } as Response);
+    global.fetch = fetchMock;
+
+    const { getServerSideProps } = await import('../pages/unresolved');
+    const result = await getServerSideProps({} as never);
+
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/reports');
+    expect(result).toMatchObject({
+      props: {
+        reports: [
+          expect.objectContaining({ id: 'r-api-1', status: 'reported' }),
+          expect.objectContaining({ id: 'r-api-2', status: 'temporary' }),
+        ],
+      },
+    });
+
+    global.fetch = originalFetch;
   });
 
   it('shows overview and history on the report detail page', () => {
@@ -210,7 +286,32 @@ describe('Admin Dashboard pages', () => {
       isReady: true,
     });
 
-    render(<ReportDetailPage />);
+    render(
+      <ReportDetailPage
+        report={{
+          id: 'R-002',
+          imageUrl: '/mock/report-002.png',
+          reportedAt: '2026-04-19 18:40',
+          location: '大阪市北区梅田 2-4-9',
+          identifierText: 'シール 8842 / 銀のクロスバイク',
+          status: 'temporary',
+          elapsedLabel: '17時間',
+          currentStatusLabel: 'temporary',
+          history: [
+            {
+              id: 'H-002',
+              timestamp: '2026-04-19 18:40',
+              label: '通報を受付',
+            },
+            {
+              id: 'H-003',
+              timestamp: '2026-04-19 19:10',
+              label: '持ち主が仮解除',
+            },
+          ],
+        }}
+      />,
+    );
 
     expect(
       screen.getByRole('heading', { level: 2, name: '通報詳細' }),
@@ -297,7 +398,21 @@ describe('Admin Dashboard pages', () => {
       isReady: true,
     });
 
-    render(<CollectionRequestPage />);
+    render(
+      <CollectionRequestPage
+        report={{
+          id: 'R-001',
+          imageUrl: '/mock/report-001.png',
+          reportedAt: '2026-04-20 09:15',
+          location: '大阪市北区中之島 1-2-3',
+          identifierText: '防犯登録 1234 / 黒のシティサイクル',
+          status: 'reported',
+          elapsedLabel: '3時間',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
 
     expect(screen.getByText('回収依頼')).toBeInTheDocument();
     expect(screen.getByText('依頼メモ')).toBeInTheDocument();
@@ -315,7 +430,21 @@ describe('Admin Dashboard pages', () => {
       isReady: true,
     });
 
-    render(<CollectionResultPage />);
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
 
     expect(screen.getByText('回収結果記録')).toBeInTheDocument();
     expect(screen.getByLabelText('回収完了')).toBeInTheDocument();
