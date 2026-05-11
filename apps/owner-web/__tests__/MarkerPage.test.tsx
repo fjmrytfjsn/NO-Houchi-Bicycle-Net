@@ -101,7 +101,7 @@ describe('MarkerPage', () => {
     // wait for initial fetch
     await waitFor(() => expect(fetch).toHaveBeenCalled());
 
-    const tempBtn = await screen.findByText('解除（仮）');
+    const tempBtn = await screen.findByText('仮解除を申請する');
     fireEvent.click(tempBtn);
 
     await waitFor(() => screen.getByText('仮解除しました'));

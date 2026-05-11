@@ -23,7 +23,7 @@ type OwnerPrisma = {
   declaration: {
     findFirst(args: {
       where: { markerId: string; status?: string };
-      orderBy: { declaredAt: 'asc' | 'desc' };
+      orderBy?: { declaredAt: 'asc' | 'desc' };
     }): Promise<DeclarationRecord | null>;
     create(args: {
       data: {
@@ -37,8 +37,27 @@ type OwnerPrisma = {
     }): Promise<DeclarationRecord>;
     update(args: {
       where: { id: string };
-      data: { status: string; finalizedAt: Date };
+      data: { status?: string; finalizedAt?: Date };
     }): Promise<DeclarationRecord>;
+    updateMany(args: {
+      where: { markerId: string; status: string };
+      data: { status: string };
+    }): Promise<{ count: number }>;
+  };
+  bicycleReport: {
+    findFirst(args: {
+      where: { markerId: string };
+      orderBy: { createdAt: 'asc' | 'desc' };
+    }): Promise<{
+      id: string;
+      imageUrl: string;
+      identifierText: string;
+      status: string;
+    } | null>;
+    updateMany(args: {
+      where: { markerId: string };
+      data: { status: string };
+    }): Promise<{ count: number }>;
   };
 };
 
@@ -48,6 +67,47 @@ export class OwnerUnlockService {
     private readonly couponService: CouponService,
     private readonly now: () => Date = () => new Date()
   ) {}
+
+  async getMarkerEntry(code: string) {
+    const marker = await this.prisma.marker.findUnique({
+      where: { code },
+    });
+
+    if (!marker) {
+      throw new NotFoundError('Marker not found');
+    }
+
+    const [report, declaration] = await Promise.all([
+      this.prisma.bicycleReport.findFirst({
+        where: { markerId: marker.id },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.declaration.findFirst({
+        where: { markerId: marker.id },
+        orderBy: { declaredAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      marker: { code: marker.code },
+      report: report
+        ? {
+            id: report.id,
+            status: report.status as any,
+            imageUrl: report.imageUrl,
+            ocr_text: report.identifierText,
+          }
+        : null,
+      declaration: declaration
+        ? {
+            declaredAt: declaration.declaredAt,
+            eligibleFinalAt: declaration.eligibleFinalAt,
+            expiresAt: declaration.expiresAt,
+            status: declaration.status,
+          }
+        : null,
+    };
+  }
 
   async getCouponsByMarkerCode(code: string) {
     const marker = await this.prisma.marker.findUnique({
@@ -68,9 +128,32 @@ export class OwnerUnlockService {
 
   async createTemporaryUnlock(code: string, notes?: string) {
     const marker = await this.getOrCreateMarker(code);
+
+    // 問題5: 解決済みマーカーの再仮解除を禁止
+    const resolvedDeclaration = await this.prisma.declaration.findFirst({
+      where: {
+        markerId: marker.id,
+        status: 'resolved',
+      },
+    });
+    if (resolvedDeclaration) {
+      throw new BadRequestError('このマーカーは既に本解除が完了しています');
+    }
+
     const declaredAt = this.now();
     const eligibleFinalAt = new Date(declaredAt.getTime() + 15 * 60 * 1000);
     const expiresAt = new Date(declaredAt.getTime() + 24 * 60 * 60 * 1000);
+
+    // 問題3: 古い temporary declaration を expired に更新
+    await this.prisma.declaration.updateMany({
+      where: {
+        markerId: marker.id,
+        status: 'temporary',
+      },
+      data: {
+        status: 'expired',
+      },
+    });
 
     const declaration = await this.prisma.declaration.create({
       data: {
@@ -81,6 +164,12 @@ export class OwnerUnlockService {
         status: 'temporary',
         notes: notes ?? null,
       },
+    });
+
+    // 問題1: report の status も更新
+    await this.prisma.bicycleReport.updateMany({
+      where: { markerId: marker.id },
+      data: { status: 'temporary' },
     });
 
     return {
@@ -127,12 +216,28 @@ export class OwnerUnlockService {
       });
     }
 
+    // 問題4: 24時間の期限チェック
+    if (finalizedAt > declaration.expiresAt) {
+      // 期限切れの declaration を expired に更新
+      await this.prisma.declaration.update({
+        where: { id: declaration.id },
+        data: { status: 'expired' },
+      });
+      throw new BadRequestError('仮解除の有効期限（24時間）が切れています。再度仮解除を行ってください');
+    }
+
     await this.prisma.declaration.update({
       where: { id: declaration.id },
       data: {
         status: 'resolved',
         finalizedAt,
       },
+    });
+
+    // 問題1: report の status も resolved に更新
+    await this.prisma.bicycleReport.updateMany({
+      where: { markerId: marker.id },
+      data: { status: 'resolved' },
     });
 
     const coupon = await this.couponService.issueCouponForFinalUnlock(

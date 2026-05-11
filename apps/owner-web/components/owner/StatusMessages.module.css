@@ -1,0 +1,91 @@
+/* ===== Status Messages ===== */
+.overlay {
+  animation: fadeIn var(--transition-base) ease-out;
+}
+
+/* --- Spinner --- */
+.spinnerWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinnerText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* --- Alert Base --- */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  animation: fadeIn var(--transition-base) ease-out;
+}
+
+.alertIcon {
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.alertText {
+  flex: 1;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* --- Alert Variants --- */
+.alertError {
+  background: var(--color-error-light);
+  border-left-color: var(--color-error);
+  color: #991b1b;
+}
+
+.alertSuccess {
+  background: var(--color-success-light);
+  border-left-color: var(--color-success);
+  color: #166534;
+}
+
+.alertInfo {
+  background: var(--color-info-light);
+  border-left-color: var(--color-info);
+  color: #1e40af;
+}
+
+/* --- Empty State --- */
+.emptyState {
+  text-align: center;
+  padding: var(--space-10) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+}
+
+.emptyText {
+  font-size: var(--text-sm);
+}

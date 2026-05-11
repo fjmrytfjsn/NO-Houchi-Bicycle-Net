@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { CouponList } from '../../components/owner/CouponList';
 import { DeclarationPanel } from '../../components/owner/DeclarationPanel';
+import { QrScannerPanel } from '../../components/owner/QrScannerPanel';
 import { ReportSummary } from '../../components/owner/ReportSummary';
 import { StatusMessages } from '../../components/owner/StatusMessages';
 import { TempUnlockButton } from '../../components/owner/TempUnlockButton';
@@ -10,6 +12,7 @@ import { useQrScanner } from '../../hooks/useQrScanner';
 import { getCoupons, getMarker, unlockFinal, unlockTemp } from '../../lib/api';
 import { getUnlockTiming } from '../../lib/owner/time';
 import type { Coupon, MarkerEntry } from '../../lib/owner/types';
+import styles from './MarkerPage.module.css';
 
 export default function MarkerPage() {
   const router = useRouter();
@@ -22,6 +25,7 @@ export default function MarkerPage() {
   const [tempUnlockDisabled, setTempUnlockDisabled] = useState(false);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -30,8 +34,11 @@ export default function MarkerPage() {
 
     setLoading(true);
     setError(null);
-    getMarker(code)
-      .then((result) => setData(result))
+    Promise.all([getMarker(code), getCoupons(code)])
+      .then(([markerResult, couponResult]) => {
+        setData(markerResult);
+        setCoupons(couponResult.coupons || []);
+      })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
   }, [code]);
@@ -90,14 +97,13 @@ export default function MarkerPage() {
 
   const handleQRDetected = useCallback(
     async (qrData: string) => {
-      setShowQRScanner(false);
-
       if (qrData !== code) {
-        setError('異なるQRコードです。同じマーカーのQRを読み込んでください。');
-        setTimeout(() => setError(null), 5000);
+        setScanError('異なるQRコードです。同じマーカーのQRを読み込んでください。');
+        setTimeout(() => setScanError(null), 5000);
         return;
       }
 
+      setShowQRScanner(false);
       await handleFinal();
     },
     [code, handleFinal]
@@ -126,22 +132,39 @@ export default function MarkerPage() {
     : null;
 
   return (
-    <main style={{ padding: 16 }}>
-      <StatusMessages
-        loading={loading}
-        error={error}
-        info={info}
-        hasData={Boolean(data)}
-      />
+    <>
+      <Head>
+        <title>
+          {code ? `マーカー ${code}` : 'マーカー'} - NO-Houchi Bicycle Net
+        </title>
+      </Head>
 
-      {data && (
-        <section>
-          <div style={{ border: '1px solid #ddd', padding: 8, marginTop: 8 }}>
-            <ReportSummary report={data.report} />
-            <TempUnlockButton
-              onClick={handleTemp}
-              disabled={tempUnlockDisabled}
-            />
+      <div className={styles.page}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
+          <h1 className={styles.pageTitle} style={{ margin: 0, fontSize: 'var(--text-base)' }}>
+            <span>📍</span>
+            マーカー
+          </h1>
+          {code && <span className={styles.markerCode} style={{ margin: 0, padding: '2px 8px' }}>{code}</span>}
+        </div>
+
+        <StatusMessages
+          loading={loading}
+          error={error}
+          info={info}
+          hasData={Boolean(data)}
+        />
+
+        {data && (
+          <>
+            <ReportSummary report={data.report} declaration={data.declaration} />
+            
+            {!declaration && (
+              <TempUnlockButton
+                onClick={handleTemp}
+                disabled={tempUnlockDisabled}
+              />
+            )}
 
             {declaration && timing && (
               <DeclarationPanel
@@ -149,18 +172,33 @@ export default function MarkerPage() {
                 eligible={timing.eligible}
                 timeToEligible={timing.timeToEligible}
                 timeToExpires={timing.timeToExpires}
-                showQRScanner={showQRScanner}
-                videoRef={videoRef}
-                canvasRef={canvasRef}
                 onStartScanner={() => setShowQRScanner(true)}
-                onCancelScanner={() => setShowQRScanner(false)}
+              />
+            )}
+
+            {/* 期限切れの場合、再度仮解除ボタンを表示 */}
+            {declaration && timing && timing.timeToExpires <= 0 &&
+              declaration.status !== 'finalized' && declaration.status !== 'resolved' && (
+              <TempUnlockButton
+                onClick={handleTemp}
+                disabled={tempUnlockDisabled}
               />
             )}
 
             <CouponList coupons={coupons} />
-          </div>
-        </section>
-      )}
-    </main>
+
+            {/* QRスキャナー モーダル */}
+            {showQRScanner && (
+              <QrScannerPanel
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                errorMessage={scanError}
+                onCancel={() => { setShowQRScanner(false); setScanError(null); }}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }

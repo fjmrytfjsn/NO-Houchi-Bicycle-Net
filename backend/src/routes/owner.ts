@@ -29,6 +29,16 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
       options.now
     );
 
+    fastify.get<{ Params: MarkerParams }>('/markers/:code', async (request, reply) => {
+      try {
+        const response = await ownerUnlockService.getMarkerEntry(request.params.code);
+        return reply.send(response);
+      } catch (error) {
+        console.error('[GET /markers/:code] Error:', error);
+        return sendError(reply, fastify.log, error);
+      }
+    });
+
     fastify.get<{ Params: MarkerParams }>('/markers/:code/coupons', async (request, reply) => {
       try {
         const response = await ownerUnlockService.getCouponsByMarkerCode(request.params.code);
@@ -53,13 +63,16 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
     fastify.post<{ Params: MarkerParams; Body: TemporaryUnlockBody }>(
       '/markers/:code/unlock-temp',
       async (request, reply) => {
+        console.log(`[unlock-temp] Received request for code: ${request.params.code}`);
         try {
           const response = await ownerUnlockService.createTemporaryUnlock(
             request.params.code,
             request.body?.notes
           );
+          console.log(`[unlock-temp] Success:`, JSON.stringify(response));
           return reply.send(response);
         } catch (error) {
+          console.error(`[unlock-temp] Error:`, error);
           return sendError(reply, fastify.log, error);
         }
       }
