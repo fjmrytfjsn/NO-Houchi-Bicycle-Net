@@ -31,10 +31,16 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
 
     fastify.get<{ Params: MarkerParams }>('/markers/:code', async (request, reply) => {
       try {
+<<<<<<< HEAD
         const response = await ownerUnlockService.getMarkerEntry(request.params.code);
         return reply.send(response);
       } catch (error) {
         console.error('[GET /markers/:code] Error:', error);
+=======
+        const response = await ownerUnlockService.getMarkerByCode(request.params.code);
+        return reply.send(response);
+      } catch (error) {
+>>>>>>> eeb4ce9f08a5bc55158b32aa396539be96ed9bab
         return sendError(reply, fastify.log, error);
       }
     });

@@ -24,6 +24,9 @@ describe('MarkerPage', () => {
   });
 
   it('can perform temporary unlock and final unlock flow', async () => {
+    let markerStatus = 'temporary';
+    let declarationStatus = 'temporary';
+
     // mock fetch implementation
     (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
       if (
@@ -36,7 +39,7 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
-              status: 'temporary',
+              status: markerStatus,
               imageUrl: '',
               ocr_text: '',
             },
@@ -44,7 +47,11 @@ describe('MarkerPage', () => {
               declaredAt: '2026-01-19T12:00:00.000Z',
               eligibleFinalAt: '2000-01-01T00:00:00.000Z',
               expiresAt: '2026-01-20T12:00:00.000Z',
-              status: 'temporary',
+              finalizedAt:
+                declarationStatus === 'finalized'
+                  ? '2026-01-19T13:00:00.000Z'
+                  : undefined,
+              status: declarationStatus,
             },
           }),
         };
@@ -69,6 +76,9 @@ describe('MarkerPage', () => {
         url.endsWith('/api/owner/markers/ABC123/unlock-final') &&
         opts?.method === 'POST'
       ) {
+        markerStatus = 'resolved';
+        declarationStatus = 'finalized';
+
         return {
           ok: true,
           json: async () => ({
@@ -112,5 +122,59 @@ describe('MarkerPage', () => {
     fireEvent.click(finalBtn);
 
     await waitFor(() => screen.getByText(/本解除が完了しました/));
+    expect(await screen.findByText(/獲得したクーポン/)).toBeInTheDocument();
+    expect(screen.queryByText(/本解除でクーポンをゲット！/)).toBeNull();
+  });
+
+  it('loads coupons and hides final unlock guidance for resolved markers', async () => {
+    (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
+      if (
+        url.endsWith('/api/owner/markers/ABC123') &&
+        (!opts || opts.method === 'GET')
+      ) {
+        return {
+          ok: true,
+          json: async () => ({
+            marker: { code: 'ABC123' },
+            report: {
+              id: 'r-ABC123',
+              status: 'resolved',
+              imageUrl: '',
+              ocr_text: '',
+            },
+            declaration: {
+              declaredAt: '2026-01-19T12:00:00.000Z',
+              eligibleFinalAt: '2000-01-01T00:00:00.000Z',
+              expiresAt: '2026-01-20T12:00:00.000Z',
+              finalizedAt: '2026-01-19T13:00:00.000Z',
+              status: 'finalized',
+            },
+          }),
+        };
+      }
+
+      if (url.endsWith('/api/owner/markers/ABC123/coupons')) {
+        return {
+          ok: true,
+          json: async () => ({
+            coupons: [
+              {
+                name: '商店街応援クーポン',
+                discount: '100円',
+                discountType: 'fixed',
+              },
+            ],
+          }),
+        };
+      }
+
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+
+    render(<MarkerPage />);
+
+    expect(await screen.findByText(/獲得したクーポン/)).toBeInTheDocument();
+    expect(screen.getByText('商店街応援クーポン')).toBeInTheDocument();
+    expect(screen.queryByText(/本解除でクーポンをゲット！/)).toBeNull();
   });
 });

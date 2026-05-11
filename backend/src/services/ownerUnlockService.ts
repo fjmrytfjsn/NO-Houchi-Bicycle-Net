@@ -6,19 +6,42 @@ type MarkerRecord = {
   code: string;
 };
 
+type BicycleReportRecord = {
+  id: string;
+  markerId: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  identifierText: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type DeclarationRecord = {
   id: string;
   markerId: string;
   declaredAt: Date;
   eligibleFinalAt: Date;
   expiresAt: Date;
+  finalizedAt: Date | null;
   status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type OwnerPrisma = {
   marker: {
     findUnique(args: { where: { code?: string; id?: string } }): Promise<MarkerRecord | null>;
     create(args: { data: { code: string } }): Promise<MarkerRecord>;
+  };
+  bicycleReport: {
+    findFirst(args: {
+      where: { markerId: string };
+      orderBy: { createdAt: 'asc' | 'desc' };
+    }): Promise<BicycleReportRecord | null>;
   };
   declaration: {
     findFirst(args: {
@@ -68,7 +91,11 @@ export class OwnerUnlockService {
     private readonly now: () => Date = () => new Date()
   ) {}
 
+<<<<<<< HEAD
   async getMarkerEntry(code: string) {
+=======
+  async getMarkerByCode(code: string) {
+>>>>>>> eeb4ce9f08a5bc55158b32aa396539be96ed9bab
     const marker = await this.prisma.marker.findUnique({
       where: { code },
     });
@@ -89,6 +116,7 @@ export class OwnerUnlockService {
     ]);
 
     return {
+<<<<<<< HEAD
       marker: { code: marker.code },
       report: report
         ? {
@@ -106,6 +134,13 @@ export class OwnerUnlockService {
             status: declaration.status,
           }
         : null,
+=======
+      marker: {
+        code: marker.code,
+      },
+      report,
+      declaration,
+>>>>>>> eeb4ce9f08a5bc55158b32aa396539be96ed9bab
     };
   }
 
