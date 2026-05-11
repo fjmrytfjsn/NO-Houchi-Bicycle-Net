@@ -32,6 +32,14 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByText('通報日時')).toBeInTheDocument();
     expect(screen.getByText('位置')).toBeInTheDocument();
     expect(screen.getByText('識別情報')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        '通報状況の確認、未解除案件の回収依頼、回収結果の記録を行う管理画面の雛形です。',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('全通報を状態、日時、位置で確認する起点画面です。'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows API report fields on the report list page', () => {
@@ -183,6 +191,11 @@ describe('Admin Dashboard pages', () => {
     render(<UnresolvedPage />);
 
     expect(screen.getByText('reported / temporary')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'reported または temporary の案件を回収依頼候補として確認します。',
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
     expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
     expect(
@@ -289,6 +302,9 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByText('回収依頼')).toBeInTheDocument();
     expect(screen.getByText('依頼メモ')).toBeInTheDocument();
     expect(screen.getByText('確認: collection_requested に更新')).toBeInTheDocument();
+    expect(
+      screen.queryByText('対象案件に依頼メモを付け、回収依頼状態へ更新する雛形です。'),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '回収依頼登録' })).toBeInTheDocument();
   });
 
@@ -305,6 +321,9 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByLabelText('回収完了')).toBeInTheDocument();
     expect(screen.getByLabelText('現地で現物なし')).toBeInTheDocument();
     expect(screen.getByText('結果メモ')).toBeInTheDocument();
+    expect(
+      screen.queryByText('回収完了または現地で現物なしの結果を記録する雛形です。'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows loading state until dynamic route params are ready', () => {

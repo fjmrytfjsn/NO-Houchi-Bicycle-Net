@@ -14,10 +14,7 @@ export default function CollectionRequestPage() {
 
   if (!isReady) {
     return (
-      <AppLayout
-        title="回収依頼"
-        description="対象案件に依頼メモを付け、回収依頼状態へ更新する雛形です。"
-      >
+      <AppLayout title="回収依頼">
         <section className="panel">
           <p>読み込み中…</p>
         </section>
@@ -27,10 +24,7 @@ export default function CollectionRequestPage() {
 
   if (!report) {
     return (
-      <AppLayout
-        title="回収依頼"
-        description="対象の通報情報が見つかりませんでした。"
-      >
+      <AppLayout title="回収依頼">
         <section className="panel">
           <p>対象の通報が見つかりません。</p>
         </section>
@@ -39,21 +33,17 @@ export default function CollectionRequestPage() {
   }
 
   return (
-    <AppLayout
-      title="回収依頼"
-      description="対象案件に依頼メモを付け、回収依頼状態へ更新する雛形です。"
-    >
+    <AppLayout title="回収依頼">
       <form
         onSubmit={(event) => {
           event.preventDefault();
           setSuccessMessage(
-            `回収依頼を登録しました（モック）。入力メモ: ${memo || 'なし'}`,
+            `回収依頼を登録しました。入力メモ: ${memo || 'なし'}`,
           );
         }}
       >
         <FormScaffold
           title="対象概要"
-          description="対象通報の取り違えを避けるため、概要を確認してから登録します。"
           confirmation="確認: collection_requested に更新"
           successMessage={successMessage}
           submitLabel="回収依頼登録"

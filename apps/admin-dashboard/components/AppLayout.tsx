@@ -5,7 +5,6 @@ import type { PropsWithChildren, ReactNode } from 'react';
 
 interface AppLayoutProps extends PropsWithChildren {
   title: string;
-  description: string;
   actions?: ReactNode;
 }
 
@@ -16,7 +15,6 @@ const navItems = [
 
 export function AppLayout({
   title,
-  description,
   actions,
   children,
 }: AppLayoutProps) {
@@ -32,9 +30,6 @@ export function AppLayout({
           <div className="brand-block">
             <p className="eyebrow">NO-Houchi Bicycle Net</p>
             <h1>管理者ダッシュボード</h1>
-            <p className="brand-description">
-              通報状況の確認、未解除案件の回収依頼、回収結果の記録を行う管理画面の雛形です。
-            </p>
           </div>
           <nav className="side-nav" aria-label="グローバルナビゲーション">
             {navItems.map((item) => {
@@ -56,7 +51,6 @@ export function AppLayout({
             <div>
               <p className="eyebrow">運用画面</p>
               <h2>{title}</h2>
-              <p className="page-description">{description}</p>
             </div>
             {actions ? <div className="header-actions">{actions}</div> : null}
           </header>

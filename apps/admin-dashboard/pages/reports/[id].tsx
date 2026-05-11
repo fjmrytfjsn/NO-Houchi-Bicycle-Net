@@ -23,10 +23,7 @@ export default function ReportDetailPage({
 
   if (!isReady) {
     return (
-      <AppLayout
-        title="通報詳細"
-        description="写真、位置、識別情報、現在ステータス、履歴を確認します。"
-      >
+      <AppLayout title="通報詳細">
         <section className="panel">
           <p>読み込み中…</p>
         </section>
@@ -36,10 +33,7 @@ export default function ReportDetailPage({
 
   if (errorMessage || !report) {
     return (
-      <AppLayout
-        title="通報詳細"
-        description="対象の通報情報が見つかりませんでした。"
-      >
+      <AppLayout title="通報詳細">
         <section className="panel">
           <p>{errorMessage ?? '対象の通報が見つかりません。'}</p>
         </section>
@@ -50,7 +44,6 @@ export default function ReportDetailPage({
   return (
     <AppLayout
       title="通報詳細"
-      description="写真、位置、識別情報、現在ステータス、履歴を確認します。"
       actions={
         <div className="header-links">
           {['reported', 'temporary'].includes(report.status) ? (
