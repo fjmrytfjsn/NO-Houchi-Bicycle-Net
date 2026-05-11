@@ -33,6 +33,9 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByText('位置')).toBeInTheDocument();
     expect(screen.getByText('識別情報')).toBeInTheDocument();
     expect(
+      screen.getByRole('link', { name: '回収依頼候補へ' }),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByText(
         '通報状況の確認、未解除案件の回収依頼、回収結果の記録を行う管理画面の雛形です。',
       ),
@@ -218,6 +221,9 @@ describe('Admin Dashboard pages', () => {
     );
 
     expect(screen.getByText('reported / temporary')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: '回収依頼候補' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText(
         'reported または temporary の案件を回収依頼候補として確認します。',

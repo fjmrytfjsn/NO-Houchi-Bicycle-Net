@@ -51,7 +51,7 @@ export function ReportsTable({
                   <div className="inline-links">
                     <Link href={`/reports/${report.id}`}>詳細を見る</Link>
                     {['reported', 'temporary'].includes(report.status) ? (
-                      <Link href="/unresolved">未解除案件へ</Link>
+                      <Link href="/unresolved">回収依頼候補へ</Link>
                     ) : null}
                   </div>
                 )}

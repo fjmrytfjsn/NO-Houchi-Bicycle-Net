@@ -27,7 +27,7 @@ export default function HomePage({
       title="通報一覧"
       actions={
         <div className="header-links">
-          <Link href="/unresolved">未解除案件へ</Link>
+          <Link href="/unresolved">回収依頼候補へ</Link>
         </div>
       }
     >

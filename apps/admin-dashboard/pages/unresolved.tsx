@@ -14,7 +14,7 @@ export default function UnresolvedPage({
   errorMessage,
 }: UnresolvedPageProps) {
   return (
-    <AppLayout title="未解除案件">
+    <AppLayout title="回収依頼候補">
       <section className="panel">
         <div className="panel-header">
           <h3>絞り込み</h3>
@@ -52,7 +52,7 @@ export const getServerSideProps: GetServerSideProps<UnresolvedPageProps> = async
       props: {
         reports: [],
         errorMessage:
-          '未解除案件を取得できませんでした。Backend API の起動状態を確認してください。',
+          '回収依頼候補を取得できませんでした。Backend API の起動状態を確認してください。',
       },
     };
   }
