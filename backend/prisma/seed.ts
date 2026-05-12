@@ -119,6 +119,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-reported.jpg',
       latitude: 34.693724,
       longitude: 135.502254,
+      address: '大阪市北区中之島 1-2-3',
       identifierText: '防犯登録 SEED-1001 / 黒のシティサイクル',
       status: 'reported',
       notes: '開発用: 未解除一覧と回収依頼導線の確認用',
@@ -130,6 +131,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-temporary.jpg',
       latitude: 34.702485,
       longitude: 135.495951,
+      address: '大阪市北区梅田 2-4-9',
       identifierText: 'シール SEED-2001 / 銀のクロスバイク',
       status: 'temporary',
       notes: '開発用: 持ち主が仮解除済みの案件',
@@ -141,6 +143,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-collection-requested.jpg',
       latitude: 34.697587,
       longitude: 135.511032,
+      address: '大阪市北区天満 3-8-1',
       identifierText: '防犯登録 SEED-3001 / 青のママチャリ',
       status: 'collection_requested',
       notes: '開発用: 回収依頼中の案件',
@@ -152,6 +155,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-collected.jpg',
       latitude: 34.696112,
       longitude: 135.498924,
+      address: '大阪市北区堂島 1-5-2',
       identifierText: '防犯登録 SEED-4001 / 白のミニベロ',
       status: 'collected',
       notes: '開発用: 回収完了案件',
@@ -163,6 +167,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-not-found.jpg',
       latitude: 34.705534,
       longitude: 135.49811,
+      address: '大阪市北区芝田 1-1-4',
       identifierText: 'ステッカー SEED-5001 / 赤のロードバイク',
       status: 'not_found_on_collection',
       notes: '開発用: 現地で現物なしの案件',
@@ -174,6 +179,7 @@ async function main() {
       imageUrl: 'https://example.com/seed/report-resolved.jpg',
       latitude: 34.704177,
       longitude: 135.510109,
+      address: '大阪市北区扇町 2-1-7',
       identifierText: '防犯登録 SEED-6001 / 緑のシティサイクル',
       status: 'resolved',
       notes: '開発用: 持ち主が本解除済みの案件',
@@ -300,6 +306,7 @@ async function upsertReport(input: {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address: string;
   identifierText: string;
   status: string;
   notes: string;
@@ -312,6 +319,7 @@ async function upsertReport(input: {
       imageUrl: input.imageUrl,
       latitude: input.latitude,
       longitude: input.longitude,
+      address: input.address,
       identifierText: input.identifierText,
       status: input.status,
       notes: input.notes,
