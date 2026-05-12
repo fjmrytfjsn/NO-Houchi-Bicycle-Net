@@ -103,6 +103,9 @@ components:
           type: number
         longitude:
           type: number
+        address:
+          type: string
+          nullable: true
         identifierText:
           type: string
         status:

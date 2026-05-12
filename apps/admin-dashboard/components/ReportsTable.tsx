@@ -37,7 +37,18 @@ export function ReportsTable({
                 />
               </td>
               <td>{showElapsed ? report.identifierText : report.reportedAt}</td>
-              <td>{showElapsed ? report.reportedAt : report.location}</td>
+              <td>
+                {showElapsed ? (
+                  report.reportedAt
+                ) : (
+                  <div className="location-cell">
+                    <span>{report.address ?? report.location}</span>
+                    <a href={report.mapLinkUrl} target="_blank" rel="noreferrer">
+                      Google Mapsで開く
+                    </a>
+                  </div>
+                )}
+              </td>
               <td>{showElapsed ? report.elapsedLabel : report.identifierText}</td>
               <td>
                 <StatusBadge status={report.status} />

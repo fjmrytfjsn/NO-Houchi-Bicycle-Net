@@ -58,6 +58,7 @@ model BicycleReport {
   imageUrl           String
   latitude           Float
   longitude          Float
+  address            String?
   identifierText     String
   status             String              @default("reported")
   notes              String?

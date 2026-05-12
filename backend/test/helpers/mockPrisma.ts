@@ -44,6 +44,7 @@ type BicycleReportRecord = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address: string | null;
   identifierText: string;
   status: string;
   notes: string | null;
@@ -332,6 +333,7 @@ export function createMockPrisma() {
           imageUrl: string;
           latitude: number;
           longitude: number;
+          address?: string | null;
           identifierText: string;
           status: string;
           notes?: string | null;
@@ -345,6 +347,7 @@ export function createMockPrisma() {
           imageUrl: data.imageUrl,
           latitude: data.latitude,
           longitude: data.longitude,
+          address: data.address ?? null,
           identifierText: data.identifierText,
           status: data.status,
           notes: data.notes ?? null,
