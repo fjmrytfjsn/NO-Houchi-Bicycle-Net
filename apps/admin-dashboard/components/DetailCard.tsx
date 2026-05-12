@@ -24,6 +24,28 @@ export function DetailCard({ report }: DetailCardProps) {
             <strong>{report.location}</strong>
           </div>
           <div>
+            <span>座標</span>
+            <strong>
+              {report.latitude.toFixed(6)}, {report.longitude.toFixed(6)}
+            </strong>
+          </div>
+          <div>
+            <span>地図</span>
+            {report.mapEmbedUrl ? (
+              <iframe
+                className="map-embed"
+                title="通報位置の地図"
+                src={report.mapEmbedUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            ) : null}
+            <a href={report.mapLinkUrl} target="_blank" rel="noreferrer">
+              Google Mapsで開く
+            </a>
+          </div>
+          <div>
             <span>識別情報</span>
             <strong>{report.identifierText}</strong>
           </div>

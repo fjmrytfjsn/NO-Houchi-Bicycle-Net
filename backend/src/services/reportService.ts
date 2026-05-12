@@ -11,6 +11,7 @@ type ReportRecord = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address: string | null;
   identifierText: string;
   status: string;
   notes: string | null;
@@ -46,6 +47,7 @@ type ReportTransactionPrisma = {
         imageUrl: string;
         latitude: number;
         longitude: number;
+        address?: string | null;
         identifierText: string;
         status: string;
         notes?: string | null;
@@ -137,6 +139,7 @@ export class ReportService {
     }
 
     const marker = await this.getOrCreateMarker(input.markerCode);
+    const address = await this.resolveAddress(input.latitude, input.longitude);
 
     return this.prisma.bicycleReport.create({
       data: {
@@ -144,6 +147,7 @@ export class ReportService {
         imageUrl: input.imageUrl,
         latitude: input.latitude,
         longitude: input.longitude,
+        address,
         identifierText: input.identifierText,
         status: 'reported',
         notes: input.notes ?? null,
@@ -209,5 +213,39 @@ export class ReportService {
       update: {},
       create: { code },
     });
+  }
+
+  private async resolveAddress(latitude: number, longitude: number) {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      return null;
+    }
+
+    try {
+      const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
+      url.searchParams.set('latlng', `${latitude},${longitude}`);
+      url.searchParams.set('language', 'ja');
+      url.searchParams.set('key', apiKey);
+
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const body = (await response.json()) as {
+        status?: string;
+        results?: Array<{ formatted_address?: string }>;
+      };
+
+      if (body.status !== 'OK') {
+        return null;
+      }
+
+      return body.results?.[0]?.formatted_address ?? null;
+    } catch (error) {
+      return null;
+    }
   }
 }

@@ -45,6 +45,8 @@
   - `markerCode` は必須
   - 該当マーカーが存在しない場合は backend 側で新規作成して紐づける
   - 初期 `status` は `reported`
+  - `GOOGLE_MAPS_API_KEY` が設定されている場合は、`latitude` / `longitude` から Google Geocoding API で住所を取得し、`address` に保存する
+  - 住所取得に失敗した場合も通報作成は継続し、`address` は `null` とする
 
 ### POST /api/reports/validate（将来構想）
 
@@ -78,10 +80,12 @@
 - Query:
   - `status` (optional)
 - レスポンス: `[{ report }]`
+- 備考: `report.address` が存在する場合、管理画面は住所を優先表示する。未設定時は座標表示にフォールバックする。
 
 ### GET /api/reports/:id
 
 - 説明: 通報詳細
+- レスポンス: `report`。位置情報として `latitude`, `longitude`, `address` を含む。
 
 ### PATCH /api/reports/:id/status
 

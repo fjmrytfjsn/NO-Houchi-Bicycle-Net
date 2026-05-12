@@ -17,6 +17,7 @@ type ApiReport = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address?: string | null;
   identifierText: string;
   status: ReportStatus;
   createdAt: string;
@@ -53,11 +54,18 @@ export function buildReportsUrl(selectedStatus: SelectedReportStatus) {
 }
 
 export function mapApiReportToDetail(report: ApiReport): ReportDetail {
+  const location = report.address ?? formatLocation(report.latitude, report.longitude);
+
   return {
     id: report.id,
     imageUrl: report.imageUrl,
     reportedAt: formatDateTime(report.createdAt),
-    location: formatLocation(report.latitude, report.longitude),
+    location,
+    latitude: report.latitude,
+    longitude: report.longitude,
+    address: report.address ?? null,
+    mapEmbedUrl: buildMapEmbedUrl(report.latitude, report.longitude),
+    mapLinkUrl: buildMapLinkUrl(report.latitude, report.longitude),
     identifierText: report.identifierText,
     status: report.status,
     elapsedLabel: '',
@@ -111,4 +119,23 @@ function formatDateTime(value: string) {
 
 function formatLocation(latitude: number, longitude: number) {
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
+function buildMapLinkUrl(latitude: number, longitude: number) {
+  const url = new URL('https://www.google.com/maps');
+  url.searchParams.set('q', `${latitude},${longitude}`);
+  return url.toString();
+}
+
+function buildMapEmbedUrl(latitude: number, longitude: number) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const url = new URL('https://www.google.com/maps/embed/v1/place');
+  url.searchParams.set('key', apiKey);
+  url.searchParams.set('q', `${latitude},${longitude}`);
+  return url.toString();
 }

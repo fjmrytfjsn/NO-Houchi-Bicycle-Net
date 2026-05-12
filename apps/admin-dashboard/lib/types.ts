@@ -18,6 +18,11 @@ export interface ReportSummaryItem {
   imageUrl: string;
   reportedAt: string;
   location: string;
+  latitude: number;
+  longitude: number;
+  address?: string | null;
+  mapEmbedUrl: string | null;
+  mapLinkUrl: string;
   identifierText: string;
   status: ReportStatus;
 }

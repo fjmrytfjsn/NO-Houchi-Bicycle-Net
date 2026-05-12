@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../src/app';
 import { BadRequestError } from '../src/lib/errors';
 import { ReportService } from '../src/services/reportService';
@@ -7,8 +7,11 @@ import { createMockPrisma } from './helpers/mockPrisma';
 describe('reports', () => {
   let server: any;
   let prismaBundle: ReturnType<typeof createMockPrisma>;
+  const originalGoogleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const originalFetch = global.fetch;
 
   beforeAll(() => {
+    process.env.GOOGLE_MAPS_API_KEY = '';
     prismaBundle = createMockPrisma();
     server = buildServer({
       prisma: prismaBundle.prisma as any,
@@ -17,6 +20,8 @@ describe('reports', () => {
 
   afterAll(async () => {
     await server.close();
+    process.env.GOOGLE_MAPS_API_KEY = originalGoogleMapsApiKey;
+    global.fetch = originalFetch;
   });
 
   it('creates a report and creates a marker when markerCode is new', async () => {
@@ -39,12 +44,86 @@ describe('reports', () => {
       imageUrl: 'https://example.com/report-1.jpg',
       latitude: 34.7055,
       longitude: 135.4983,
+      address: null,
       identifierText: 'OSAKA-1234',
       status: 'reported',
       notes: '歩道の端に駐輪',
     });
     expect(prismaBundle.state.markers.size).toBe(1);
     expect(prismaBundle.state.reports.size).toBe(1);
+  });
+
+  it('stores a reverse geocoded address when Google Maps API returns one', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+    process.env.GOOGLE_MAPS_API_KEY = 'test-google-maps-key';
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'OK',
+        results: [
+          {
+            formatted_address: '日本、〒530-0001 大阪府大阪市北区梅田１丁目１',
+          },
+        ],
+      }),
+    } as Response);
+
+    const response = await isolatedServer.inject({
+      method: 'POST',
+      url: '/api/reports',
+      payload: {
+        imageUrl: 'https://example.com/report-address.jpg',
+        latitude: 34.7055,
+        longitude: 135.4983,
+        markerCode: 'ADDRESS-MARKER-001',
+        identifierText: 'OSAKA-ADDRESS-001',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      address: '日本、〒530-0001 大阪府大阪市北区梅田１丁目１',
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/maps\.googleapis\.com\/maps\/api\/geocode\/json\?/),
+    );
+
+    process.env.GOOGLE_MAPS_API_KEY = '';
+    global.fetch = originalFetch;
+    await isolatedServer.close();
+  });
+
+  it('creates a report with a null address when reverse geocoding fails', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+    process.env.GOOGLE_MAPS_API_KEY = 'test-google-maps-key';
+    global.fetch = vi.fn().mockRejectedValue(new Error('Google API unavailable'));
+
+    const response = await isolatedServer.inject({
+      method: 'POST',
+      url: '/api/reports',
+      payload: {
+        imageUrl: 'https://example.com/report-address-failure.jpg',
+        latitude: 34.706,
+        longitude: 135.499,
+        markerCode: 'ADDRESS-MARKER-002',
+        identifierText: 'OSAKA-ADDRESS-002',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      address: null,
+    });
+
+    process.env.GOOGLE_MAPS_API_KEY = '';
+    global.fetch = originalFetch;
+    await isolatedServer.close();
   });
 
   it('lists reports in descending createdAt order', async () => {
@@ -119,6 +198,7 @@ describe('reports', () => {
       imageUrl: 'https://example.com/report-list-1.jpg',
       identifierText: 'LIST-0001',
       status: 'reported',
+      address: null,
     });
   });
 
