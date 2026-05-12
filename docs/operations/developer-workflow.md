@@ -15,18 +15,29 @@
 cd backend
 npm install
 cp .env.example .env
-# 必要に応じて .env の環境変数を編集（DB接続、JWT_SECRET など）
+# ホスト上で npm run dev する場合、DATABASE_URL のホストは localhost のままにします。
+# Docker Compose の app コンテナ内から起動する場合のみ、DBホストを postgres に変更します。
+# 必要に応じて .env のその他の環境変数を編集（JWT_SECRET など）
 
 # Docker で Postgres を起動（推奨）
 docker-compose up -d
 
 # Prisma の準備
-npx prisma generate
-npx prisma migrate dev --name init
+npm run prisma:generate
+npm run prisma:migrate
 
 # サーバ起動（開発）
 npm run dev
 # http://localhost:3000 で起動
+```
+
+Backend と DB の接続確認:
+
+```bash
+cd backend
+npx prisma validate
+npx prisma migrate status
+curl http://localhost:3000/api/reports
 ```
 
 ### Owner Web アプリの起動

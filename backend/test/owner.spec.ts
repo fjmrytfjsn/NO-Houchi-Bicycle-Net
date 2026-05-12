@@ -20,6 +20,155 @@ describe('owner', () => {
     await server.close();
   });
 
+  it('returns marker details with the latest report and declaration', async () => {
+    const marker = await prismaBundle.prisma.marker.create({
+      data: { code: 'DETAIL-001' },
+    });
+
+    await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/old.jpg',
+        latitude: 34.7001,
+        longitude: 135.5001,
+        identifierText: 'OLD-TEXT',
+        status: 'reported',
+      },
+    });
+
+    const latestReport = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/latest.jpg',
+        latitude: 34.7002,
+        longitude: 135.5002,
+        identifierText: 'LATEST-TEXT',
+        status: 'temporary',
+      },
+    });
+    const oldReport = prismaBundle.state.reports.get('r-1');
+    if (oldReport) {
+      oldReport.createdAt = new Date('2026-04-20T08:30:00.000Z');
+      oldReport.updatedAt = new Date('2026-04-20T08:30:00.000Z');
+      prismaBundle.state.reports.set(oldReport.id, oldReport);
+    }
+    const latestReportRecord = prismaBundle.state.reports.get(latestReport.id);
+    if (latestReportRecord) {
+      latestReportRecord.createdAt = new Date('2026-04-20T09:30:00.000Z');
+      latestReportRecord.updatedAt = new Date('2026-04-20T09:30:00.000Z');
+      prismaBundle.state.reports.set(latestReportRecord.id, latestReportRecord);
+    }
+
+    await prismaBundle.prisma.declaration.create({
+      data: {
+        markerId: marker.id,
+        declaredAt: new Date('2026-04-20T08:00:00.000Z'),
+        eligibleFinalAt: new Date('2026-04-20T08:15:00.000Z'),
+        expiresAt: new Date('2026-04-21T08:00:00.000Z'),
+        status: 'resolved',
+      },
+    });
+
+    const latestDeclaration = await prismaBundle.prisma.declaration.create({
+      data: {
+        markerId: marker.id,
+        declaredAt: new Date('2026-04-20T09:00:00.000Z'),
+        eligibleFinalAt: new Date('2026-04-20T09:15:00.000Z'),
+        expiresAt: new Date('2026-04-21T09:00:00.000Z'),
+        status: 'temporary',
+      },
+    });
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/owner/markers/DETAIL-001',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toEqual({
+      marker: {
+        code: 'DETAIL-001',
+      },
+      report: {
+        ...latestReport,
+        createdAt: '2026-04-20T09:30:00.000Z',
+        updatedAt: '2026-04-20T09:30:00.000Z',
+      },
+      declaration: {
+        ...latestDeclaration,
+        declaredAt: latestDeclaration.declaredAt.toISOString(),
+        eligibleFinalAt: latestDeclaration.eligibleFinalAt.toISOString(),
+        expiresAt: latestDeclaration.expiresAt.toISOString(),
+        finalizedAt: latestDeclaration.finalizedAt,
+        createdAt: latestDeclaration.createdAt.toISOString(),
+        updatedAt: latestDeclaration.updatedAt.toISOString(),
+      },
+    });
+  });
+
+  it('returns nulls when marker has no report or declaration', async () => {
+    await prismaBundle.prisma.marker.create({
+      data: { code: 'DETAIL-EMPTY' },
+    });
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/owner/markers/DETAIL-EMPTY',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toEqual({
+      marker: { code: 'DETAIL-EMPTY' },
+      report: null,
+      declaration: null,
+    });
+  });
+
+  it('returns null declaration when marker has only a report', async () => {
+    const marker = await prismaBundle.prisma.marker.create({
+      data: { code: 'DETAIL-REPORT-ONLY' },
+    });
+
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-only.jpg',
+        latitude: 34.701,
+        longitude: 135.501,
+        identifierText: 'REPORT-ONLY',
+        status: 'reported',
+      },
+    });
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/owner/markers/DETAIL-REPORT-ONLY',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toEqual({
+      marker: { code: 'DETAIL-REPORT-ONLY' },
+      report: {
+        ...report,
+        createdAt: report.createdAt.toISOString(),
+        updatedAt: report.updatedAt.toISOString(),
+      },
+      declaration: null,
+    });
+  });
+
+  it('returns 404 when marker code does not exist', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/owner/markers/UNKNOWN-CODE',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: 'Marker not found',
+    });
+  });
+
   it('creates a temporary unlock declaration', async () => {
     const response = await server.inject({
       method: 'POST',

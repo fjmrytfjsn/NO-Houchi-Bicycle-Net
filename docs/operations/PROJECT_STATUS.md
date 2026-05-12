@@ -1,6 +1,6 @@
 # プロジェクト状態レポート
 
-**更新日**: 2026年4月20日
+**更新日**: 2026年4月27日
 
 **参照Project**: [NO-Houchi Bicycle Net MVP](https://github.com/users/fjmrytfjsn/projects/3)
 
@@ -14,9 +14,9 @@
 
 | コンポーネント  | 状態        | 進捗度 | 備考                               |
 | --------------- | ----------- | ------ | ---------------------------------- |
-| Backend Server  | ✅ 実装中   | 30%    | Fastify, Prisma, JWT 認証基盤完成  |
-| Owner Web       | 🔄 修正完了 | 25%    | API 実装済み、インメモリストア動作 |
-| Admin Dashboard | ⏳ 設計中   | 0%     | 画面構成作成済み、実装未開始。試作品では通報一覧・回収依頼・回収結果記録を優先 |
+| Backend Server  | ✅ 実装中   | 50%    | Fastify, Prisma, JWT 認証基盤、Owner Web連携完了 |
+| Owner Web       | ✅ 完了     | 100%   | API 実装・統合済み、全機能プロトタイプ完了 |
+| Admin Dashboard | 🔄 実装中   | 20%    | 通報一覧/詳細は Backend API 取得に対応、未解除案件/回収依頼/回収結果記録はモック画面 |
 | Android App     | ⏳ 未開始   | 0%     | 試作品では撮影・位置情報付き通報を優先 |
 
 ## GitHub Project 同期状況
@@ -53,6 +53,9 @@
 - [x] Backend 設計パターンへの適合化
 - [x] TypeScript 型安全性向上
 - [x] API レスポンス形式統一
+- [x] **Backend API との完全統合（モック削除）**
+- [x] **QRスキャナー・モーダル UI実装**
+- [x] **期限管理・状態遷移の実装**
 
 ### ドキュメント
 
@@ -66,19 +69,14 @@
 
 ## 🔄 進行中の作業
 
-- Owner Web と Backend の実際の統合（現在: インメモリストア使用）
+- Admin Dashboard の Backend API 連携準備
 - 試作品スコープに合わせた API / データモデル / 管理画面仕様の具体化
 
 ## 📋 今後のアクション（優先度順）
 
 ### 高優先度（次フェーズ）
 
-1. **Backend と Owner Web の API 統合**
-   - Owner Web が Backend API を呼び出すよう修正
-   - 環境変数で API エンドポイント設定
-   - データベース永続化
-
-2. **E2E テストの充実**
+1. **E2E テストの充実**
    - marker.spec.ts の実装
    - より詳細なテストケース追加
    - CI 環境での自動実行検討
@@ -87,12 +85,12 @@
    - Owner Web への JWT 認証追加（必要な場合）
    - Backend との連携確認
 
-4. **Admin Dashboard の実装**
-   - 通報一覧の表示
-   - 未解除案件の確認
+4. **Admin Dashboard の Backend API 連携**
+   - 通報一覧/詳細は実 API 取得に差し替え済み
+   - 未解除案件の実 API 取得
    - 回収依頼登録
    - 回収結果（回収完了/現地で現物なし）の記録
-   - Backend API 連携
+   - 認証・権限制御
 
 ### 中優先度
 
@@ -173,23 +171,23 @@ NO-Houchi-Bicycle-Net/
 │   │   ├── __tests__/         # Jest テスト
 │   │   ├── tests/e2e/         # Playwright E2E テスト
 │   │   └── package.json
-│   └── admin-dashboard/       # (未実装)
+│   └── admin-dashboard/       # Next.js 管理画面基盤（モック画面）
 └── docs/
-    ├── basic-design.md
-    ├── api-spec.md
-    ├── owner-api.md           # (更新)
-    ├── developer-workflow.md   # (更新)
-    ├── SETUP.md               # (新規)
-    └── PROJECT_STATUS.md      # このファイル
+    ├── README.md
+    ├── api/
+    ├── design/
+    ├── operations/
+    ├── testing/
+    └── ui/
 ```
 
 ## 🔗 関連リンク
 
 - [開発者ワークフロー](./developer-workflow.md)
 - [セットアップガイド](./SETUP.md)
-- [Owner Web API 仕様](./owner-api.md)
-- [Backend API 仕様](./api-spec.md)
-- [データモデル定義](./data-model.md)
+- [Owner Web API 仕様](../api/owner-api.md)
+- [Backend API 仕様](../api/api-spec.md)
+- [データモデル定義](../design/data-model.md)
 
 ## 📝 メモ
 

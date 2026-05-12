@@ -27,4 +27,6 @@ test('owner flow: temp unlock then final unlock', async ({ page, request }) => {
   // status should be resolved on page
   await page.reload();
   await expect(page.locator('text=resolved')).toBeVisible();
+  await expect(page.locator('text=獲得したクーポン')).toBeVisible();
+  await expect(page.locator('text=本解除でクーポンをゲット！')).toHaveCount(0);
 });

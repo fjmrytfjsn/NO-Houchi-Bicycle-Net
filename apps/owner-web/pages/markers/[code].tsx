@@ -14,6 +14,13 @@ import { getUnlockTiming } from '../../lib/owner/time';
 import type { Coupon, MarkerEntry } from '../../lib/owner/types';
 import styles from './MarkerPage.module.css';
 
+function isFinalUnlocked(entry: MarkerEntry) {
+  return (
+    entry.report.status === 'resolved' ||
+    entry.declaration?.status === 'finalized'
+  );
+}
+
 export default function MarkerPage() {
   const router = useRouter();
   const { code } = router.query as { code?: string };
@@ -110,7 +117,7 @@ export default function MarkerPage() {
   );
 
   const handleCameraError = useCallback(() => {
-    setError('カメラにアクセスできません');
+    setError('カメラにアクセスできません。ブラウザの設定からカメラのアクセスを許可し、ページを再読み込みしてください。');
     setShowQRScanner(false);
   }, []);
 
@@ -123,6 +130,7 @@ export default function MarkerPage() {
   });
 
   const declaration = data?.declaration;
+  const finalUnlocked = data ? isFinalUnlocked(data) : false;
   const timing = declaration
     ? getUnlockTiming(
         nowTime,
@@ -166,7 +174,7 @@ export default function MarkerPage() {
               />
             )}
 
-            {declaration && timing && (
+            {declaration && timing && !finalUnlocked && (
               <DeclarationPanel
                 declaration={declaration}
                 eligible={timing.eligible}

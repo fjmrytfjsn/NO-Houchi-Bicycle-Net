@@ -6,19 +6,46 @@ type MarkerRecord = {
   code: string;
 };
 
+type BicycleReportRecord = {
+  id: string;
+  markerId: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  identifierText: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type DeclarationRecord = {
   id: string;
   markerId: string;
   declaredAt: Date;
   eligibleFinalAt: Date;
   expiresAt: Date;
+  finalizedAt: Date | null;
   status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type OwnerPrisma = {
   marker: {
     findUnique(args: { where: { code?: string; id?: string } }): Promise<MarkerRecord | null>;
     create(args: { data: { code: string } }): Promise<MarkerRecord>;
+  };
+  bicycleReport: {
+    findFirst(args: {
+      where: { markerId: string };
+      orderBy: { createdAt: 'asc' | 'desc' };
+    }): Promise<BicycleReportRecord | null>;
+    updateMany(args: {
+      where: { markerId: string };
+      data: { status: string };
+    }): Promise<{ count: number }>;
   };
   declaration: {
     findFirst(args: {
@@ -41,21 +68,6 @@ type OwnerPrisma = {
     }): Promise<DeclarationRecord>;
     updateMany(args: {
       where: { markerId: string; status: string };
-      data: { status: string };
-    }): Promise<{ count: number }>;
-  };
-  bicycleReport: {
-    findFirst(args: {
-      where: { markerId: string };
-      orderBy: { createdAt: 'asc' | 'desc' };
-    }): Promise<{
-      id: string;
-      imageUrl: string;
-      identifierText: string;
-      status: string;
-    } | null>;
-    updateMany(args: {
-      where: { markerId: string };
       data: { status: string };
     }): Promise<{ count: number }>;
   };

@@ -4,7 +4,7 @@
 
 QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕様です。
 目的は「警告確認 → 仮解除（unlock-temp） → 本解除（unlock-final）」を安全かつ操作しやすく提供することです。
-本仕様は [基本設計仕様書](./basic-design.md) の試作品スコープに合わせ、持ち主による解除フローを中心に扱います。
+本仕様は [基本設計仕様書](../design/basic-design.md) の試作品スコープに合わせ、持ち主による解除フローを中心に扱います。
 
 **実装状況**: Owner Web では現在インメモリストアで実装。Backend との統合は次フェーズ予定。
 
@@ -39,20 +39,46 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ### GET /api/owner/markers/{code}
 
-- 説明: 指定 `code` の最新 `BicycleReport`（あれば）と現在の `declaration` を返す
-- ステータスコード: 200 OK
+- 説明: 指定 `code` の `Marker` に紐づく最新 `BicycleReport`（あれば）と最新 `declaration`（あれば）を返す
+- ステータスコード: 200 OK, 404 Not Found
 - レスポンス例:
 
 ```json
 {
   "marker": { "code": "ABC123" },
   "report": {
-    "id": "r-ABC123",
+    "id": "r-1",
+    "markerId": "m-1",
+    "imageUrl": "https://example.com/report.jpg",
+    "latitude": 34.701,
+    "longitude": 135.502,
+    "identifierText": "OSAKA-123456",
     "status": "reported",
-    "imageUrl": "",
-    "ocr_text": ""
+    "notes": null,
+    "createdAt": "2026-01-19T11:40:00.000Z",
+    "updatedAt": "2026-01-19T11:40:00.000Z"
   },
-  "declaration": null
+  "declaration": {
+    "id": "d-1",
+    "markerId": "m-1",
+    "declaredAt": "2026-01-19T12:00:00.000Z",
+    "eligibleFinalAt": "2026-01-19T12:15:00.000Z",
+    "expiresAt": "2026-01-20T12:00:00.000Z",
+    "finalizedAt": null,
+    "status": "temporary",
+    "notes": null,
+    "createdAt": "2026-01-19T12:00:00.000Z",
+    "updatedAt": "2026-01-19T12:00:00.000Z"
+  }
+}
+```
+
+- `report` と `declaration` は存在しない場合に `null` を返す
+- 未知の `code` の場合は以下を返す
+
+```json
+{
+  "error": "Marker not found"
 }
 ```
 
@@ -179,7 +205,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
 
 ## 受入基準
 
-- `GET /api/owner/markers/{code}` が該当レポート（画像・OCRテキスト含む）を表示する
+- `GET /api/owner/markers/{code}` が該当レポート（画像・識別テキスト含む）と最新 declaration を返す
 - `POST /api/owner/markers/{code}/unlock-temp` で `declaredAt`, `eligibleFinalAt`, `expiresAt` が返る
 - 仮解除後、同一マーカーQRコードをカメラで再スキャンすることで本解除が実行される
 - `unlock-final` は `eligibleFinalAt` 到達前は拒否、到達後は `resolved` になる
