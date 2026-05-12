@@ -8,6 +8,7 @@ interface DeclarationPanelProps {
   timeToEligible: number;
   timeToExpires: number;
   onStartScanner: () => void;
+  onReset: () => void;
 }
 
 export function DeclarationPanel({
@@ -16,6 +17,7 @@ export function DeclarationPanel({
   timeToEligible,
   timeToExpires,
   onStartScanner,
+  onReset,
 }: DeclarationPanelProps) {
   const isResolved = declaration.status === 'finalized' || declaration.status === 'resolved';
   const isExpired = declaration.status === 'expired' || timeToExpires <= 0;
@@ -72,6 +74,15 @@ export function DeclarationPanel({
             <div className={styles.statusMessage}>
               仮解除から24時間が経過したため、期限切れとなりました。<br />
               再度「仮解除」から手続きを行ってください。
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={onReset}
+                className={styles.finalButton}
+                style={{ width: 'auto', padding: '0.75rem 2rem' }}
+              >
+                もう一度仮解除する
+              </button>
             </div>
           </div>
         )}

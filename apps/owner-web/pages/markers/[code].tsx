@@ -181,15 +181,7 @@ export default function MarkerPage() {
                 timeToEligible={timing.timeToEligible}
                 timeToExpires={timing.timeToExpires}
                 onStartScanner={() => setShowQRScanner(true)}
-              />
-            )}
-
-            {/* 期限切れの場合、再度仮解除ボタンを表示 */}
-            {declaration && timing && timing.timeToExpires <= 0 &&
-              declaration.status !== 'finalized' && declaration.status !== 'resolved' && (
-              <TempUnlockButton
-                onClick={handleTemp}
-                disabled={tempUnlockDisabled}
+                onReset={handleTemp}
               />
             )}
 
