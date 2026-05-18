@@ -40,7 +40,7 @@ describe('MarkerPage', () => {
             report: {
               id: 'r-ABC123',
               markerId: 'm-ABC123',
-              status: markerStatus === 'reported' ? 'reported' : markerStatus,
+              status: markerStatus,
               imageUrl: '',
               latitude: 34.701,
               longitude: 135.502,
@@ -49,8 +49,9 @@ describe('MarkerPage', () => {
               notes: null,
             },
             declaration:
-              declarationStatus === 'temporary' || declarationStatus === 'finalized'
-                ? {
+              declarationStatus === 'none'
+                ? null
+                : {
                     id: 'd-ABC123',
                     markerId: 'm-ABC123',
                     declaredAt: '2026-01-19T12:00:00.000Z',
@@ -61,8 +62,7 @@ describe('MarkerPage', () => {
                         ? '2026-01-19T13:00:00.000Z'
                         : undefined,
                     status: declarationStatus,
-                  }
-                : null,
+                  },
           }),
         };
       }
@@ -195,5 +195,45 @@ describe('MarkerPage', () => {
     expect(await screen.findByText(/獲得したクーポン/)).toBeInTheDocument();
     expect(screen.getByText('商店街応援クーポン')).toBeInTheDocument();
     expect(screen.queryByText(/本解除でクーポンをゲット！/)).toBeNull();
+  });
+
+  it('shows marker data even when coupons cannot be loaded', async () => {
+    (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
+      if (
+        url.endsWith('/api/owner/markers/ABC123') &&
+        (!opts || opts.method === 'GET')
+      ) {
+        return {
+          ok: true,
+          json: async () => ({
+            marker: { code: 'ABC123' },
+            report: {
+              id: 'r-ABC123',
+              markerId: 'm-ABC123',
+              status: 'reported',
+              imageUrl: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
+            },
+            declaration: null,
+          }),
+        };
+      }
+
+      if (url.endsWith('/api/owner/markers/ABC123/coupons')) {
+        return { ok: false, status: 500, statusText: 'Internal Server Error' };
+      }
+
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+
+    render(<MarkerPage />);
+
+    expect(await screen.findByText('仮解除を申請する')).toBeInTheDocument();
+    expect(screen.queryByText('読み込み中…')).toBeNull();
+    expect(screen.queryByText('取得に失敗しました')).toBeNull();
   });
 });

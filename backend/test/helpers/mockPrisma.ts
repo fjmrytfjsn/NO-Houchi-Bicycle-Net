@@ -406,6 +406,23 @@ export function createMockPrisma() {
       },
     },
     collectionRequest: {
+      findFirst: async ({
+        where,
+        orderBy,
+      }: {
+        where: { reportId: string; result?: string };
+        orderBy?: { requestedAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(collectionRequests.values()).filter((entry) => {
+          return entry.reportId === where.reportId && (!where.result || entry.result === where.result);
+        });
+
+        if (orderBy?.requestedAt === 'asc') {
+          return [...filtered].sort((left, right) => left.requestedAt.getTime() - right.requestedAt.getTime())[0] ?? null;
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.requestedAt)[0] ?? null;
+      },
       create: async ({
         data,
       }: {
@@ -433,6 +450,38 @@ export function createMockPrisma() {
         };
         collectionRequests.set(record.id, record);
         return record;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: {
+          result?: string;
+          resultRecordedBy?: string | null;
+          resultRecordedAt?: Date | null;
+          notes?: string | null;
+        };
+      }) => {
+        const existing = collectionRequests.get(where.id);
+        if (!existing) {
+          throw new Error('not found');
+        }
+
+        const updated: CollectionRequestRecord = {
+          ...existing,
+          result: data.result ?? existing.result,
+          resultRecordedBy: Object.prototype.hasOwnProperty.call(data, 'resultRecordedBy')
+            ? data.resultRecordedBy ?? null
+            : existing.resultRecordedBy,
+          resultRecordedAt: Object.prototype.hasOwnProperty.call(data, 'resultRecordedAt')
+            ? data.resultRecordedAt ?? null
+            : existing.resultRecordedAt,
+          notes: Object.prototype.hasOwnProperty.call(data, 'notes') ? data.notes ?? null : existing.notes,
+          updatedAt: new Date(),
+        };
+        collectionRequests.set(where.id, updated);
+        return updated;
       },
     },
     declaration: {

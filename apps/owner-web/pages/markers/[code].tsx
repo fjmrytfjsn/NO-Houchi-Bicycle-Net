@@ -41,10 +41,15 @@ export default function MarkerPage() {
 
     setLoading(true);
     setError(null);
-    Promise.all([getMarker(code), getCoupons(code)])
-      .then(([markerResult, couponResult]) => {
+    getMarker(code)
+      .then(async (markerResult) => {
         setData(markerResult);
-        setCoupons(couponResult.coupons || []);
+        try {
+          const couponResult = await getCoupons(code);
+          setCoupons(couponResult.coupons || []);
+        } catch {
+          setCoupons([]);
+        }
       })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
