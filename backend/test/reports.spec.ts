@@ -320,6 +320,226 @@ describe('reports', () => {
     expect(isolatedPrismaBundle.state.reports.get(report.id)!.status).toBe('collection_requested');
   });
 
+  it('records collected collection result and stores result history', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-collected-result.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'RESULT-COLLECTED',
+        status: 'reported',
+      },
+    });
+
+    await server.inject({
+      method: 'POST',
+      url: `/api/reports/${report.id}/collection-request`,
+      payload: {
+        requestedBy: '北区役所 管理担当',
+      },
+    });
+
+    const response = await server.inject({
+      method: 'PATCH',
+      url: `/api/reports/${report.id}/collection-result`,
+      payload: {
+        result: 'collected',
+        resultRecordedBy: '北区 回収業者',
+        notes: '現地で回収完了',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'collected',
+    });
+
+    const collectionRequest = Array.from(prismaBundle.state.collectionRequests.values()).find(
+      (entry) => entry.reportId === report.id,
+    );
+    expect(prismaBundle.state.reports.get(report.id)!.status).toBe('collected');
+    expect(collectionRequest).toMatchObject({
+      reportId: report.id,
+      result: 'collected',
+      resultRecordedBy: '北区 回収業者',
+      notes: '現地で回収完了',
+    });
+    expect(collectionRequest!.resultRecordedAt).toBeInstanceOf(Date);
+  });
+
+  it('records not_found_on_collection collection result', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-not-found-result.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'RESULT-NOT-FOUND',
+        status: 'reported',
+      },
+    });
+
+    await server.inject({
+      method: 'POST',
+      url: `/api/reports/${report.id}/collection-request`,
+    });
+
+    const response = await server.inject({
+      method: 'PATCH',
+      url: `/api/reports/${report.id}/collection-result`,
+      payload: {
+        result: 'not_found_on_collection',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'not_found_on_collection',
+    });
+
+    const collectionRequest = Array.from(prismaBundle.state.collectionRequests.values()).find(
+      (entry) => entry.reportId === report.id,
+    );
+    expect(collectionRequest).toMatchObject({
+      result: 'not_found_on_collection',
+      resultRecordedBy: null,
+      notes: null,
+    });
+    expect(collectionRequest!.resultRecordedAt).toBeInstanceOf(Date);
+  });
+
+  it('returns 404 when recording collection result for a missing report', async () => {
+    const response = await server.inject({
+      method: 'PATCH',
+      url: '/api/reports/r-999/collection-result',
+      payload: {
+        result: 'collected',
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'report not found' });
+  });
+
+  it('rejects invalid collection result', async () => {
+    const response = await server.inject({
+      method: 'PATCH',
+      url: '/api/reports/r-2/collection-result',
+      payload: {
+        result: 'resolved',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'collection result must be collected or not_found_on_collection' });
+  });
+
+  it('rejects collection result when report is not collection_requested', async () => {
+    for (const status of ['reported', 'temporary', 'resolved', 'collected', 'not_found_on_collection']) {
+      const report = await prismaBundle.prisma.bicycleReport.create({
+        data: {
+          markerId: 'm-2',
+          imageUrl: `https://example.com/report-result-${status}.jpg`,
+          latitude: 34.701,
+          longitude: 135.491,
+          identifierText: `RESULT-STATUS-${status}`,
+          status,
+        },
+      });
+
+      const response = await server.inject({
+        method: 'PATCH',
+        url: `/api/reports/${report.id}/collection-result`,
+        payload: {
+          result: 'collected',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.payload)).toEqual({ error: 'report is not eligible for collection result' });
+      expect(prismaBundle.state.reports.get(report.id)!.status).toBe(status);
+    }
+  });
+
+  it('rejects collection result when pending collection request history is missing', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-result-no-history.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'RESULT-NO-HISTORY',
+        status: 'collection_requested',
+      },
+    });
+
+    const response = await server.inject({
+      method: 'PATCH',
+      url: `/api/reports/${report.id}/collection-result`,
+      payload: {
+        result: 'collected',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'pending collection request not found' });
+    expect(prismaBundle.state.reports.get(report.id)!.status).toBe('collection_requested');
+  });
+
+  it('does not store collection result when status changes before transactional update', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'RESULT-RACE-MARKER-001',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-result-race.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'RESULT-RACE-0001',
+        status: 'reported',
+      },
+    });
+    await isolatedPrismaBundle.prisma.collectionRequest.create({
+      data: {
+        reportId: report.id,
+        requestedAt: new Date(),
+        result: 'pending',
+      },
+    });
+    isolatedPrismaBundle.state.reports.get(report.id)!.status = 'collection_requested';
+
+    const originalFindUnique = isolatedPrismaBundle.prisma.bicycleReport.findUnique;
+    isolatedPrismaBundle.prisma.bicycleReport.findUnique = async (args) => {
+      const found = await originalFindUnique(args);
+      if (args.where.id === report.id && found?.status === 'collection_requested') {
+        isolatedPrismaBundle.state.reports.get(report.id)!.status = 'reported';
+      }
+      return found;
+    };
+
+    const reportService = new ReportService(isolatedPrismaBundle.prisma as any);
+
+    await expect(
+      reportService.recordCollectionResult(report.id, {
+        result: 'collected',
+        resultRecordedBy: '北区 回収業者',
+      })
+    ).rejects.toBeInstanceOf(BadRequestError);
+
+    const collectionRequest = Array.from(isolatedPrismaBundle.state.collectionRequests.values())[0];
+    expect(isolatedPrismaBundle.state.reports.get(report.id)!.status).toBe('reported');
+    expect(collectionRequest.result).toBe('pending');
+    expect(collectionRequest.resultRecordedBy).toBeNull();
+    expect(collectionRequest.resultRecordedAt).toBeNull();
+  });
+
   it('creates a report for an existing marker', async () => {
     const existingMarker = await prismaBundle.prisma.marker.create({
       data: {
