@@ -53,9 +53,9 @@ export function ReportSummary({ report, declaration }: ReportSummaryProps) {
           </span>
         </div>
 
-        {report?.ocr_text && (
+        {report?.identifierText && (
           <p className={styles.ocrText} style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
-            {report.ocr_text}
+            {report.identifierText}
           </p>
         )}
       </div>

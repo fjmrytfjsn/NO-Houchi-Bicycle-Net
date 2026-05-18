@@ -17,9 +17,14 @@ function createMarkerEntry(code: string): MarkerEntry {
     marker: { code },
     report: {
       id: `r-${code}`,
+      markerId: `m-${code}`,
       status: 'reported',
       imageUrl: '/samples/放置自転車.jpg',
-      ocr_text: '',
+      latitude: 0,
+      longitude: 0,
+      address: null,
+      identifierText: '',
+      notes: null,
     },
     declaration: null,
   };

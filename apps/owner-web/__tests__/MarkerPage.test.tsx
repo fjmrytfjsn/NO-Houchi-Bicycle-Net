@@ -39,14 +39,21 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
+              markerId: 'm-ABC123',
               status: markerStatus,
               imageUrl: '',
-              ocr_text: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
             },
             declaration:
               declarationStatus === 'none'
                 ? null
                 : {
+                    id: 'd-ABC123',
+                    markerId: 'm-ABC123',
                     declaredAt: '2026-01-19T12:00:00.000Z',
                     eligibleFinalAt: '2000-01-01T00:00:00.000Z',
                     expiresAt: '2099-01-20T12:00:00.000Z',
@@ -66,7 +73,6 @@ describe('MarkerPage', () => {
       ) {
         markerStatus = 'temporary';
         declarationStatus = 'temporary';
-
         return {
           ok: true,
           json: async () => ({
@@ -144,14 +150,21 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
+              markerId: 'm-ABC123',
               status: 'resolved',
               imageUrl: '',
-              ocr_text: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
             },
             declaration: {
+              id: 'd-ABC123',
+              markerId: 'm-ABC123',
               declaredAt: '2026-01-19T12:00:00.000Z',
               eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-              expiresAt: '2026-01-20T12:00:00.000Z',
+              expiresAt: '2099-01-20T12:00:00.000Z',
               finalizedAt: '2026-01-19T13:00:00.000Z',
               status: 'finalized',
             },
@@ -196,9 +209,14 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
+              markerId: 'm-ABC123',
               status: 'reported',
               imageUrl: '',
-              ocr_text: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
             },
             declaration: null,
           }),

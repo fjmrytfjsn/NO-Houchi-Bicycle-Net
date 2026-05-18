@@ -382,22 +382,27 @@ export function createMockPrisma() {
         where,
         data,
       }: {
-        where: { id: string; status?: string };
+        where: { id?: string; markerId?: string; status?: string };
         data: { status?: string; notes?: string | null };
       }) => {
-        const existing = reports.get(where.id);
-        if (!existing || (where.status && existing.status !== where.status)) {
-          return { count: 0 };
-        }
+        const matched = Array.from(reports.values()).filter((entry) => {
+          const matchesId = where.id === undefined ? true : entry.id === where.id;
+          const matchesMarkerId = where.markerId === undefined ? true : entry.markerId === where.markerId;
+          const matchesStatus = where.status === undefined ? true : entry.status === where.status;
+          return matchesId && matchesMarkerId && matchesStatus;
+        });
 
-        const updated: BicycleReportRecord = {
-          ...existing,
-          status: data.status ?? existing.status,
-          notes: data.notes ?? existing.notes,
-          updatedAt: new Date(),
-        };
-        reports.set(where.id, updated);
-        return { count: 1 };
+        matched.forEach((existing) => {
+          const updated: BicycleReportRecord = {
+            ...existing,
+            status: data.status ?? existing.status,
+            notes: data.notes ?? existing.notes,
+            updatedAt: new Date(),
+          };
+          reports.set(existing.id, updated);
+        });
+
+        return { count: matched.length };
       },
     },
     collectionRequest: {
@@ -541,6 +546,28 @@ export function createMockPrisma() {
         };
         declarations.set(where.id, updated);
         return updated;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { markerId: string; status: string };
+        data: { status: string };
+      }) => {
+        const matched = Array.from(declarations.values()).filter((entry) => {
+          return entry.markerId === where.markerId && entry.status === where.status;
+        });
+
+        matched.forEach((existing) => {
+          const updated: DeclarationRecord = {
+            ...existing,
+            status: data.status,
+            updatedAt: new Date(),
+          };
+          declarations.set(existing.id, updated);
+        });
+
+        return { count: matched.length };
       },
     },
     coupon: {
