@@ -12,6 +12,7 @@ type BicycleReportRecord = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address?: string | null;
   identifierText: string;
   status: string;
   notes: string | null;
@@ -104,18 +105,13 @@ export class OwnerUnlockService {
       marker: { code: marker.code },
       report: report
         ? {
-            id: report.id,
-            status: report.status as any,
+            ...report,
             imageUrl: report.imageUrl,
-            ocr_text: report.identifierText,
           }
         : null,
       declaration: declaration
         ? {
-            declaredAt: declaration.declaredAt,
-            eligibleFinalAt: declaration.eligibleFinalAt,
-            expiresAt: declaration.expiresAt,
-            status: declaration.status,
+            ...declaration,
           }
         : null,
     };

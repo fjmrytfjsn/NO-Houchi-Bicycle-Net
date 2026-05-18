@@ -24,8 +24,8 @@ describe('MarkerPage', () => {
   });
 
   it('can perform temporary unlock and final unlock flow', async () => {
-    let markerStatus = 'temporary';
-    let declarationStatus = 'temporary';
+    let markerStatus = 'reported';
+    let declarationStatus: 'none' | 'temporary' | 'finalized' = 'none';
 
     // mock fetch implementation
     (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
@@ -39,20 +39,30 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
-              status: markerStatus,
+              markerId: 'm-ABC123',
+              status: markerStatus === 'reported' ? 'reported' : markerStatus,
               imageUrl: '',
-              ocr_text: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
             },
-            declaration: {
-              declaredAt: '2026-01-19T12:00:00.000Z',
-              eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-              expiresAt: '2026-01-20T12:00:00.000Z',
-              finalizedAt:
-                declarationStatus === 'finalized'
-                  ? '2026-01-19T13:00:00.000Z'
-                  : undefined,
-              status: declarationStatus,
-            },
+            declaration:
+              declarationStatus === 'temporary' || declarationStatus === 'finalized'
+                ? {
+                    id: 'd-ABC123',
+                    markerId: 'm-ABC123',
+                    declaredAt: '2026-01-19T12:00:00.000Z',
+                    eligibleFinalAt: '2000-01-01T00:00:00.000Z',
+                    expiresAt: '2099-01-20T12:00:00.000Z',
+                    finalizedAt:
+                      declarationStatus === 'finalized'
+                        ? '2026-01-19T13:00:00.000Z'
+                        : undefined,
+                    status: declarationStatus,
+                  }
+                : null,
           }),
         };
       }
@@ -61,12 +71,14 @@ describe('MarkerPage', () => {
         url.endsWith('/api/owner/markers/ABC123/unlock-temp') &&
         opts?.method === 'POST'
       ) {
+        markerStatus = 'temporary';
+        declarationStatus = 'temporary';
         return {
           ok: true,
           json: async () => ({
             declaredAt: '2026-01-19T12:00:00.000Z',
             eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-            expiresAt: '2026-01-20T12:00:00.000Z',
+            expiresAt: '2099-01-20T12:00:00.000Z',
             status: 'temporary',
           }),
         };
@@ -138,14 +150,21 @@ describe('MarkerPage', () => {
             marker: { code: 'ABC123' },
             report: {
               id: 'r-ABC123',
+              markerId: 'm-ABC123',
               status: 'resolved',
               imageUrl: '',
-              ocr_text: '',
+              latitude: 34.701,
+              longitude: 135.502,
+              address: null,
+              identifierText: '',
+              notes: null,
             },
             declaration: {
+              id: 'd-ABC123',
+              markerId: 'm-ABC123',
               declaredAt: '2026-01-19T12:00:00.000Z',
               eligibleFinalAt: '2000-01-01T00:00:00.000Z',
-              expiresAt: '2026-01-20T12:00:00.000Z',
+              expiresAt: '2099-01-20T12:00:00.000Z',
               finalizedAt: '2026-01-19T13:00:00.000Z',
               status: 'finalized',
             },
