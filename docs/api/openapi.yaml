@@ -257,6 +257,8 @@ components:
           enum: [collected, not_found_on_collection]
         notes:
           type: string
+        resultRecordedBy:
+          type: string
     OwnerMarkerResponse:
       type: object
       properties:

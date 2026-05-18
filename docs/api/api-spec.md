@@ -103,7 +103,7 @@
 ### PATCH /api/reports/:id/collection-result
 
 - 説明: 回収業者の現地結果を受けて、管理者が回収結果を記録する
-- Body: `{ "result": "collected|not_found_on_collection", "notes"?: string }`
+- Body: `{ "result": "collected|not_found_on_collection", "notes"?: string, "resultRecordedBy"?: string }`
 - 期待挙動:
   - `collected`: 回収完了として案件を閉じる
   - `not_found_on_collection`: 現地で現物なしとして未回収記録を残す
