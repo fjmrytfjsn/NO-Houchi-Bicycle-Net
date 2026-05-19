@@ -82,6 +82,17 @@ describe('bikes', () => {
     expect(JSON.parse(res.payload)).toEqual({ error: 'serialNumber already exists' });
   });
 
+  it('rejects blank serial number', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/bikes',
+      payload: { serialNumber: '   ' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'serialNumber required' });
+  });
+
   it('returns 404 for missing bike', async () => {
     const getRes = await server.inject({
       method: 'GET',
@@ -118,6 +129,20 @@ describe('bikes', () => {
         confidence: 0.91,
         rawText: '防犯登録 12345678',
       },
+    });
+  });
+
+  it('rejects blank OCR filePath', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/bikes/ocr/recognize',
+      payload: { filePath: '   ' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({
+      error: 'filePath required',
+      message: 'FTPから取得した画像ファイルのパスを指定してください',
     });
   });
 });

@@ -22,6 +22,7 @@ NO-Houchi Bicycle Net is a monorepo for a prototype civic-tech platform targetin
 ## Boundaries
 
 - `backend/prisma/schema.prisma` is the source of truth for implemented database model names and relations.
+- `backend` の `/api/reports*` は管理 API として扱い、JWT 認証済みかつ `admin` ロールの呼び出しを前提にする。`/owner/*` は公開ルートのまま維持する。
 - API documentation should be updated with API behavior changes; do not leave docs and route behavior intentionally divergent.
 - CI is not used by project policy. Verification is local and should be documented in PR notes or task plans.
 - Prototype scope should remain distinct from future-scope features.

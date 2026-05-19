@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { BadRequestError, sendError } from '../lib/errors';
+import { normalizeOptionalString } from '../lib/validation';
 import { BikeService } from '../services/bikeService';
 import { getOCRService, type OCRService } from '../services/ocrService';
 
@@ -74,13 +75,15 @@ export default function createBikeRoutes(options: { ocrService?: OCRService } = 
 
     fastify.post<{ Body: OCRRequestBody }>('/ocr/recognize', async (request, reply) => {
       try {
-        if (!request.body?.filePath) {
+        const filePath = normalizeOptionalString(request.body?.filePath);
+
+        if (!filePath) {
           throw new BadRequestError('filePath required', {
             message: 'FTPから取得した画像ファイルのパスを指定してください',
           });
         }
 
-        const result = await resolveOCRService().recognizeRegistrationNumber(request.body.filePath);
+        const result = await resolveOCRService().recognizeRegistrationNumber(filePath);
 
         if (!result.success) {
           return reply.status(400).send({

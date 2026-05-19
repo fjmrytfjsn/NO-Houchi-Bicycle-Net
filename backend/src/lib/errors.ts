@@ -35,6 +35,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'Forbidden', details?: Record<string, unknown>) {
+    super(message, 403, details);
+  }
+}
+
 export function sendError(reply: FastifyReply, logger: FastifyBaseLogger, error: unknown) {
   if (error instanceof AppError) {
     return reply.status(error.statusCode).send({

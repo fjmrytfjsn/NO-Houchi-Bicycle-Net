@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { sendError } from '../lib/errors';
+import { requireNonBlankString } from '../lib/validation';
 import { CouponService } from '../services/couponService';
 import { OwnerUnlockService } from '../services/ownerUnlockService';
 
@@ -31,7 +32,9 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
 
     fastify.get<{ Params: MarkerParams }>('/markers/:code', async (request, reply) => {
       try {
-        const response = await ownerUnlockService.getMarkerEntry(request.params.code);
+        const response = await ownerUnlockService.getMarkerEntry(
+          requireNonBlankString(request.params.code, 'marker code required')
+        );
         return reply.send(response);
       } catch (error) {
         console.error('[GET /markers/:code] Error:', error);
@@ -41,7 +44,9 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
 
     fastify.get<{ Params: MarkerParams }>('/markers/:code/coupons', async (request, reply) => {
       try {
-        const response = await ownerUnlockService.getCouponsByMarkerCode(request.params.code);
+        const response = await ownerUnlockService.getCouponsByMarkerCode(
+          requireNonBlankString(request.params.code, 'marker code required')
+        );
         return reply.send(response);
       } catch (error) {
         return sendError(reply, fastify.log, error);
@@ -52,7 +57,10 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
       '/markers/:code/unlock-final',
       async (request, reply) => {
         try {
-          const response = await ownerUnlockService.finalizeUnlock(request.params.code, request.body ?? {});
+          const response = await ownerUnlockService.finalizeUnlock(
+            requireNonBlankString(request.params.code, 'marker code required'),
+            request.body ?? {}
+          );
           return reply.send(response);
         } catch (error) {
           return sendError(reply, fastify.log, error);
@@ -63,10 +71,11 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
     fastify.post<{ Params: MarkerParams; Body: TemporaryUnlockBody }>(
       '/markers/:code/unlock-temp',
       async (request, reply) => {
-        console.log(`[unlock-temp] Received request for code: ${request.params.code}`);
         try {
+          const code = requireNonBlankString(request.params.code, 'marker code required');
+          console.log(`[unlock-temp] Received request for code: ${code}`);
           const response = await ownerUnlockService.createTemporaryUnlock(
-            request.params.code,
+            code,
             request.body?.notes
           );
           console.log(`[unlock-temp] Success:`, JSON.stringify(response));

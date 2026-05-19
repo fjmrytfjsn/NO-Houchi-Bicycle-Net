@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { requireAdmin } from '../lib/auth';
 import { sendError } from '../lib/errors';
 import { ReportService } from '../services/reportService';
 
@@ -35,6 +36,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Querystring: ListReportsQuery }>('/', async (request, reply) => {
     try {
+      await requireAdmin(request);
       const reports = await reportService.listReports(request.query ?? {});
       return reply.send(reports);
     } catch (error) {
@@ -44,6 +46,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Params: ReportParams }>('/:id', async (request, reply) => {
     try {
+      await requireAdmin(request);
       const report = await reportService.getReport(request.params.id);
       return reply.send(report);
     } catch (error) {
@@ -53,6 +56,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: CreateReportBody }>('/', async (request, reply) => {
     try {
+      await requireAdmin(request);
       const report = await reportService.createReport(request.body ?? {});
       return reply.status(201).send(report);
     } catch (error) {
@@ -64,6 +68,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     '/:id/collection-request',
     async (request, reply) => {
       try {
+        await requireAdmin(request);
         const report = await reportService.requestCollection(request.params.id, request.body ?? {});
         return reply.send(report);
       } catch (error) {
@@ -76,6 +81,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     '/:id/collection-result',
     async (request, reply) => {
       try {
+        await requireAdmin(request);
         const report = await reportService.recordCollectionResult(request.params.id, request.body ?? {});
         return reply.send(report);
       } catch (error) {

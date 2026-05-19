@@ -185,13 +185,17 @@ describe('owner', () => {
   });
 
   it('rejects final unlock when no temporary declaration exists', async () => {
+    await prismaBundle.prisma.marker.create({
+      data: { code: 'NO-DECLARATION' },
+    });
+
     const response = await server.inject({
       method: 'POST',
       url: '/owner/markers/NO-DECLARATION/unlock-final',
       payload: { scannedCode: 'NO-DECLARATION' },
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
     expect(JSON.parse(response.payload)).toEqual({ error: 'No temporary declaration found' });
   });
 
@@ -202,7 +206,7 @@ describe('owner', () => {
       payload: { scannedCode: 'ABC123' },
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
     expect(JSON.parse(response.payload)).toMatchObject({
       error: 'eligibleFinalAt has not arrived',
       eligibleFinalAt: '2026-04-20T09:15:00.000Z',
@@ -221,6 +225,32 @@ describe('owner', () => {
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.payload)).toEqual({
       error: 'scannedCode does not match marker code',
+    });
+  });
+
+  it('rejects final unlock when scannedCode is blank', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/ABC123/unlock-final',
+      payload: { scannedCode: '   ' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: 'scannedCode required',
+    });
+  });
+
+  it('rejects final unlock when ownerEmail is invalid', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/ABC123/unlock-final',
+      payload: { scannedCode: 'ABC123', ownerEmail: 'invalid-email' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: 'ownerEmail must be a valid email address',
     });
   });
 
@@ -269,6 +299,43 @@ describe('owner', () => {
       status: 'resolved',
       coupon: null,
       message: '本解除が完了しました',
+    });
+  });
+
+  it('returns 404 when final unlock target marker does not exist', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/UNKNOWN-MARKER/unlock-final',
+      payload: { scannedCode: 'UNKNOWN-MARKER' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: 'Marker not found',
+    });
+  });
+
+  it('returns 409 when final unlock is attempted after temporary unlock expiry', async () => {
+    currentTime = new Date('2026-04-20T12:00:00.000Z');
+
+    const tempResponse = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/EXPIRED-001/unlock-temp',
+      payload: {},
+    });
+    expect(tempResponse.statusCode).toBe(200);
+
+    currentTime = new Date('2026-04-21T12:01:00.000Z');
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/EXPIRED-001/unlock-final',
+      payload: { scannedCode: 'EXPIRED-001' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: '仮解除の有効期限（24時間）が切れています。再度仮解除を行ってください',
     });
   });
 
