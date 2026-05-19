@@ -11,11 +11,11 @@ val localProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.houti"
+    namespace = "com.example.houchi"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.houti"
+        applicationId = "com.example.houchi"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
