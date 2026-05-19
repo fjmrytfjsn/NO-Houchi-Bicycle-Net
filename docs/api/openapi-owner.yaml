@@ -73,7 +73,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/FinalizeResponse'
         '400':
-          description: Not eligible yet
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Marker not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Temporary unlock state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     OwnerMarkerResponse:

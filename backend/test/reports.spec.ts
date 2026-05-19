@@ -1,21 +1,56 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../src/app';
-import { BadRequestError } from '../src/lib/errors';
+import { ConflictError } from '../src/lib/errors';
 import { ReportService } from '../src/services/reportService';
 import { createMockPrisma } from './helpers/mockPrisma';
 
 describe('reports', () => {
   let server: any;
   let prismaBundle: ReturnType<typeof createMockPrisma>;
+  let adminAuthHeader: Record<string, string>;
+  let userAuthHeader: Record<string, string>;
   const originalGoogleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
   const originalFetch = global.fetch;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     process.env.GOOGLE_MAPS_API_KEY = '';
     prismaBundle = createMockPrisma();
     server = buildServer({
       prisma: prismaBundle.prisma as any,
     });
+    await server.ready();
+
+    const adminUser = await prismaBundle.prisma.user.create({
+      data: {
+        name: 'Admin User',
+        email: 'admin@example.test',
+        password: 'hashed-password',
+        role: 'admin',
+      },
+    });
+    const normalUser = await prismaBundle.prisma.user.create({
+      data: {
+        name: 'Normal User',
+        email: 'user@example.test',
+        password: 'hashed-password',
+        role: 'user',
+      },
+    });
+
+    adminAuthHeader = {
+      authorization: `Bearer ${server.jwt.sign({
+        sub: adminUser.id,
+        email: adminUser.email,
+        role: adminUser.role,
+      })}`,
+    };
+    userAuthHeader = {
+      authorization: `Bearer ${server.jwt.sign({
+        sub: normalUser.id,
+        email: normalUser.email,
+        role: normalUser.role,
+      })}`,
+    };
   });
 
   afterAll(async () => {
@@ -28,6 +63,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-1.jpg',
         latitude: 34.7055,
@@ -74,6 +110,7 @@ describe('reports', () => {
     const response = await isolatedServer.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-address.jpg',
         latitude: 34.7055,
@@ -107,6 +144,7 @@ describe('reports', () => {
     const response = await isolatedServer.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-address-failure.jpg',
         latitude: 34.706,
@@ -162,6 +200,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/api/reports',
+      headers: adminAuthHeader,
     });
 
     expect(response.statusCode).toBe(200);
@@ -176,6 +215,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/api/reports?status=collection_requested',
+      headers: adminAuthHeader,
     });
 
     expect(response.statusCode).toBe(200);
@@ -190,6 +230,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/api/reports/r-2',
+      headers: adminAuthHeader,
     });
 
     expect(response.statusCode).toBe(200);
@@ -206,6 +247,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/api/reports/r-999',
+      headers: adminAuthHeader,
     });
 
     expect(response.statusCode).toBe(404);
@@ -216,6 +258,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports/r-2/collection-request',
+      headers: adminAuthHeader,
       payload: {
         notes: '歩道上のため回収依頼',
         requestedBy: '北区役所 管理担当',
@@ -245,6 +288,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports/r-999/collection-request',
+      headers: adminAuthHeader,
       payload: {
         requestedBy: '北区役所 管理担当',
       },
@@ -270,12 +314,13 @@ describe('reports', () => {
       const response = await server.inject({
         method: 'POST',
         url: `/api/reports/${report.id}/collection-request`,
+        headers: adminAuthHeader,
         payload: {
           requestedBy: '北区役所 管理担当',
         },
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(409);
       expect(JSON.parse(response.payload)).toEqual({ error: 'report is not eligible for collection request' });
       expect(prismaBundle.state.reports.get(report.id)!.status).toBe(status);
     }
@@ -314,7 +359,7 @@ describe('reports', () => {
       reportService.requestCollection(report.id, {
         requestedBy: '北区役所 管理担当',
       })
-    ).rejects.toBeInstanceOf(BadRequestError);
+    ).rejects.toBeInstanceOf(ConflictError);
 
     expect(isolatedPrismaBundle.state.collectionRequests.size).toBe(0);
     expect(isolatedPrismaBundle.state.reports.get(report.id)!.status).toBe('collection_requested');
@@ -335,6 +380,7 @@ describe('reports', () => {
     await server.inject({
       method: 'POST',
       url: `/api/reports/${report.id}/collection-request`,
+      headers: adminAuthHeader,
       payload: {
         requestedBy: '北区役所 管理担当',
       },
@@ -343,6 +389,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'PATCH',
       url: `/api/reports/${report.id}/collection-result`,
+      headers: adminAuthHeader,
       payload: {
         result: 'collected',
         resultRecordedBy: '北区 回収業者',
@@ -384,11 +431,13 @@ describe('reports', () => {
     await server.inject({
       method: 'POST',
       url: `/api/reports/${report.id}/collection-request`,
+      headers: adminAuthHeader,
     });
 
     const response = await server.inject({
       method: 'PATCH',
       url: `/api/reports/${report.id}/collection-result`,
+      headers: adminAuthHeader,
       payload: {
         result: 'not_found_on_collection',
       },
@@ -415,6 +464,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'PATCH',
       url: '/api/reports/r-999/collection-result',
+      headers: adminAuthHeader,
       payload: {
         result: 'collected',
       },
@@ -428,6 +478,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'PATCH',
       url: '/api/reports/r-2/collection-result',
+      headers: adminAuthHeader,
       payload: {
         result: 'resolved',
       },
@@ -453,12 +504,13 @@ describe('reports', () => {
       const response = await server.inject({
         method: 'PATCH',
         url: `/api/reports/${report.id}/collection-result`,
+        headers: adminAuthHeader,
         payload: {
           result: 'collected',
         },
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(409);
       expect(JSON.parse(response.payload)).toEqual({ error: 'report is not eligible for collection result' });
       expect(prismaBundle.state.reports.get(report.id)!.status).toBe(status);
     }
@@ -479,12 +531,13 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'PATCH',
       url: `/api/reports/${report.id}/collection-result`,
+      headers: adminAuthHeader,
       payload: {
         result: 'collected',
       },
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
     expect(JSON.parse(response.payload)).toEqual({ error: 'pending collection request not found' });
     expect(prismaBundle.state.reports.get(report.id)!.status).toBe('collection_requested');
   });
@@ -531,7 +584,7 @@ describe('reports', () => {
         result: 'collected',
         resultRecordedBy: '北区 回収業者',
       })
-    ).rejects.toBeInstanceOf(BadRequestError);
+    ).rejects.toBeInstanceOf(ConflictError);
 
     const collectionRequest = Array.from(isolatedPrismaBundle.state.collectionRequests.values())[0];
     expect(isolatedPrismaBundle.state.reports.get(report.id)!.status).toBe('reported');
@@ -550,6 +603,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-2.jpg',
         latitude: 34.70,
@@ -573,6 +627,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         latitude: 34.7055,
         longitude: 135.4983,
@@ -589,6 +644,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-invalid.jpg',
         latitude: '34.7055',
@@ -606,6 +662,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-invalid.jpg',
         latitude: 34.7055,
@@ -622,6 +679,7 @@ describe('reports', () => {
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports',
+      headers: adminAuthHeader,
       payload: {
         imageUrl: 'https://example.com/report-invalid.jpg',
         latitude: 34.7055,
@@ -632,5 +690,75 @@ describe('reports', () => {
 
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.payload)).toEqual({ error: 'identifierText required' });
+  });
+
+  it('rejects report API access without authentication', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/api/reports',
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('rejects report API access for non-admin users', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/api/reports',
+      headers: userAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'Forbidden' });
+  });
+
+  it('rejects invalid report status filter', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/api/reports?status=invalid-status',
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'status must be a valid report status' });
+  });
+
+  it('rejects blank required report fields', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/reports',
+      headers: adminAuthHeader,
+      payload: {
+        imageUrl: '   ',
+        latitude: 34.7055,
+        longitude: 135.4983,
+        markerCode: '   ',
+        identifierText: '   ',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({ error: 'imageUrl required' });
+  });
+
+  it('rejects out-of-range coordinates', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/reports',
+      headers: adminAuthHeader,
+      payload: {
+        imageUrl: 'https://example.com/report-invalid-coordinate.jpg',
+        latitude: 91,
+        longitude: 135.4983,
+        markerCode: 'INVALID-COORDINATE-001',
+        identifierText: 'OSAKA-COORD-001',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: 'latitude and longitude must be valid coordinates',
+    });
   });
 });

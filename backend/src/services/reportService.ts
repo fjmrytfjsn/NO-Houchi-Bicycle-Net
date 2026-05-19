@@ -1,4 +1,10 @@
-import { BadRequestError, NotFoundError } from '../lib/errors';
+import { BadRequestError, ConflictError, NotFoundError } from '../lib/errors';
+import {
+  normalizeOptionalString,
+  requireNonBlankString,
+  validateCoordinates,
+  validateReportStatus,
+} from '../lib/validation';
 
 type MarkerRecord = {
   id: string;
@@ -114,8 +120,10 @@ export class ReportService {
   constructor(private readonly prisma: ReportPrisma) {}
 
   async listReports(input: { status?: string }) {
+    const status = validateReportStatus(input.status);
+
     return this.prisma.bicycleReport.findMany({
-      where: input.status ? { status: input.status } : undefined,
+      where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -140,35 +148,24 @@ export class ReportService {
     identifierText?: string;
     notes?: string | null;
   }) {
-    if (!input.imageUrl) {
-      throw new BadRequestError('imageUrl required');
-    }
+    const imageUrl = requireNonBlankString(input.imageUrl, 'imageUrl required');
+    const markerCode = requireNonBlankString(input.markerCode, 'markerCode required');
+    const identifierText = requireNonBlankString(input.identifierText, 'identifierText required');
+    const { latitude, longitude } = validateCoordinates(input.latitude, input.longitude);
 
-    if (typeof input.latitude !== 'number' || typeof input.longitude !== 'number') {
-      throw new BadRequestError('latitude and longitude must be numbers');
-    }
-
-    if (!input.markerCode) {
-      throw new BadRequestError('markerCode required');
-    }
-
-    if (!input.identifierText) {
-      throw new BadRequestError('identifierText required');
-    }
-
-    const marker = await this.getOrCreateMarker(input.markerCode);
-    const address = await this.resolveAddress(input.latitude, input.longitude);
+    const marker = await this.getOrCreateMarker(markerCode);
+    const address = await this.resolveAddress(latitude, longitude);
 
     return this.prisma.bicycleReport.create({
       data: {
         markerId: marker.id,
-        imageUrl: input.imageUrl,
-        latitude: input.latitude,
-        longitude: input.longitude,
+        imageUrl,
+        latitude,
+        longitude,
         address,
-        identifierText: input.identifierText,
+        identifierText,
         status: 'reported',
-        notes: input.notes ?? null,
+        notes: normalizeOptionalString(input.notes) ?? null,
       },
     });
   }
@@ -183,7 +180,7 @@ export class ReportService {
     }
 
     if (report.status !== 'reported') {
-      throw new BadRequestError('report is not eligible for collection request');
+      throw new ConflictError('report is not eligible for collection request');
     }
 
     const requestedAt = new Date();
@@ -200,16 +197,16 @@ export class ReportService {
       });
 
       if (updateResult.count !== 1) {
-        throw new BadRequestError('report is not eligible for collection request');
+        throw new ConflictError('report is not eligible for collection request');
       }
 
       await tx.collectionRequest.create({
         data: {
           reportId: report.id,
-          requestedBy: input.requestedBy ?? null,
+          requestedBy: normalizeOptionalString(input.requestedBy) ?? null,
           requestedAt,
           result: 'pending',
-          notes: input.notes ?? null,
+          notes: normalizeOptionalString(input.notes) ?? null,
         },
       });
 
@@ -240,7 +237,7 @@ export class ReportService {
     const result = this.parseCollectionResult(input.result);
 
     if (report.status !== 'collection_requested') {
-      throw new BadRequestError('report is not eligible for collection result');
+      throw new ConflictError('report is not eligible for collection result');
     }
 
     const resultRecordedAt = new Date();
@@ -255,7 +252,7 @@ export class ReportService {
       });
 
       if (!pendingRequest) {
-        throw new BadRequestError('pending collection request not found');
+        throw new ConflictError('pending collection request not found');
       }
 
       const updateResult = await tx.bicycleReport.updateMany({
@@ -269,16 +266,16 @@ export class ReportService {
       });
 
       if (updateResult.count !== 1) {
-        throw new BadRequestError('report is not eligible for collection result');
+        throw new ConflictError('report is not eligible for collection result');
       }
 
       await tx.collectionRequest.update({
         where: { id: pendingRequest.id },
         data: {
           result,
-          resultRecordedBy: input.resultRecordedBy ?? null,
+          resultRecordedBy: normalizeOptionalString(input.resultRecordedBy) ?? null,
           resultRecordedAt,
-          notes: input.notes ?? null,
+          notes: normalizeOptionalString(input.notes) ?? null,
         },
       });
 

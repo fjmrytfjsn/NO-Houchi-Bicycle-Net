@@ -1,4 +1,9 @@
-import { BadRequestError, NotFoundError } from '../lib/errors';
+import { BadRequestError, ConflictError, NotFoundError } from '../lib/errors';
+import {
+  normalizeOptionalString,
+  requireNonBlankString,
+  validateOptionalEmail,
+} from '../lib/validation';
 import { CouponService } from './couponService';
 
 type MarkerRecord = {
@@ -82,8 +87,9 @@ export class OwnerUnlockService {
   ) {}
 
   async getMarkerEntry(code: string) {
+    const normalizedCode = requireNonBlankString(code, 'marker code required');
     const marker = await this.prisma.marker.findUnique({
-      where: { code },
+      where: { code: normalizedCode },
     });
 
     if (!marker) {
@@ -118,8 +124,9 @@ export class OwnerUnlockService {
   }
 
   async getCouponsByMarkerCode(code: string) {
+    const normalizedCode = requireNonBlankString(code, 'marker code required');
     const marker = await this.prisma.marker.findUnique({
-      where: { code },
+      where: { code: normalizedCode },
     });
 
     if (!marker) {
@@ -135,7 +142,8 @@ export class OwnerUnlockService {
   }
 
   async createTemporaryUnlock(code: string, notes?: string) {
-    const marker = await this.getOrCreateMarker(code);
+    const normalizedCode = requireNonBlankString(code, 'marker code required');
+    const marker = await this.getOrCreateMarker(normalizedCode);
 
     // 問題5: 解決済みマーカーの再仮解除を禁止
     const resolvedDeclaration = await this.prisma.declaration.findFirst({
@@ -145,7 +153,7 @@ export class OwnerUnlockService {
       },
     });
     if (resolvedDeclaration) {
-      throw new BadRequestError('このマーカーは既に本解除が完了しています');
+      throw new ConflictError('このマーカーは既に本解除が完了しています');
     }
 
     const declaredAt = this.now();
@@ -170,7 +178,7 @@ export class OwnerUnlockService {
         eligibleFinalAt,
         expiresAt,
         status: 'temporary',
-        notes: notes ?? null,
+        notes: normalizeOptionalString(notes) ?? null,
       },
     });
 
@@ -189,19 +197,19 @@ export class OwnerUnlockService {
   }
 
   async finalizeUnlock(code: string, input: { scannedCode?: string; ownerEmail?: string | null }) {
-    if (!input.scannedCode) {
-      throw new BadRequestError('scannedCode required');
-    }
+    const normalizedCode = requireNonBlankString(code, 'marker code required');
+    const scannedCode = requireNonBlankString(input.scannedCode, 'scannedCode required');
+    const ownerEmail = validateOptionalEmail(input.ownerEmail, 'ownerEmail');
 
-    if (input.scannedCode !== code) {
+    if (scannedCode !== normalizedCode) {
       throw new BadRequestError('scannedCode does not match marker code');
     }
 
     const marker = await this.prisma.marker.findUnique({
-      where: { code },
+      where: { code: normalizedCode },
     });
     if (!marker) {
-      throw new BadRequestError('No temporary declaration found');
+      throw new NotFoundError('Marker not found');
     }
 
     const declaration = await this.prisma.declaration.findFirst({
@@ -213,12 +221,12 @@ export class OwnerUnlockService {
     });
 
     if (!declaration) {
-      throw new BadRequestError('No temporary declaration found');
+      throw new ConflictError('No temporary declaration found');
     }
 
     const finalizedAt = this.now();
     if (finalizedAt < declaration.eligibleFinalAt) {
-      throw new BadRequestError('eligibleFinalAt has not arrived', {
+      throw new ConflictError('eligibleFinalAt has not arrived', {
         eligibleFinalAt: declaration.eligibleFinalAt,
         currentTime: finalizedAt,
       });
@@ -231,7 +239,7 @@ export class OwnerUnlockService {
         where: { id: declaration.id },
         data: { status: 'expired' },
       });
-      throw new BadRequestError('仮解除の有効期限（24時間）が切れています。再度仮解除を行ってください');
+      throw new ConflictError('仮解除の有効期限（24時間）が切れています。再度仮解除を行ってください');
     }
 
     await this.prisma.declaration.update({
@@ -250,7 +258,7 @@ export class OwnerUnlockService {
 
     const coupon = await this.couponService.issueCouponForFinalUnlock(
       marker.id,
-      input.ownerEmail ?? null,
+      ownerEmail,
       finalizedAt
     );
 

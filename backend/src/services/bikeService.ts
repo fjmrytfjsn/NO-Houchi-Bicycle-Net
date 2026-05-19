@@ -1,4 +1,5 @@
 import { BadRequestError, ConflictError, NotFoundError } from '../lib/errors';
+import { normalizeOptionalString, requireNonBlankString } from '../lib/validation';
 
 type BikeRecord = {
   id: string;
@@ -32,12 +33,10 @@ export class BikeService {
   }
 
   async createBike(input: { serialNumber?: string; location?: string | null; status?: string }) {
-    if (!input.serialNumber) {
-      throw new BadRequestError('serialNumber required');
-    }
+    const serialNumber = requireNonBlankString(input.serialNumber, 'serialNumber required');
 
     const existing = await this.prisma.bike.findUnique({
-      where: { serialNumber: input.serialNumber },
+      where: { serialNumber },
     });
     if (existing) {
       throw new ConflictError('serialNumber already exists');
@@ -45,8 +44,8 @@ export class BikeService {
 
     return this.prisma.bike.create({
       data: {
-        serialNumber: input.serialNumber,
-        location: input.location ?? null,
+        serialNumber,
+        location: normalizeOptionalString(input.location) ?? null,
         status: input.status ?? 'available',
       },
     });

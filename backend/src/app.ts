@@ -6,6 +6,7 @@ import bikeRoutes from './routes/bikes';
 import ownerRoutes from './routes/owner';
 import reportRoutes from './routes/reports';
 import { sendError, UnauthorizedError } from './lib/errors';
+import { requireAdmin } from './lib/auth';
 import { AuthService } from './services/authService';
 import type { OCRService } from './services/ocrService';
 
@@ -39,9 +40,7 @@ export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}
   // Protected route example
   server.get('/users/me', async (request, reply) => {
     try {
-      await request.jwtVerify();
-      const tokenPayload = request.user as { sub?: string | number } | undefined;
-      const userId = tokenPayload?.sub ? String(tokenPayload.sub) : '';
+      const { userId } = await requireAdmin(request);
       const authService = new AuthService(server.prisma as any);
       const user = await authService.getUserProfile(userId);
       return reply.send(user);

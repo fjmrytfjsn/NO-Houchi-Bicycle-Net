@@ -58,6 +58,28 @@ describe('auth', () => {
     expect(JSON.parse(res.payload)).toEqual({ error: 'email already in use' });
   });
 
+  it('rejects invalid email format on register', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'invalid-email', password: 'pass' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'email must be a valid email address' });
+  });
+
+  it('rejects blank email or password on register', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: '   ', password: '   ' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'email and password required' });
+  });
+
   it('rejects invalid credentials on login', async () => {
     const res = await server.inject({
       method: 'POST',
@@ -69,18 +91,40 @@ describe('auth', () => {
     expect(JSON.parse(res.payload)).toEqual({ error: 'invalid credentials' });
   });
 
+  it('rejects invalid email format on login', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'invalid-email', password: 'secret123' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'email must be a valid email address' });
+  });
+
+  it('rejects blank email or password on login', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: ' ', password: ' ' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload)).toEqual({ error: 'email and password required' });
+  });
+
   it('accesses protected route /users/me', async () => {
     const hashed = await bcrypt.hash('p', 10);
     const user = await mockPrisma.prisma.user.create({
       data: { name: 'Me', email: 'me@example.com', password: hashed },
     });
     // sign with server's jwt
-    const token = server.jwt.sign({ sub: user.id, email: user.email });
+    const adminToken = server.jwt.sign({ sub: user.id, email: user.email, role: 'admin' });
 
     const res = await server.inject({
       method: 'GET',
       url: '/users/me',
-      headers: { authorization: `Bearer ${token}` },
+      headers: { authorization: `Bearer ${adminToken}` },
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload);

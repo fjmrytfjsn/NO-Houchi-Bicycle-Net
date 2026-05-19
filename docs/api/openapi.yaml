@@ -27,6 +27,8 @@ paths:
   /api/reports:
     get:
       summary: 管理画面向け通報一覧
+      security:
+        - bearerAuth: []
       parameters:
         - name: status
           in: query
@@ -42,8 +44,28 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/BicycleReport"
+        "400":
+          description: Invalid status filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       summary: Androidアプリから通報を作成
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -57,9 +79,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BicycleReport"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/reports/{id}:
     get:
       summary: 通報詳細
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ReportId"
       responses:
@@ -69,9 +111,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BicycleReport"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/reports/{id}/collection-request:
     post:
       summary: 未解除案件を回収依頼対象にする
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ReportId"
       requestBody:
@@ -87,9 +149,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BicycleReport"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Report is not eligible for collection request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/reports/{id}/collection-result:
     patch:
       summary: 回収結果を記録する
+      security:
+        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ReportId"
       requestBody:
@@ -105,6 +193,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BicycleReport"
+        "400":
+          description: Invalid collection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Report is not eligible for collection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/owner/markers/{code}:
     get:
       summary: 持ち主向けの警告内容取得
@@ -159,7 +277,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UnlockFinalResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Marker not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Temporary unlock state conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   parameters:
     ReportId:
       name: id
@@ -194,7 +335,9 @@ components:
     AuthResponse:
       type: object
       properties:
-        token:
+        accessToken:
+          type: string
+        tokenType:
           type: string
     ReportCreate:
       type: object
