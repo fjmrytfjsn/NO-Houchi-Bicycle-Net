@@ -106,14 +106,14 @@ export function DeclarationPanel({
                   className={`${styles.countdownValue} ${
                     eligible ? styles.countdownValueReady : ''
                   }`}
-                  style={{ fontSize: 'var(--text-base)' }}
+                  style={{ fontSize: 'var(--text-xl)', fontWeight: 'bold' }}
                 >
                   {eligible ? '✓' : formatDuration(timeToEligible)}
                 </div>
               </div>
               <div className={styles.countdownItem}>
                 <div className={styles.countdownLabel}>期限まで</div>
-                <div className={styles.countdownValue} style={{ fontSize: 'var(--text-base)' }}>
+                <div className={styles.countdownValue} style={{ fontSize: 'var(--text-xl)', fontWeight: 'bold' }}>
                   {formatDuration(timeToExpires)}
                 </div>
               </div>

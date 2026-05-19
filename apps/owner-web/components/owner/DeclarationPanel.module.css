@@ -17,8 +17,8 @@
 }
 
 .panelTitle {
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: 700;
   color: var(--color-primary-dark);
   display: flex;
   align-items: center;
@@ -26,22 +26,22 @@
 }
 
 .panelBody {
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-4);
 }
 
 /* --- Timeline --- */
 .timeline {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin-bottom: var(--space-2);
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
 }
 
 .timelineItem {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
 }
 
 .timelineDot {
@@ -78,12 +78,12 @@
   background: linear-gradient(135deg, var(--color-warning-light), #fff7ed);
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-3);
-  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .promoTitle {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 700;
   margin-bottom: var(--space-1);
   display: flex;
@@ -92,7 +92,7 @@
 }
 
 .promoText {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
@@ -101,19 +101,19 @@
 .countdownGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .countdownItem {
   background: var(--color-surface-muted);
   border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-3) var(--space-2);
   text-align: center;
 }
 
 .countdownLabel {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
   margin-bottom: var(--space-1);
 }
@@ -135,12 +135,12 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   background: linear-gradient(135deg, var(--color-success), #16a34a);
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-base);
@@ -190,9 +190,8 @@
 }
 
 .statusTitle {
-  font-size: var(--text-base);
-  font-weight: 700;
-}
+  font-size: var(--text-lg);
+  font-weight: 700;}
 
 .statusTitleResolved {
   color: #059669;
@@ -203,7 +202,7 @@
 }
 
 .statusMessage {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
   line-height: 1.5;
 }

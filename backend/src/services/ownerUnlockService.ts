@@ -78,7 +78,7 @@ export class OwnerUnlockService {
     private readonly prisma: OwnerPrisma,
     private readonly couponService: CouponService,
     private readonly now: () => Date = () => new Date()
-  ) {}
+  ) { }
 
   async getMarkerEntry(code: string) {
     const marker = await this.prisma.marker.findUnique({
@@ -104,19 +104,19 @@ export class OwnerUnlockService {
       marker: { code: marker.code },
       report: report
         ? {
-            id: report.id,
-            status: report.status as any,
-            imageUrl: report.imageUrl,
-            ocr_text: report.identifierText,
-          }
+          id: report.id,
+          status: report.status as any,
+          imageUrl: report.imageUrl,
+          ocr_text: report.identifierText,
+        }
         : null,
       declaration: declaration
         ? {
-            declaredAt: declaration.declaredAt,
-            eligibleFinalAt: declaration.eligibleFinalAt,
-            expiresAt: declaration.expiresAt,
-            status: declaration.status,
-          }
+          declaredAt: declaration.declaredAt,
+          eligibleFinalAt: declaration.eligibleFinalAt,
+          expiresAt: declaration.expiresAt,
+          status: declaration.status,
+        }
         : null,
     };
   }
@@ -263,14 +263,14 @@ export class OwnerUnlockService {
       status: 'resolved',
       coupon: coupon
         ? {
-            id: coupon.id,
-            name: coupon.name,
-            description: coupon.description,
-            shopName: coupon.shopName,
-            discount: coupon.discount,
-            discountType: coupon.discountType,
-            expiresAt: coupon.expiresAt,
-          }
+          id: coupon.id,
+          name: coupon.name,
+          description: coupon.description,
+          shopName: coupon.shopName,
+          discount: coupon.discount,
+          discountType: coupon.discountType,
+          expiresAt: coupon.expiresAt,
+        }
         : null,
       message: coupon ? 'クーポンを獲得しました！商店街でご利用ください。' : '本解除が完了しました',
     };
