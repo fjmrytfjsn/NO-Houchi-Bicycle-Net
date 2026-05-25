@@ -33,6 +33,7 @@
 ### POST /api/reports
 
 - 説明: サポーターが放置自転車通報を作成
+- 認証: JWT 必須、`admin` ロールのみ
 - Body (JSON):
   - `imageUrl`: string
   - `latitude`: number
@@ -42,7 +43,8 @@
   - `notes`?: string
 - レスポンス: 作成した `report` オブジェクト
 - 実装方針:
-  - `markerCode` は必須
+  - `imageUrl`、`markerCode`、`identifierText` は空文字不可
+  - `latitude` / `longitude` は finite number かつ緯度経度の範囲内であること
   - 該当マーカーが存在しない場合は backend 側で新規作成して紐づける
   - 初期 `status` は `reported`
   - `GOOGLE_MAPS_API_KEY` が設定されている場合は、`latitude` / `longitude` から Google Geocoding API で住所を取得し、`address` に保存する
@@ -77,14 +79,16 @@
 ### GET /api/reports
 
 - 説明: 通報一覧（管理者向け、フィルタあり）
+- 認証: JWT 必須、`admin` ロールのみ
 - Query:
-  - `status` (optional)
+  - `status` (optional, `reported|temporary|resolved|collection_requested|collected|not_found_on_collection`)
 - レスポンス: `[{ report }]`
 - 備考: `report.address` が存在する場合、管理画面は住所を優先表示する。未設定時は座標表示にフォールバックする。
 
 ### GET /api/reports/:id
 
 - 説明: 通報詳細
+- 認証: JWT 必須、`admin` ロールのみ
 - レスポンス: `report`。位置情報として `latitude`, `longitude`, `address` を含む。
 
 ### PATCH /api/reports/:id/status
@@ -95,18 +99,22 @@
 ### POST /api/reports/:id/collection-request
 
 - 説明: 一定時間内に持ち主による解除が行われなかった通報を、管理者が回収依頼対象にする
+- 認証: JWT 必須、`admin` ロールのみ
 - Body: `{ "notes"?: string, "requestedBy"?: string }`
 - 期待挙動:
   - report.status を `collection_requested` に更新する
   - 回収依頼の操作履歴を保存する
+  - 対象が `reported` 以外の場合は `409`
 
 ### PATCH /api/reports/:id/collection-result
 
 - 説明: 回収業者の現地結果を受けて、管理者が回収結果を記録する
+- 認証: JWT 必須、`admin` ロールのみ
 - Body: `{ "result": "collected|not_found_on_collection", "notes"?: string, "resultRecordedBy"?: string }`
 - 期待挙動:
   - `collected`: 回収完了として案件を閉じる
   - `not_found_on_collection`: 現地で現物なしとして未回収記録を残す
+  - 対象が `collection_requested` 以外、または pending 履歴がない場合は `409`
 
 ### GET /api/admin/hotspots（将来構想）
 
@@ -136,6 +144,7 @@
 
 - 説明: 管理者/サポーターのログイン
 - Body: `{ "email": string, "password": string }`
+- バリデーション: `email` と `password` は空文字不可、`email` は最低限の email 形式必須
 - レスポンス: `{ "status": "ok", "data": { "token": "<jwt>" }, "error": null }`
 
 ---
@@ -160,12 +169,20 @@
 
 - 説明: 持ち主が仮解除を実行
 - Body: `{ "notes"?: string }`
+- バリデーション: `code` は空文字不可
 
 ### POST /api/owner/markers/:code/unlock-final
 
 - 説明: 持ち主が本解除を実行（`eligibleFinalAt` 到達後）
 - Body: `{ "scannedCode": string, "ownerEmail"?: string }`
-- 備考: `scannedCode` は必須。QR再スキャン照合で `:code` と一致した場合のみ本解除される。クーポン発行処理は backend に実装されているが、試作品の必須要件には含めない。
+- バリデーション:
+  - `code` と `scannedCode` は空文字不可
+  - `ownerEmail` を送る場合は最低限の email 形式必須
+- 備考:
+  - `scannedCode` は必須。QR再スキャン照合で `:code` と一致した場合のみ本解除される
+  - marker が存在しない場合は `404`
+  - 仮解除なし、`eligibleFinalAt` 未到達、24時間期限切れは `409`
+  - クーポン発行処理は backend に実装されているが、試作品の必須要件には含めない
 
 ### POST /api/owner/coupons/:id/use（実装済み・将来拡張）
 
@@ -208,9 +225,9 @@
 
 - 400: リクエスト不正 (バリデーションエラー)
 - 401: 認証エラー
-- 403: 権限エラー
+- 403: 権限エラー（例: 非 `admin` が `/api/reports*` にアクセス）
 - 404: リソース未検出
-- 409: 状態競合（例: 既に本解除済み）
+- 409: 状態競合（例: 本解除の前提未達、回収依頼/結果記録の対象 status 不一致）
 - 422: 業務ルール違反（ジオフェンス、品質基準未達）
 - 500: サーバー内部エラー
 

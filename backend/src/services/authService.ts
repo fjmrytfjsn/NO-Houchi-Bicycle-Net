@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from '../lib/errors';
+import { normalizeOptionalString, validateEmail, requireNonBlankString } from '../lib/validation';
 
 type RegisterInput = {
   name?: string | null;
@@ -41,22 +42,28 @@ export class AuthService {
   constructor(private readonly prisma: AuthPrisma) {}
 
   async register(input: RegisterInput): Promise<PublicUser> {
-    if (!input.email || !input.password) {
+    const rawEmail = normalizeOptionalString(input.email);
+    const rawPassword = normalizeOptionalString(input.password);
+
+    if (!rawEmail || !rawPassword) {
       throw new BadRequestError('email and password required');
     }
 
+    const email = validateEmail(rawEmail);
+    const password = requireNonBlankString(rawPassword, 'email and password required');
+
     const existing = await this.prisma.user.findUnique({
-      where: { email: input.email },
+      where: { email },
     });
     if (existing) {
       throw new ConflictError('email already in use');
     }
 
-    const hashedPassword = await bcrypt.hash(input.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     return this.prisma.user.create({
       data: {
         name: input.name ?? null,
-        email: input.email,
+        email,
         password: hashedPassword,
       },
       select: {
@@ -70,19 +77,25 @@ export class AuthService {
   }
 
   async login(input: LoginInput): Promise<{ id: string; email: string; role: string }> {
-    if (!input.email || !input.password) {
+    const rawEmail = normalizeOptionalString(input.email);
+    const rawPassword = normalizeOptionalString(input.password);
+
+    if (!rawEmail || !rawPassword) {
       throw new BadRequestError('email and password required');
     }
 
+    const email = validateEmail(rawEmail);
+    const password = requireNonBlankString(rawPassword, 'email and password required');
+
     const user = (await this.prisma.user.findUnique({
-      where: { email: input.email },
+      where: { email },
     })) as UserRecord | null;
 
     if (!user) {
       throw new UnauthorizedError('invalid credentials');
     }
 
-    const validPassword = await bcrypt.compare(input.password, user.password);
+    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       throw new UnauthorizedError('invalid credentials');
     }
