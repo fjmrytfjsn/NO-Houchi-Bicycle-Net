@@ -34,6 +34,7 @@
 - `marker_id` (FK -> Marker)
 - `image_url` (string)
 - `latitude`, `longitude` (decimal)
+- `address` (text, nullable; 通報時点の座標から Google Geocoding API で取得した住所スナップショット)
 - `identifier_text` (text)
 - `status` (enum: reported | temporary | resolved | collection_requested | collected | not_found_on_collection)
 - `notes` (text, nullable)

@@ -12,6 +12,7 @@ type BicycleReportRecord = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address?: string | null;
   identifierText: string;
   status: string;
   notes: string | null;

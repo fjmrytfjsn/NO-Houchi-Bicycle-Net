@@ -109,8 +109,8 @@ npm install
 
 ### 3. 環境変数の設定 (.env)
 
-各ディレクトリの `.env.example` をコピーして `.env` を作成し、DB接続情報などを設定してください。
-Google Maps API や OCR/外部連携用 API キーは将来構想の機能で必要になる場合があります。
+各ディレクトリの `.env.example` をコピーして `.env` / `.env.local` を作成し、DB接続情報などを設定してください。
+管理画面で住所変換と地図表示を使う場合は、Backend 用の `GOOGLE_MAPS_API_KEY` と、Admin Dashboard 用の `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` を設定してください。`NEXT_PUBLIC_` のキーはブラウザに公開されるため、Google Cloud 側で HTTP referrer 制限を設定してください。
 
 ---
 

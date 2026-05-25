@@ -196,6 +196,14 @@ npx prisma migrate reset
 | `JWT_SECRET`   | JWT トークンの署名キー | `your-secret-key`                                       |
 | `PORT`         | サーバーポート         | `3000`                                                  |
 | `NODE_ENV`     | 実行環境               | `development` / `production`                            |
+| `GOOGLE_MAPS_API_KEY` | 通報座標を住所へ変換する Backend 用 Google Maps API キー | `your-google-maps-api-key` |
+
+### Admin Dashboard (.env.local)
+
+| 変数名                            | 説明                                                                 | 例                                |
+| --------------------------------- | -------------------------------------------------------------------- | --------------------------------- |
+| `ADMIN_API_BASE_URL`              | 管理画面が参照する Backend API URL                                   | `http://localhost:3000`           |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | 地図 iframe 表示用のブラウザ公開 Google Maps API キー。Google Cloud 側で HTTP referrer 制限を設定する | `your-google-maps-browser-key` |
 
 ### Owner Web (.env.local)
 

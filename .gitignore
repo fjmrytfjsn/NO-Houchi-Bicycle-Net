@@ -1,3 +1,4 @@
 apps/*/node_modules/
 apps/*/.next/
 apps/*/tsconfig.tsbuildinfo
+apps/admin-dashboard/.env

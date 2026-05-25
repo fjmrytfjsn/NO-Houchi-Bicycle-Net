@@ -52,6 +52,7 @@ QRコードでアクセスする持ち主向けの簡易Webフロー向けAPI仕
     "imageUrl": "https://example.com/report.jpg",
     "latitude": 34.701,
     "longitude": 135.502,
+    "address": "大阪府大阪市北区...",
     "identifierText": "OSAKA-123456",
     "status": "reported",
     "notes": null,

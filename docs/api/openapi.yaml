@@ -225,6 +225,9 @@ components:
           type: number
         longitude:
           type: number
+        address:
+          type: string
+          nullable: true
         identifierText:
           type: string
         status:
@@ -253,6 +256,8 @@ components:
           type: string
           enum: [collected, not_found_on_collection]
         notes:
+          type: string
+        resultRecordedBy:
           type: string
     OwnerMarkerResponse:
       type: object

@@ -41,10 +41,15 @@ export default function MarkerPage() {
 
     setLoading(true);
     setError(null);
-    Promise.all([getMarker(code), getCoupons(code)])
-      .then(([markerResult, couponResult]) => {
+    getMarker(code)
+      .then(async (markerResult) => {
         setData(markerResult);
-        setCoupons(couponResult.coupons || []);
+        try {
+          const couponResult = await getCoupons(code);
+          setCoupons(couponResult.coupons || []);
+        } catch {
+          setCoupons([]);
+        }
       })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
@@ -66,8 +71,15 @@ export default function MarkerPage() {
         marker: previous?.marker || { code },
         report: {
           id: previous?.report?.id || `r-${code}`,
+          markerId: previous?.report?.markerId || `m-${code}`,
           imageUrl: previous?.report?.imageUrl || '',
-          ocr_text: previous?.report?.ocr_text || '',
+          latitude: previous?.report?.latitude || 0,
+          longitude: previous?.report?.longitude || 0,
+          address: previous?.report?.address ?? null,
+          identifierText: previous?.report?.identifierText || '',
+          notes: previous?.report?.notes ?? null,
+          createdAt: previous?.report?.createdAt,
+          updatedAt: previous?.report?.updatedAt,
           status: 'temporary',
         },
         declaration,
@@ -133,10 +145,10 @@ export default function MarkerPage() {
   const finalUnlocked = data ? isFinalUnlocked(data) : false;
   const timing = declaration
     ? getUnlockTiming(
-        nowTime,
-        declaration.eligibleFinalAt,
-        declaration.expiresAt
-      )
+      nowTime,
+      declaration.eligibleFinalAt,
+      declaration.expiresAt
+    )
     : null;
 
   return (
@@ -149,11 +161,13 @@ export default function MarkerPage() {
 
       <div className={styles.page}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
+          {/*ここから*/}
           <h1 className={styles.pageTitle} style={{ margin: 0, fontSize: 'var(--text-base)' }}>
-            <span>📍</span>
+            <span onDoubleClick={handleFinal} style={{ cursor: 'pointer' }} title="デモ用: ダブルクリックで強制本解除">📍</span>
             マーカー
           </h1>
           {code && <span className={styles.markerCode} style={{ margin: 0, padding: '2px 8px' }}>{code}</span>}
+          {/*ここまで消す*/}
         </div>
 
         <StatusMessages
@@ -166,7 +180,7 @@ export default function MarkerPage() {
         {data && (
           <>
             <ReportSummary report={data.report} declaration={data.declaration} />
-            
+
             {!declaration && (
               <TempUnlockButton
                 onClick={handleTemp}

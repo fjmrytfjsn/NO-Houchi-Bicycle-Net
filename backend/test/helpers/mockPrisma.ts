@@ -44,6 +44,7 @@ type BicycleReportRecord = {
   imageUrl: string;
   latitude: number;
   longitude: number;
+  address: string | null;
   identifierText: string;
   status: string;
   notes: string | null;
@@ -332,6 +333,7 @@ export function createMockPrisma() {
           imageUrl: string;
           latitude: number;
           longitude: number;
+          address?: string | null;
           identifierText: string;
           status: string;
           notes?: string | null;
@@ -345,6 +347,7 @@ export function createMockPrisma() {
           imageUrl: data.imageUrl,
           latitude: data.latitude,
           longitude: data.longitude,
+          address: data.address ?? null,
           identifierText: data.identifierText,
           status: data.status,
           notes: data.notes ?? null,
@@ -379,25 +382,47 @@ export function createMockPrisma() {
         where,
         data,
       }: {
-        where: { id: string; status?: string };
+        where: { id?: string; markerId?: string; status?: string };
         data: { status?: string; notes?: string | null };
       }) => {
-        const existing = reports.get(where.id);
-        if (!existing || (where.status && existing.status !== where.status)) {
-          return { count: 0 };
-        }
+        const matched = Array.from(reports.values()).filter((entry) => {
+          const matchesId = where.id === undefined ? true : entry.id === where.id;
+          const matchesMarkerId = where.markerId === undefined ? true : entry.markerId === where.markerId;
+          const matchesStatus = where.status === undefined ? true : entry.status === where.status;
+          return matchesId && matchesMarkerId && matchesStatus;
+        });
 
-        const updated: BicycleReportRecord = {
-          ...existing,
-          status: data.status ?? existing.status,
-          notes: data.notes ?? existing.notes,
-          updatedAt: new Date(),
-        };
-        reports.set(where.id, updated);
-        return { count: 1 };
+        matched.forEach((existing) => {
+          const updated: BicycleReportRecord = {
+            ...existing,
+            status: data.status ?? existing.status,
+            notes: data.notes ?? existing.notes,
+            updatedAt: new Date(),
+          };
+          reports.set(existing.id, updated);
+        });
+
+        return { count: matched.length };
       },
     },
     collectionRequest: {
+      findFirst: async ({
+        where,
+        orderBy,
+      }: {
+        where: { reportId: string; result?: string };
+        orderBy?: { requestedAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(collectionRequests.values()).filter((entry) => {
+          return entry.reportId === where.reportId && (!where.result || entry.result === where.result);
+        });
+
+        if (orderBy?.requestedAt === 'asc') {
+          return [...filtered].sort((left, right) => left.requestedAt.getTime() - right.requestedAt.getTime())[0] ?? null;
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.requestedAt)[0] ?? null;
+      },
       create: async ({
         data,
       }: {
@@ -425,6 +450,38 @@ export function createMockPrisma() {
         };
         collectionRequests.set(record.id, record);
         return record;
+      },
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: {
+          result?: string;
+          resultRecordedBy?: string | null;
+          resultRecordedAt?: Date | null;
+          notes?: string | null;
+        };
+      }) => {
+        const existing = collectionRequests.get(where.id);
+        if (!existing) {
+          throw new Error('not found');
+        }
+
+        const updated: CollectionRequestRecord = {
+          ...existing,
+          result: data.result ?? existing.result,
+          resultRecordedBy: Object.prototype.hasOwnProperty.call(data, 'resultRecordedBy')
+            ? data.resultRecordedBy ?? null
+            : existing.resultRecordedBy,
+          resultRecordedAt: Object.prototype.hasOwnProperty.call(data, 'resultRecordedAt')
+            ? data.resultRecordedAt ?? null
+            : existing.resultRecordedAt,
+          notes: Object.prototype.hasOwnProperty.call(data, 'notes') ? data.notes ?? null : existing.notes,
+          updatedAt: new Date(),
+        };
+        collectionRequests.set(where.id, updated);
+        return updated;
       },
     },
     declaration: {
@@ -489,6 +546,28 @@ export function createMockPrisma() {
         };
         declarations.set(where.id, updated);
         return updated;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { markerId: string; status: string };
+        data: { status: string };
+      }) => {
+        const matched = Array.from(declarations.values()).filter((entry) => {
+          return entry.markerId === where.markerId && entry.status === where.status;
+        });
+
+        matched.forEach((existing) => {
+          const updated: DeclarationRecord = {
+            ...existing,
+            status: data.status,
+            updatedAt: new Date(),
+          };
+          declarations.set(existing.id, updated);
+        });
+
+        return { count: matched.length };
       },
     },
     coupon: {

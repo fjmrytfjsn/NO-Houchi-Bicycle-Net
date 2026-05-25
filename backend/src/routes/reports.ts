@@ -16,6 +16,12 @@ type CollectionRequestBody = {
   requestedBy?: string;
 };
 
+type CollectionResultBody = {
+  result?: string;
+  notes?: string;
+  resultRecordedBy?: string;
+};
+
 type ListReportsQuery = {
   status?: string;
 };
@@ -59,6 +65,18 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const report = await reportService.requestCollection(request.params.id, request.body ?? {});
+        return reply.send(report);
+      } catch (error) {
+        return sendError(reply, fastify.log, error);
+      }
+    }
+  );
+
+  fastify.patch<{ Params: ReportParams; Body: CollectionResultBody }>(
+    '/:id/collection-result',
+    async (request, reply) => {
+      try {
+        const report = await reportService.recordCollectionResult(request.params.id, request.body ?? {});
         return reply.send(report);
       } catch (error) {
         return sendError(reply, fastify.log, error);
