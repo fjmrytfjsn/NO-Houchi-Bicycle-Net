@@ -55,6 +55,12 @@ button {
   color: #52606d;
 }
 
+.panel-meta {
+  margin: 0;
+  color: #52606d;
+  line-height: 1.6;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #9fb3c8;

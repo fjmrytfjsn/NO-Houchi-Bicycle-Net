@@ -84,6 +84,7 @@
   - `status` (optional, `reported|temporary|resolved|collection_requested|collected|not_found_on_collection`)
 - レスポンス: `[{ report }]`
 - 備考: `report.address` が存在する場合、管理画面は住所を優先表示する。未設定時は座標表示にフォールバックする。
+- Admin Dashboard の未解除案件確認画面では、この API を `status=reported` で呼び、通報受付から 24 時間を超えた案件のみを回収依頼候補として表示する。
 
 ### GET /api/reports/:id
 

@@ -15,6 +15,7 @@ export const reportStatusFilters = [
 
 export type ReportStatusFilter = (typeof reportStatusFilters)[number];
 export type SelectedReportStatus = ReportStatusFilter | 'all';
+export const UNRESOLVED_REPORTED_THRESHOLD_HOURS = 24;
 
 type ApiReportSummary = {
   id: string;
@@ -112,6 +113,22 @@ export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
   return reports.map(mapApiReportSummaryToDetail);
 }
 
+export async function fetchOverdueReportedReports(now: Date = new Date()) {
+  const response = await fetch(buildReportsUrl('reported'));
+
+  if (!response.ok) {
+    throw new Error(`GET /api/reports?status=reported failed: ${response.status}`);
+  }
+
+  const reports = (await response.json()) as ApiReportSummary[];
+
+  return reports
+    .filter(
+      (report) => report.status === 'reported' && isReportedOverdue(report.createdAt, now),
+    )
+    .map((report) => mapApiReportSummaryToOverdueDetail(report, now));
+}
+
 export async function fetchAdminReport(id: string) {
   const response = await fetch(
     `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}`,
@@ -122,6 +139,28 @@ export async function fetchAdminReport(id: string) {
   }
 
   return mapApiReportDetailToDetail((await response.json()) as ApiReportDetail);
+}
+
+function mapApiReportSummaryToOverdueDetail(
+  report: ApiReportSummary,
+  now: Date,
+): ReportDetail {
+  const mappedReport = mapApiReportSummaryToDetail(report);
+
+  return {
+    ...mappedReport,
+    elapsedLabel: formatElapsedTime(report.createdAt, now),
+  };
+}
+
+function isReportedOverdue(createdAt: string, now: Date) {
+  const createdAtDate = new Date(createdAt);
+
+  if (Number.isNaN(createdAtDate.getTime())) {
+    return false;
+  }
+
+  return getElapsedHours(createdAtDate, now) >= UNRESOLVED_REPORTED_THRESHOLD_HOURS;
 }
 
 function formatDateTime(value: string) {
@@ -174,4 +213,36 @@ function mapApiReportHistoryEntry(entry: ApiReportHistoryEntry): ReportHistoryEn
     label: entry.label,
     ...(entry.notes ? { notes: entry.notes } : {}),
   };
+}
+
+function formatElapsedTime(createdAt: string, now: Date) {
+  const createdAtDate = new Date(createdAt);
+
+  if (Number.isNaN(createdAtDate.getTime())) {
+    return '';
+  }
+
+  const elapsedHours = getElapsedHours(createdAtDate, now);
+  const days = Math.floor(elapsedHours / 24);
+  const hours = elapsedHours % 24;
+
+  if (days === 0) {
+    return `${hours}時間`;
+  }
+
+  if (hours === 0) {
+    return `${days}日`;
+  }
+
+  return `${days}日 ${hours}時間`;
+}
+
+function getElapsedHours(createdAt: Date, now: Date) {
+  const diffMs = now.getTime() - createdAt.getTime();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.floor(diffMs / (1000 * 60 * 60));
 }

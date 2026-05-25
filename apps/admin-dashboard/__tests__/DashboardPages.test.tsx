@@ -206,7 +206,6 @@ describe('Admin Dashboard pages', () => {
 
     render(
       <UnresolvedPage
-        selectedStatus="all"
         reports={[
           {
             id: 'r-1',
@@ -245,63 +244,36 @@ describe('Admin Dashboard pages', () => {
     );
 
     expect(
-      screen.getByRole('navigation', { name: '未解除状態フィルター' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'すべて' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    expect(
       screen.getByRole('heading', { level: 2, name: '回収依頼候補' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'reported または temporary の案件を回収依頼候補として確認します。',
-      ),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('対象: reported')).toBeInTheDocument();
+    expect(screen.getByText('基準: 通報から24時間超過')).toBeInTheDocument();
     expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
-    expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
+    expect(
+      screen.queryByText('シール 8842 / 銀のクロスバイク'),
+    ).not.toBeInTheDocument();
   });
 
-  it('filters unresolved reports by selected status on the unresolved page', () => {
+  it('shows an empty state on the unresolved page when no overdue reported items exist', () => {
     useRouter.mockReturnValue({
       pathname: '/unresolved',
-      query: { status: 'reported' },
+      query: {},
       isReady: true,
     });
 
     render(
       <UnresolvedPage
-        selectedStatus="reported"
-        reports={[
-          {
-            id: 'r-1',
-            imageUrl: 'https://example.com/r-1.jpg',
-            reportedAt: '2026-04-20 09:15',
-            location: '大阪市北区中之島 1-2-3',
-            latitude: 34.7,
-            longitude: 135.49,
-            address: '大阪市北区中之島 1-2-3',
-            mapEmbedUrl: null,
-            mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
-            identifierText: '防犯登録 1234 / 黒のシティサイクル',
-            status: 'reported',
-            elapsedLabel: '3時間',
-            currentStatusLabel: 'reported',
-            history: [],
-          },
-        ]}
+        reports={[]}
       />,
     );
 
     expect(
-      screen.getByRole('link', { name: 'reported' }),
-    ).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
-    expect(screen.queryByText('シール 8842 / 銀のクロスバイク')).not.toBeInTheDocument();
+      screen.getByText('24時間を超えた未解除案件はありません。'),
+    ).toBeInTheDocument();
   });
 
   it('fetches unresolved reports from the server side', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
@@ -309,32 +281,38 @@ describe('Admin Dashboard pages', () => {
         {
           id: 'r-api-1',
           imageUrl: 'https://example.com/report-api-1.jpg',
+          markerId: 'm-api-1',
           latitude: 34.7055,
           longitude: 135.4983,
           address: '大阪府大阪市北区梅田1丁目',
           identifierText: 'API-0001 / 黒のシティサイクル',
           status: 'reported',
           createdAt: '2026-04-20T00:15:00.000Z',
+          updatedAt: '2026-04-20T00:15:00.000Z',
         },
         {
           id: 'r-api-2',
           imageUrl: 'https://example.com/report-api-2.jpg',
+          markerId: 'm-api-2',
           latitude: 34.706,
           longitude: 135.4984,
           address: null,
           identifierText: 'API-0002 / 銀のクロスバイク',
-          status: 'temporary',
-          createdAt: '2026-04-20T00:20:00.000Z',
+          status: 'reported',
+          createdAt: '2026-04-21T06:20:00.000Z',
+          updatedAt: '2026-04-21T06:20:00.000Z',
         },
         {
           id: 'r-api-3',
           imageUrl: 'https://example.com/report-api-3.jpg',
+          markerId: 'm-api-3',
           latitude: 34.707,
           longitude: 135.4985,
           address: '大阪府大阪市北区天満1丁目',
-          identifierText: 'API-0003 / 白のミニベロ',
-          status: 'resolved',
-          createdAt: '2026-04-20T00:25:00.000Z',
+          identifierText: 'API-0003 / 白のミニベロ / temporary',
+          status: 'temporary',
+          createdAt: '2026-04-19T00:25:00.000Z',
+          updatedAt: '2026-04-19T00:25:00.000Z',
         },
       ],
     } as Response);
@@ -343,21 +321,27 @@ describe('Admin Dashboard pages', () => {
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({} as never);
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/reports');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports?status=reported',
+    );
     expect(result).toMatchObject({
       props: {
-        selectedStatus: 'all',
         reports: [
-          expect.objectContaining({ id: 'r-api-1', status: 'reported' }),
-          expect.objectContaining({ id: 'r-api-2', status: 'temporary' }),
+          expect.objectContaining({
+            id: 'r-api-1',
+            status: 'reported',
+            elapsedLabel: '1日 11時間',
+          }),
         ],
       },
     });
 
     global.fetch = originalFetch;
+    jest.useRealTimers();
   });
 
-  it('fetches temporary unresolved reports from the server side', async () => {
+  it('returns an empty unresolved list when no reported item is overdue', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
@@ -365,50 +349,66 @@ describe('Admin Dashboard pages', () => {
         {
           id: 'r-api-1',
           imageUrl: 'https://example.com/report-api-1.jpg',
+          markerId: 'm-api-1',
           latitude: 34.7055,
           longitude: 135.4983,
           address: '大阪府大阪市北区梅田1丁目',
           identifierText: 'API-0001 / 黒のシティサイクル',
           status: 'reported',
-          createdAt: '2026-04-20T00:15:00.000Z',
+          createdAt: '2026-04-21T00:15:00.000Z',
+          updatedAt: '2026-04-21T00:15:00.000Z',
         },
         {
           id: 'r-api-2',
           imageUrl: 'https://example.com/report-api-2.jpg',
+          markerId: 'm-api-2',
           latitude: 34.706,
           longitude: 135.4984,
           address: null,
           identifierText: 'API-0002 / 銀のクロスバイク',
           status: 'temporary',
-          createdAt: '2026-04-20T00:20:00.000Z',
+          createdAt: '2026-04-19T00:20:00.000Z',
+          updatedAt: '2026-04-19T00:20:00.000Z',
         },
       ],
     } as Response);
     global.fetch = fetchMock;
 
     const { getServerSideProps } = await import('../pages/unresolved');
-    const result = await getServerSideProps({
-      query: { status: 'temporary' },
-    } as never);
+    const result = await getServerSideProps({} as never);
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/reports');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports?status=reported',
+    );
     expect(result).toMatchObject({
       props: {
-        selectedStatus: 'temporary',
-        reports: [
-          expect.objectContaining({ id: 'r-api-2', status: 'temporary' }),
-        ],
+        reports: [],
       },
     });
 
     global.fetch = originalFetch;
+    jest.useRealTimers();
   });
 
-  it('normalizes invalid unresolved status filters to all', async () => {
+  it('ignores unresolved query filters and always returns overdue reported items', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => [],
+      json: async () => [
+        {
+          id: 'r-api-1',
+          imageUrl: 'https://example.com/report-api-1.jpg',
+          markerId: 'm-api-1',
+          latitude: 34.7055,
+          longitude: 135.4983,
+          address: '大阪府大阪市北区梅田1丁目',
+          identifierText: 'API-0001 / 黒のシティサイクル',
+          status: 'reported',
+          createdAt: '2026-04-20T00:15:00.000Z',
+          updatedAt: '2026-04-20T00:15:00.000Z',
+        },
+      ],
     } as Response);
     global.fetch = fetchMock;
 
@@ -417,14 +417,17 @@ describe('Admin Dashboard pages', () => {
       query: { status: 'resolved' },
     } as never);
 
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reports?status=reported',
+    );
     expect(result).toMatchObject({
       props: {
-        selectedStatus: 'all',
-        reports: [],
+        reports: [expect.objectContaining({ id: 'r-api-1', status: 'reported' })],
       },
     });
 
     global.fetch = originalFetch;
+    jest.useRealTimers();
   });
 
   it('shows overview and history on the report detail page', () => {
