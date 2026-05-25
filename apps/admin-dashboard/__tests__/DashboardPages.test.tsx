@@ -512,6 +512,7 @@ describe('Admin Dashboard pages', () => {
       'src',
       'https://www.google.com/maps/embed/v1/place?key=test&q=34.71%2C135.5',
     );
+    expect(screen.getByText('履歴はありません。')).toBeInTheDocument();
   });
 
   it('fetches report detail by id on the server side', async () => {
@@ -530,6 +531,19 @@ describe('Admin Dashboard pages', () => {
         notes: null,
         createdAt: '2026-04-21T00:30:00.000Z',
         updatedAt: '2026-04-21T00:30:00.000Z',
+        history: [
+          {
+            id: 'h-api-1',
+            timestamp: '2026-04-21T00:30:00.000Z',
+            label: '通報を受付',
+          },
+          {
+            id: 'h-api-2',
+            timestamp: '2026-04-21T02:00:00.000Z',
+            label: '回収依頼を登録',
+            notes: '歩道上に継続駐輪',
+          },
+        ],
       }),
     } as Response);
     global.fetch = fetchMock;
@@ -552,11 +566,68 @@ describe('Admin Dashboard pages', () => {
           address: null,
           mapLinkUrl: 'https://www.google.com/maps?q=34.71%2C135.5',
           status: 'collection_requested',
+          history: [
+            {
+              id: 'h-api-1',
+              timestamp: '2026-04-21 09:30',
+              label: '通報を受付',
+            },
+            {
+              id: 'h-api-2',
+              timestamp: '2026-04-21 11:00',
+              label: '回収依頼を登録',
+              notes: '歩道上に継続駐輪',
+            },
+          ],
         },
       },
     });
 
     global.fetch = originalFetch;
+  });
+
+  it('shows API-backed history notes on the report detail page', () => {
+    useRouter.mockReturnValue({
+      pathname: '/reports/[id]',
+      query: { id: 'r-api-5' },
+      isReady: true,
+    });
+
+    render(
+      <ReportDetailPage
+        report={{
+          id: 'r-api-5',
+          imageUrl: 'https://example.com/report-api-5.jpg',
+          reportedAt: '2026-04-21 08:30',
+          location: '大阪府大阪市北区堂島1丁目',
+          latitude: 34.71,
+          longitude: 135.5,
+          address: '大阪府大阪市北区堂島1丁目',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.71%2C135.5',
+          identifierText: 'API-0005 / 白のミニベロ',
+          status: 'collected',
+          elapsedLabel: '',
+          currentStatusLabel: 'collected',
+          history: [
+            {
+              id: 'h-api-3',
+              timestamp: '2026-04-21 08:30',
+              label: '通報を受付',
+            },
+            {
+              id: 'h-api-4',
+              timestamp: '2026-04-21 11:00',
+              label: '回収結果を記録',
+              notes: '現地で回収完了',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('回収結果を記録')).toBeInTheDocument();
+    expect(screen.getByText('現地で回収完了')).toBeInTheDocument();
   });
 
   it('shows the collection request form and confirmation text', () => {

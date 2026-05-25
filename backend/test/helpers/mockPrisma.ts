@@ -451,6 +451,23 @@ export function createMockPrisma() {
         collectionRequests.set(record.id, record);
         return record;
       },
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where: { reportId: string };
+        orderBy?: { requestedAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(collectionRequests.values()).filter((entry) => {
+          return entry.reportId === where.reportId;
+        });
+
+        if (orderBy?.requestedAt === 'asc') {
+          return [...filtered].sort((left, right) => left.requestedAt.getTime() - right.requestedAt.getTime());
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.requestedAt);
+      },
       update: async ({
         where,
         data,
@@ -485,6 +502,23 @@ export function createMockPrisma() {
       },
     },
     declaration: {
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where: { markerId: string };
+        orderBy?: { declaredAt: 'asc' | 'desc' };
+      }) => {
+        const filtered = Array.from(declarations.values()).filter((entry) => {
+          return entry.markerId === where.markerId;
+        });
+
+        if (orderBy?.declaredAt === 'asc') {
+          return [...filtered].sort((left, right) => left.declaredAt.getTime() - right.declaredAt.getTime());
+        }
+
+        return sortByDateDesc(filtered, (entry) => entry.declaredAt);
+      },
       findFirst: async ({
         where,
       }: {

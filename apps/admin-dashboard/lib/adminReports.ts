@@ -1,4 +1,8 @@
-import type { ReportDetail, ReportStatus } from './types';
+import type {
+  ReportDetail,
+  ReportHistoryEntry,
+  ReportStatus,
+} from './types';
 
 export const reportStatusFilters = [
   'reported',
@@ -12,15 +16,29 @@ export const reportStatusFilters = [
 export type ReportStatusFilter = (typeof reportStatusFilters)[number];
 export type SelectedReportStatus = ReportStatusFilter | 'all';
 
-type ApiReport = {
+type ApiReportSummary = {
   id: string;
+  markerId: string;
   imageUrl: string;
   latitude: number;
   longitude: number;
   address?: string | null;
   identifierText: string;
   status: ReportStatus;
+  notes?: string | null;
   createdAt: string;
+  updatedAt: string;
+};
+
+type ApiReportHistoryEntry = {
+  id: string;
+  timestamp: string;
+  label: string;
+  notes?: string | null;
+};
+
+type ApiReportDetail = ApiReportSummary & {
+  history: ApiReportHistoryEntry[];
 };
 
 export function getAdminApiBaseUrl() {
@@ -53,7 +71,7 @@ export function buildReportsUrl(selectedStatus: SelectedReportStatus) {
   return url.toString();
 }
 
-export function mapApiReportToDetail(report: ApiReport): ReportDetail {
+export function mapApiReportSummaryToDetail(report: ApiReportSummary): ReportDetail {
   const location = report.address ?? formatLocation(report.latitude, report.longitude);
 
   return {
@@ -74,6 +92,15 @@ export function mapApiReportToDetail(report: ApiReport): ReportDetail {
   };
 }
 
+export function mapApiReportDetailToDetail(report: ApiReportDetail): ReportDetail {
+  const mappedReport = mapApiReportSummaryToDetail(report);
+
+  return {
+    ...mappedReport,
+    history: report.history.map(mapApiReportHistoryEntry),
+  };
+}
+
 export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
   const response = await fetch(buildReportsUrl(selectedStatus));
 
@@ -81,8 +108,8 @@ export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
     throw new Error(`GET /api/reports failed: ${response.status}`);
   }
 
-  const reports = (await response.json()) as ApiReport[];
-  return reports.map(mapApiReportToDetail);
+  const reports = (await response.json()) as ApiReportSummary[];
+  return reports.map(mapApiReportSummaryToDetail);
 }
 
 export async function fetchAdminReport(id: string) {
@@ -94,7 +121,7 @@ export async function fetchAdminReport(id: string) {
     throw new Error(`GET /api/reports/${id} failed: ${response.status}`);
   }
 
-  return mapApiReportToDetail((await response.json()) as ApiReport);
+  return mapApiReportDetailToDetail((await response.json()) as ApiReportDetail);
 }
 
 function formatDateTime(value: string) {
@@ -138,4 +165,13 @@ function buildMapEmbedUrl(latitude: number, longitude: number) {
   url.searchParams.set('key', apiKey);
   url.searchParams.set('q', `${latitude},${longitude}`);
   return url.toString();
+}
+
+function mapApiReportHistoryEntry(entry: ApiReportHistoryEntry): ReportHistoryEntry {
+  return {
+    id: entry.id,
+    timestamp: formatDateTime(entry.timestamp),
+    label: entry.label,
+    ...(entry.notes ? { notes: entry.notes } : {}),
+  };
 }
