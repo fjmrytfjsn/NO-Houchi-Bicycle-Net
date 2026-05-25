@@ -89,7 +89,17 @@
 
 - 説明: 通報詳細
 - 認証: JWT 必須、`admin` ロールのみ
-- レスポンス: `report`。位置情報として `latitude`, `longitude`, `address` を含む。
+- レスポンス: `report`。位置情報として `latitude`, `longitude`, `address` を含み、`history[]` を返す。
+- `history[]`:
+  - `id`: 履歴エントリ ID
+  - `timestamp`: 履歴発生時刻（ISO8601）
+  - `label`: 表示用ラベル
+  - `notes` (optional): 補足メモ
+- 備考:
+  - 先頭に `通報を受付` を含む。
+  - `Declaration` 由来で `持ち主が仮解除` / `持ち主が本解除` を best effort で組み立てる。
+  - `CollectionRequest` 由来で `回収依頼を登録` / `回収結果を記録` を組み立てる。
+  - 返却順は時系列昇順。
 
 ### PATCH /api/reports/:id/status
 

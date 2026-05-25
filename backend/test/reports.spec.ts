@@ -240,7 +240,155 @@ describe('reports', () => {
       identifierText: 'LIST-0001',
       status: 'reported',
       address: null,
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+        }),
+      ],
     });
+  });
+
+  it('builds declaration history on report detail', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'DETAIL-MARKER-001',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-detail-1.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'DETAIL-0001',
+        status: 'resolved',
+      },
+    });
+    isolatedPrismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T00:00:00.000Z');
+
+    const declaration = await isolatedPrismaBundle.prisma.declaration.create({
+      data: {
+        markerId: marker.id,
+        declaredAt: new Date('2026-04-20T00:15:00.000Z'),
+        eligibleFinalAt: new Date('2026-04-20T00:30:00.000Z'),
+        expiresAt: new Date('2026-04-21T00:15:00.000Z'),
+        status: 'temporary',
+      },
+    });
+
+    await isolatedPrismaBundle.prisma.declaration.update({
+      where: { id: declaration.id },
+      data: {
+        status: 'resolved',
+        finalizedAt: new Date('2026-04-20T00:45:00.000Z'),
+      },
+    });
+
+    const response = await isolatedServer.inject({
+      method: 'GET',
+      url: `/api/reports/${report.id}`,
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'resolved',
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+          timestamp: '2026-04-20T00:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '持ち主が仮解除',
+          timestamp: '2026-04-20T00:15:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '持ち主が本解除',
+          timestamp: '2026-04-20T00:45:00.000Z',
+        }),
+      ],
+    });
+
+    await isolatedServer.close();
+  });
+
+  it('builds collection request and result history on report detail', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'DETAIL-MARKER-002',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-detail-2.jpg',
+        latitude: 34.702,
+        longitude: 135.492,
+        identifierText: 'DETAIL-0002',
+        status: 'collected',
+      },
+    });
+    isolatedPrismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T01:00:00.000Z');
+
+    const collectionRequest = await isolatedPrismaBundle.prisma.collectionRequest.create({
+      data: {
+        reportId: report.id,
+        requestedAt: new Date('2026-04-20T02:00:00.000Z'),
+        requestedBy: '北区役所 管理担当',
+        result: 'pending',
+        notes: '歩道上のため回収依頼',
+      },
+    });
+
+    await isolatedPrismaBundle.prisma.collectionRequest.update({
+      where: { id: collectionRequest.id },
+      data: {
+        result: 'collected',
+        resultRecordedAt: new Date('2026-04-20T05:00:00.000Z'),
+        resultRecordedBy: '回収業者A',
+        notes: '現地で回収完了',
+      },
+    });
+
+    const response = await isolatedServer.inject({
+      method: 'GET',
+      url: `/api/reports/${report.id}`,
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'collected',
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+          timestamp: '2026-04-20T01:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '回収依頼を登録',
+          timestamp: '2026-04-20T02:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '回収結果を記録',
+          timestamp: '2026-04-20T05:00:00.000Z',
+          notes: '現地で回収完了',
+        }),
+      ],
+    });
+
+    await isolatedServer.close();
   });
 
   it('returns 404 when report id does not exist', async () => {

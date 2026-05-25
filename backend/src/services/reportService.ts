@@ -38,6 +38,26 @@ type CollectionRequestRecord = {
   updatedAt: Date;
 };
 
+type DeclarationRecord = {
+  id: string;
+  markerId: string;
+  declaredAt: Date;
+  eligibleFinalAt: Date;
+  expiresAt: Date;
+  finalizedAt: Date | null;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ReportHistoryEntry = {
+  id: string;
+  timestamp: string;
+  label: string;
+  notes?: string;
+};
+
 type CollectionResult = 'collected' | 'not_found_on_collection';
 
 type ReportTransactionPrisma = {
@@ -93,6 +113,12 @@ type ReportTransactionPrisma = {
         notes?: string | null;
       };
     }): Promise<CollectionRequestRecord>;
+    findMany(args: {
+      where: {
+        reportId: string;
+      };
+      orderBy?: { requestedAt: 'asc' | 'desc' };
+    }): Promise<CollectionRequestRecord[]>;
     update(args: {
       where: { id: string };
       data: {
@@ -112,6 +138,14 @@ type ReportPrisma = ReportTransactionPrisma & {
       update: { location?: string | null };
       create: { code: string; location?: string | null };
     }): Promise<MarkerRecord>;
+  };
+  declaration: {
+    findMany(args: {
+      where: {
+        markerId: string;
+      };
+      orderBy?: { declaredAt: 'asc' | 'desc' };
+    }): Promise<DeclarationRecord[]>;
   };
   $transaction<T>(fn: (tx: ReportTransactionPrisma) => Promise<T>): Promise<T>;
 };
@@ -137,7 +171,21 @@ export class ReportService {
       throw new NotFoundError('report not found');
     }
 
-    return report;
+    const [declarations, collectionRequests] = await Promise.all([
+      this.prisma.declaration.findMany({
+        where: { markerId: report.markerId },
+        orderBy: { declaredAt: 'asc' },
+      }),
+      this.prisma.collectionRequest.findMany({
+        where: { reportId: report.id },
+        orderBy: { requestedAt: 'asc' },
+      }),
+    ]);
+
+    return {
+      ...report,
+      history: this.buildReportHistory(report, declarations, collectionRequests),
+    };
   }
 
   async createReport(input: {
@@ -339,5 +387,60 @@ export class ReportService {
     } catch (error) {
       return null;
     }
+  }
+
+  private buildReportHistory(
+    report: ReportRecord,
+    declarations: DeclarationRecord[],
+    collectionRequests: CollectionRequestRecord[]
+  ): ReportHistoryEntry[] {
+    const history: ReportHistoryEntry[] = [
+      {
+        id: `${report.id}:reported`,
+        timestamp: report.createdAt.toISOString(),
+        label: '通報を受付',
+      },
+    ];
+
+    for (const declaration of declarations) {
+      history.push({
+        id: `${declaration.id}:temporary`,
+        timestamp: declaration.declaredAt.toISOString(),
+        label: '持ち主が仮解除',
+        ...(declaration.notes ? { notes: declaration.notes } : {}),
+      });
+
+      if (declaration.status === 'resolved' && declaration.finalizedAt) {
+        history.push({
+          id: `${declaration.id}:resolved`,
+          timestamp: declaration.finalizedAt.toISOString(),
+          label: '持ち主が本解除',
+        });
+      }
+    }
+
+    for (const collectionRequest of collectionRequests) {
+      history.push({
+        id: `${collectionRequest.id}:requested`,
+        timestamp: collectionRequest.requestedAt.toISOString(),
+        label: '回収依頼を登録',
+        ...(collectionRequest.notes && collectionRequest.result === 'pending'
+          ? { notes: collectionRequest.notes }
+          : {}),
+      });
+
+      if (collectionRequest.result !== 'pending' && collectionRequest.resultRecordedAt) {
+        history.push({
+          id: `${collectionRequest.id}:result`,
+          timestamp: collectionRequest.resultRecordedAt.toISOString(),
+          label: '回収結果を記録',
+          ...(collectionRequest.notes ? { notes: collectionRequest.notes } : {}),
+        });
+      }
+    }
+
+    return history.sort(
+      (left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
+    );
   }
 }
