@@ -1,4 +1,5 @@
 import type {
+  CollectionCandidateDecision,
   ReportDetail,
   ReportHistoryEntry,
   ReportStatus,
@@ -16,6 +17,8 @@ export const reportStatusFilters = [
 export type ReportStatusFilter = (typeof reportStatusFilters)[number];
 export type SelectedReportStatus = ReportStatusFilter | 'all';
 export const UNRESOLVED_REPORTED_THRESHOLD_HOURS = 24;
+export const unresolvedViewFilters = ['all', 'candidate'] as const;
+export type SelectedUnresolvedView = (typeof unresolvedViewFilters)[number];
 
 type ApiReportSummary = {
   id: string;
@@ -26,6 +29,9 @@ type ApiReportSummary = {
   address?: string | null;
   identifierText: string;
   status: ReportStatus;
+  isCollectionCandidate: boolean;
+  collectionCandidateDecision: CollectionCandidateDecision;
+  collectionCandidateFlaggedAt: string | null;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -73,6 +79,13 @@ export function buildReportsUrl(selectedStatus: SelectedReportStatus) {
 }
 
 export function mapApiReportSummaryToDetail(report: ApiReportSummary): ReportDetail {
+  return mapApiReportSummaryToDetailWithNow(report);
+}
+
+export function mapApiReportSummaryToDetailWithNow(
+  report: ApiReportSummary,
+  now?: Date,
+): ReportDetail {
   const location = report.address ?? formatLocation(report.latitude, report.longitude);
 
   return {
@@ -87,14 +100,17 @@ export function mapApiReportSummaryToDetail(report: ApiReportSummary): ReportDet
     mapLinkUrl: buildMapLinkUrl(report.latitude, report.longitude),
     identifierText: report.identifierText,
     status: report.status,
-    elapsedLabel: '',
+    elapsedLabel: now ? formatElapsedTime(report.createdAt, now) : '',
     currentStatusLabel: report.status,
+    isCollectionCandidate: report.isCollectionCandidate,
+    collectionCandidateDecision: report.collectionCandidateDecision,
+    collectionCandidateFlaggedAt: report.collectionCandidateFlaggedAt,
     history: [],
   };
 }
 
 export function mapApiReportDetailToDetail(report: ApiReportDetail): ReportDetail {
-  const mappedReport = mapApiReportSummaryToDetail(report);
+  const mappedReport = mapApiReportSummaryToDetailWithNow(report);
 
   return {
     ...mappedReport,
@@ -113,7 +129,7 @@ export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
   return reports.map(mapApiReportSummaryToDetail);
 }
 
-export async function fetchOverdueReportedReports(now: Date = new Date()) {
+export async function fetchReportedCandidateReports(now: Date = new Date()) {
   const response = await fetch(buildReportsUrl('reported'));
 
   if (!response.ok) {
@@ -123,10 +139,8 @@ export async function fetchOverdueReportedReports(now: Date = new Date()) {
   const reports = (await response.json()) as ApiReportSummary[];
 
   return reports
-    .filter(
-      (report) => report.status === 'reported' && isReportedOverdue(report.createdAt, now),
-    )
-    .map((report) => mapApiReportSummaryToOverdueDetail(report, now));
+    .filter((report) => report.status === 'reported')
+    .map((report) => mapApiReportSummaryToDetailWithNow(report, now));
 }
 
 export async function fetchAdminReport(id: string) {
@@ -141,26 +155,55 @@ export async function fetchAdminReport(id: string) {
   return mapApiReportDetailToDetail((await response.json()) as ApiReportDetail);
 }
 
-function mapApiReportSummaryToOverdueDetail(
-  report: ApiReportSummary,
-  now: Date,
-): ReportDetail {
-  const mappedReport = mapApiReportSummaryToDetail(report);
+export async function updateCollectionCandidate(
+  id: string,
+  isCollectionCandidate: boolean,
+  now: Date = new Date(),
+) {
+  const response = await fetch(
+    `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}/collection-candidate`,
+    {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ isCollectionCandidate }),
+    },
+  );
 
-  return {
-    ...mappedReport,
-    elapsedLabel: formatElapsedTime(report.createdAt, now),
-  };
-}
-
-function isReportedOverdue(createdAt: string, now: Date) {
-  const createdAtDate = new Date(createdAt);
-
-  if (Number.isNaN(createdAtDate.getTime())) {
-    return false;
+  if (!response.ok) {
+    throw new Error(`PATCH /api/reports/${id}/collection-candidate failed: ${response.status}`);
   }
 
-  return getElapsedHours(createdAtDate, now) >= UNRESOLVED_REPORTED_THRESHOLD_HOURS;
+  return mapApiReportSummaryToDetailWithNow((await response.json()) as ApiReportSummary, now);
+}
+
+export function normalizeSelectedUnresolvedView(
+  value: string | string[] | undefined,
+): SelectedUnresolvedView {
+  const normalized = Array.isArray(value) ? value[0] : value;
+
+  if (normalized && unresolvedViewFilters.includes(normalized as SelectedUnresolvedView)) {
+    return normalized as SelectedUnresolvedView;
+  }
+
+  return 'all';
+}
+
+export function getCollectionCandidateLabel(report: ReportDetail) {
+  if (report.collectionCandidateDecision === 'manual_off') {
+    return '手動除外';
+  }
+
+  if (!report.isCollectionCandidate) {
+    return '未対象';
+  }
+
+  if (report.collectionCandidateDecision === 'manual_on') {
+    return '回収対象（手動）';
+  }
+
+  return '回収対象（自動）';
 }
 
 function formatDateTime(value: string) {

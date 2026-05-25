@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import HomePage, { getServerSideProps } from '../pages';
 import UnresolvedPage from '../pages/unresolved';
 import ReportDetailPage, {
@@ -197,7 +197,7 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
-  it('shows only reported and temporary items on the unresolved page', () => {
+  it('shows reported list filters and collection candidate state on the unresolved page', () => {
     useRouter.mockReturnValue({
       pathname: '/unresolved',
       query: {},
@@ -206,6 +206,7 @@ describe('Admin Dashboard pages', () => {
 
     render(
       <UnresolvedPage
+        selectedView="all"
         reports={[
           {
             id: 'r-1',
@@ -221,6 +222,9 @@ describe('Admin Dashboard pages', () => {
             status: 'reported',
             elapsedLabel: '3時間',
             currentStatusLabel: 'reported',
+            isCollectionCandidate: false,
+            collectionCandidateDecision: 'none',
+            collectionCandidateFlaggedAt: null,
             history: [],
           },
           {
@@ -234,9 +238,12 @@ describe('Admin Dashboard pages', () => {
             mapEmbedUrl: null,
             mapLinkUrl: 'https://www.google.com/maps?q=34.701%2C135.491',
             identifierText: 'シール 8842 / 銀のクロスバイク',
-            status: 'temporary',
+            status: 'reported',
             elapsedLabel: '17時間',
-            currentStatusLabel: 'temporary',
+            currentStatusLabel: 'reported',
+            isCollectionCandidate: true,
+            collectionCandidateDecision: 'auto',
+            collectionCandidateFlaggedAt: '2026-04-20T18:40:00.000Z',
             history: [],
           },
         ]}
@@ -247,32 +254,233 @@ describe('Admin Dashboard pages', () => {
       screen.getByRole('heading', { level: 2, name: '回収依頼候補' }),
     ).toBeInTheDocument();
     expect(screen.getByText('対象: reported')).toBeInTheDocument();
-    expect(screen.getByText('基準: 通報から24時間超過')).toBeInTheDocument();
-    expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
+    expect(screen.getByText('自動条件: 通報から24時間超過で回収対象')).toBeInTheDocument();
     expect(
-      screen.queryByText('シール 8842 / 銀のクロスバイク'),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: 'reported全件' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '回収対象のみ' })).toBeInTheDocument();
+    expect(screen.getByText('防犯登録 1234 / 黒のシティサイクル')).toBeInTheDocument();
+    expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
+    expect(screen.getByText('未対象')).toBeInTheDocument();
+    expect(screen.getByText('回収対象（自動）')).toBeInTheDocument();
   });
 
-  it('shows an empty state on the unresolved page when no overdue reported items exist', () => {
+  it('shows only collection candidates on the unresolved page when candidate filter is selected', () => {
+    useRouter.mockReturnValue({
+      pathname: '/unresolved',
+      query: { view: 'candidate' },
+      isReady: true,
+    });
+
+    render(
+      <UnresolvedPage
+        selectedView="candidate"
+        reports={[
+          {
+            id: 'r-1',
+            imageUrl: 'https://example.com/r-1.jpg',
+            reportedAt: '2026-04-20 09:15',
+            location: '大阪市北区中之島 1-2-3',
+            latitude: 34.7,
+            longitude: 135.49,
+            address: '大阪市北区中之島 1-2-3',
+            mapEmbedUrl: null,
+            mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+            identifierText: '防犯登録 1234 / 黒のシティサイクル',
+            status: 'reported',
+            elapsedLabel: '3時間',
+            currentStatusLabel: 'reported',
+            isCollectionCandidate: false,
+            collectionCandidateDecision: 'manual_off',
+            collectionCandidateFlaggedAt: null,
+            history: [],
+          },
+          {
+            id: 'r-2',
+            imageUrl: 'https://example.com/r-2.jpg',
+            reportedAt: '2026-04-19 18:40',
+            location: '大阪市北区梅田 2-4-9',
+            latitude: 34.701,
+            longitude: 135.491,
+            address: '大阪市北区梅田 2-4-9',
+            mapEmbedUrl: null,
+            mapLinkUrl: 'https://www.google.com/maps?q=34.701%2C135.491',
+            identifierText: 'シール 8842 / 銀のクロスバイク',
+            status: 'reported',
+            elapsedLabel: '17時間',
+            currentStatusLabel: 'reported',
+            isCollectionCandidate: true,
+            collectionCandidateDecision: 'manual_on',
+            collectionCandidateFlaggedAt: '2026-04-20T18:40:00.000Z',
+            history: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: '回収対象のみ' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('防犯登録 1234 / 黒のシティサイクル')).not.toBeInTheDocument();
+    expect(screen.getByText('シール 8842 / 銀のクロスバイク')).toBeInTheDocument();
+  });
+
+  it('shows an empty state on the unresolved page when no collection candidate exists', () => {
+    useRouter.mockReturnValue({
+      pathname: '/unresolved',
+      query: { view: 'candidate' },
+      isReady: true,
+    });
+
+    render(
+      <UnresolvedPage
+        selectedView="candidate"
+        reports={[]}
+      />,
+    );
+
+    expect(
+      screen.getByText('回収対象の未解除案件はありません。'),
+    ).toBeInTheDocument();
+  });
+
+  it('updates a report as collection candidate from the unresolved page', async () => {
     useRouter.mockReturnValue({
       pathname: '/unresolved',
       query: {},
       isReady: true,
     });
 
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'r-1',
+        markerId: 'm-1',
+        imageUrl: 'https://example.com/r-1.jpg',
+        latitude: 34.7,
+        longitude: 135.49,
+        address: '大阪市北区中之島 1-2-3',
+        identifierText: '防犯登録 1234 / 黒のシティサイクル',
+        status: 'reported',
+        createdAt: '2026-04-20T00:15:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: true,
+        collectionCandidateDecision: 'manual_on',
+        collectionCandidateFlaggedAt: '2026-04-21T12:00:00.000Z',
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
     render(
       <UnresolvedPage
-        reports={[]}
+        selectedView="all"
+        reports={[
+          {
+            id: 'r-1',
+            imageUrl: 'https://example.com/r-1.jpg',
+            reportedAt: '2026-04-20 09:15',
+            location: '大阪市北区中之島 1-2-3',
+            latitude: 34.7,
+            longitude: 135.49,
+            address: '大阪市北区中之島 1-2-3',
+            mapEmbedUrl: null,
+            mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+            identifierText: '防犯登録 1234 / 黒のシティサイクル',
+            status: 'reported',
+            elapsedLabel: '3時間',
+            currentStatusLabel: 'reported',
+            isCollectionCandidate: false,
+            collectionCandidateDecision: 'none',
+            collectionCandidateFlaggedAt: null,
+            history: [],
+          },
+        ]}
       />,
     );
 
-    expect(
-      screen.getByText('24時間を超えた未解除案件はありません。'),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '回収対象にする' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://localhost:3000/api/reports/r-1/collection-candidate',
+        expect.objectContaining({
+          method: 'PATCH',
+        }),
+      ),
+    );
+    expect(await screen.findByText('回収対象（手動）')).toBeInTheDocument();
+
+    global.fetch = originalFetch;
   });
 
-  it('fetches unresolved reports from the server side', async () => {
+  it('removes a report from candidate-only view after turning the flag off', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/unresolved',
+      query: { view: 'candidate' },
+      isReady: true,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'r-2',
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/r-2.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        address: '大阪市北区梅田 2-4-9',
+        identifierText: 'シール 8842 / 銀のクロスバイク',
+        status: 'reported',
+        createdAt: '2026-04-19T09:40:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: false,
+        collectionCandidateDecision: 'manual_off',
+        collectionCandidateFlaggedAt: null,
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <UnresolvedPage
+        selectedView="candidate"
+        reports={[
+          {
+            id: 'r-2',
+            imageUrl: 'https://example.com/r-2.jpg',
+            reportedAt: '2026-04-19 18:40',
+            location: '大阪市北区梅田 2-4-9',
+            latitude: 34.701,
+            longitude: 135.491,
+            address: '大阪市北区梅田 2-4-9',
+            mapEmbedUrl: null,
+            mapLinkUrl: 'https://www.google.com/maps?q=34.701%2C135.491',
+            identifierText: 'シール 8842 / 銀のクロスバイク',
+            status: 'reported',
+            elapsedLabel: '1日 17時間',
+            currentStatusLabel: 'reported',
+            isCollectionCandidate: true,
+            collectionCandidateDecision: 'manual_on',
+            collectionCandidateFlaggedAt: '2026-04-20T18:40:00.000Z',
+            history: [],
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '回収対象から外す' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('回収対象の未解除案件はありません。'),
+      ).toBeInTheDocument(),
+    );
+
+    global.fetch = originalFetch;
+  });
+
+  it('fetches reported unresolved reports from the server side', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
@@ -289,6 +497,9 @@ describe('Admin Dashboard pages', () => {
           status: 'reported',
           createdAt: '2026-04-20T00:15:00.000Z',
           updatedAt: '2026-04-20T00:15:00.000Z',
+          isCollectionCandidate: true,
+          collectionCandidateDecision: 'auto',
+          collectionCandidateFlaggedAt: '2026-04-21T12:00:00.000Z',
         },
         {
           id: 'r-api-2',
@@ -301,6 +512,9 @@ describe('Admin Dashboard pages', () => {
           status: 'reported',
           createdAt: '2026-04-21T06:20:00.000Z',
           updatedAt: '2026-04-21T06:20:00.000Z',
+          isCollectionCandidate: false,
+          collectionCandidateDecision: 'none',
+          collectionCandidateFlaggedAt: null,
         },
         {
           id: 'r-api-3',
@@ -313,6 +527,9 @@ describe('Admin Dashboard pages', () => {
           status: 'temporary',
           createdAt: '2026-04-19T00:25:00.000Z',
           updatedAt: '2026-04-19T00:25:00.000Z',
+          isCollectionCandidate: false,
+          collectionCandidateDecision: 'none',
+          collectionCandidateFlaggedAt: null,
         },
       ],
     } as Response);
@@ -326,11 +543,18 @@ describe('Admin Dashboard pages', () => {
     );
     expect(result).toMatchObject({
       props: {
+        selectedView: 'all',
         reports: [
           expect.objectContaining({
             id: 'r-api-1',
             status: 'reported',
             elapsedLabel: '1日 11時間',
+            isCollectionCandidate: true,
+          }),
+          expect.objectContaining({
+            id: 'r-api-2',
+            status: 'reported',
+            isCollectionCandidate: false,
           }),
         ],
       },
@@ -340,7 +564,7 @@ describe('Admin Dashboard pages', () => {
     jest.useRealTimers();
   });
 
-  it('returns an empty unresolved list when no reported item is overdue', async () => {
+  it('normalizes candidate view query and keeps reported reports on the server side', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
@@ -357,6 +581,9 @@ describe('Admin Dashboard pages', () => {
           status: 'reported',
           createdAt: '2026-04-21T00:15:00.000Z',
           updatedAt: '2026-04-21T00:15:00.000Z',
+          isCollectionCandidate: false,
+          collectionCandidateDecision: 'none',
+          collectionCandidateFlaggedAt: null,
         },
         {
           id: 'r-api-2',
@@ -366,23 +593,32 @@ describe('Admin Dashboard pages', () => {
           longitude: 135.4984,
           address: null,
           identifierText: 'API-0002 / 銀のクロスバイク',
-          status: 'temporary',
+          status: 'reported',
           createdAt: '2026-04-19T00:20:00.000Z',
           updatedAt: '2026-04-19T00:20:00.000Z',
+          isCollectionCandidate: true,
+          collectionCandidateDecision: 'manual_on',
+          collectionCandidateFlaggedAt: '2026-04-20T00:20:00.000Z',
         },
       ],
     } as Response);
     global.fetch = fetchMock;
 
     const { getServerSideProps } = await import('../pages/unresolved');
-    const result = await getServerSideProps({} as never);
+    const result = await getServerSideProps({
+      query: { view: 'unexpected' },
+    } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=reported',
     );
     expect(result).toMatchObject({
       props: {
-        reports: [],
+        selectedView: 'all',
+        reports: [
+          expect.objectContaining({ id: 'r-api-1', isCollectionCandidate: false }),
+          expect.objectContaining({ id: 'r-api-2', isCollectionCandidate: true }),
+        ],
       },
     });
 
@@ -390,7 +626,7 @@ describe('Admin Dashboard pages', () => {
     jest.useRealTimers();
   });
 
-  it('ignores unresolved query filters and always returns overdue reported items', async () => {
+  it('uses candidate-only view on the server side when requested', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-04-21T12:00:00.000Z'));
     const originalFetch = global.fetch;
     const fetchMock = jest.fn().mockResolvedValue({
@@ -407,6 +643,9 @@ describe('Admin Dashboard pages', () => {
           status: 'reported',
           createdAt: '2026-04-20T00:15:00.000Z',
           updatedAt: '2026-04-20T00:15:00.000Z',
+          isCollectionCandidate: true,
+          collectionCandidateDecision: 'auto',
+          collectionCandidateFlaggedAt: '2026-04-21T12:00:00.000Z',
         },
       ],
     } as Response);
@@ -414,7 +653,7 @@ describe('Admin Dashboard pages', () => {
 
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({
-      query: { status: 'resolved' },
+      query: { view: 'candidate' },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -422,6 +661,7 @@ describe('Admin Dashboard pages', () => {
     );
     expect(result).toMatchObject({
       props: {
+        selectedView: 'candidate',
         reports: [expect.objectContaining({ id: 'r-api-1', status: 'reported' })],
       },
     });

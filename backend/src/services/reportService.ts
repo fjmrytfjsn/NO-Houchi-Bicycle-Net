@@ -20,6 +20,9 @@ type ReportRecord = {
   address: string | null;
   identifierText: string;
   status: string;
+  isCollectionCandidate: boolean;
+  collectionCandidateDecision: string;
+  collectionCandidateFlaggedAt: Date | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +62,7 @@ type ReportHistoryEntry = {
 };
 
 type CollectionResult = 'collected' | 'not_found_on_collection';
+type CollectionCandidateDecision = 'none' | 'auto' | 'manual_on' | 'manual_off';
 
 type ReportTransactionPrisma = {
   bicycleReport: {
@@ -78,6 +82,9 @@ type ReportTransactionPrisma = {
         address?: string | null;
         identifierText: string;
         status: string;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
         notes?: string | null;
       };
     }): Promise<ReportRecord>;
@@ -86,13 +93,19 @@ type ReportTransactionPrisma = {
       data: {
         status?: string;
         notes?: string | null;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
       };
     }): Promise<ReportRecord>;
     updateMany(args: {
-      where: { id: string; status?: string };
+      where: { id: string; status?: string; collectionCandidateDecision?: string };
       data: {
         status?: string;
         notes?: string | null;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
       };
     }): Promise<{ count: number }>;
   };
@@ -151,25 +164,41 @@ type ReportPrisma = ReportTransactionPrisma & {
 };
 
 export class ReportService {
-  constructor(private readonly prisma: ReportPrisma) {}
+  constructor(
+    private readonly prisma: ReportPrisma,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async listReports(input: { status?: string }) {
     const status = validateReportStatus(input.status);
 
-    return this.prisma.bicycleReport.findMany({
+    let reports = await this.prisma.bicycleReport.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
     });
+
+    const didApplyAutoFlags = await this.applyAutomaticCollectionCandidateFlags(reports);
+
+    if (didApplyAutoFlags) {
+      reports = await this.prisma.bicycleReport.findMany({
+        where: status ? { status } : undefined,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return reports;
   }
 
   async getReport(id: string) {
-    const report = await this.prisma.bicycleReport.findUnique({
+    let report = await this.prisma.bicycleReport.findUnique({
       where: { id },
     });
 
     if (!report) {
       throw new NotFoundError('report not found');
     }
+
+    report = await this.applyAutomaticCollectionCandidateFlagToReport(report);
 
     const [declarations, collectionRequests] = await Promise.all([
       this.prisma.declaration.findMany({
@@ -218,6 +247,36 @@ export class ReportService {
     });
   }
 
+  async updateCollectionCandidate(
+    id: string,
+    input: { isCollectionCandidate?: boolean; updatedBy?: string | null; notes?: string | null },
+  ) {
+    const report = await this.prisma.bicycleReport.findUnique({
+      where: { id },
+    });
+
+    if (!report) {
+      throw new NotFoundError('report not found');
+    }
+
+    if (report.status !== 'reported') {
+      throw new ConflictError('report is not eligible for collection candidate update');
+    }
+
+    if (typeof input.isCollectionCandidate !== 'boolean') {
+      throw new BadRequestError('isCollectionCandidate must be a boolean');
+    }
+
+    return this.prisma.bicycleReport.update({
+      where: { id: report.id },
+      data: {
+        isCollectionCandidate: input.isCollectionCandidate,
+        collectionCandidateDecision: input.isCollectionCandidate ? 'manual_on' : 'manual_off',
+        collectionCandidateFlaggedAt: input.isCollectionCandidate ? this.now() : null,
+      },
+    });
+  }
+
   async requestCollection(id: string, input: { notes?: string | null; requestedBy?: string | null }) {
     const report = await this.prisma.bicycleReport.findUnique({
       where: { id },
@@ -241,6 +300,9 @@ export class ReportService {
         },
         data: {
           status: 'collection_requested',
+          isCollectionCandidate: false,
+          collectionCandidateDecision: 'none',
+          collectionCandidateFlaggedAt: null,
         },
       });
 
@@ -353,6 +415,61 @@ export class ReportService {
     }
 
     throw new BadRequestError('collection result must be collected or not_found_on_collection');
+  }
+
+  private async applyAutomaticCollectionCandidateFlags(reports: ReportRecord[]) {
+    let didApply = false;
+
+    for (const report of reports) {
+      const updated = await this.applyAutomaticCollectionCandidateFlagToReport(report);
+      if (updated !== report) {
+        didApply = true;
+      }
+    }
+
+    return didApply;
+  }
+
+  private async applyAutomaticCollectionCandidateFlagToReport(report: ReportRecord) {
+    if (!this.shouldAutoFlagCollectionCandidate(report)) {
+      return report;
+    }
+
+    const flaggedAt = this.now();
+    const updateResult = await this.prisma.bicycleReport.updateMany({
+      where: {
+        id: report.id,
+        status: 'reported',
+        collectionCandidateDecision: 'none',
+      },
+      data: {
+        isCollectionCandidate: true,
+        collectionCandidateDecision: 'auto',
+        collectionCandidateFlaggedAt: flaggedAt,
+      },
+    });
+
+    if (updateResult.count !== 1) {
+      return report;
+    }
+
+    const updatedReport = await this.prisma.bicycleReport.findUnique({
+      where: { id: report.id },
+    });
+
+    return updatedReport ?? report;
+  }
+
+  private shouldAutoFlagCollectionCandidate(report: ReportRecord) {
+    if (report.status !== 'reported') {
+      return false;
+    }
+
+    if (report.collectionCandidateDecision !== 'none') {
+      return false;
+    }
+
+    return report.createdAt.getTime() <= this.now().getTime() - 24 * 60 * 60 * 1000;
   }
 
   private async resolveAddress(latitude: number, longitude: number) {
