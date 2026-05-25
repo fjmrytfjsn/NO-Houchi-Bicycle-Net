@@ -109,22 +109,8 @@ export class OwnerUnlockService {
 
     return {
       marker: { code: marker.code },
-      report: report
-        ? {
-          id: report.id,
-          status: report.status as any,
-          imageUrl: report.imageUrl,
-          ocr_text: report.identifierText,
-        }
-        : null,
-      declaration: declaration
-        ? {
-          declaredAt: declaration.declaredAt,
-          eligibleFinalAt: declaration.eligibleFinalAt,
-          expiresAt: declaration.expiresAt,
-          status: declaration.status,
-        }
-        : null,
+      report: report ? { ...report } : null,
+      declaration: declaration ? { ...declaration } : null,
     };
   }
 
