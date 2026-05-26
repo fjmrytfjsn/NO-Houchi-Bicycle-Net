@@ -9,6 +9,7 @@ import {
   reportStatusFilters,
   type SelectedReportStatus,
 } from '../lib/adminReports';
+import { withAdminPageAuth } from '../lib/adminSession';
 import type { ReportDetail } from '../lib/types';
 
 type HomePageProps = {
@@ -68,27 +69,39 @@ export default function HomePage({
 }
 
 export const getServerSideProps: GetServerSideProps<HomePageProps> = async ({
-  query,
+  query = {},
+  ...context
 }) => {
   const selectedStatus = normalizeSelectedStatus(query.status);
 
-  try {
-    const reports = await fetchAdminReports(selectedStatus);
+  return withAdminPageAuth<HomePageProps>(
+    {
+      query,
+      ...context,
+    } as never,
+    async (token) => {
+      try {
+        const reports = await fetchAdminReports(selectedStatus, token);
 
-    return {
-      props: {
-        reports,
-        selectedStatus,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        reports: [],
-        selectedStatus,
-        errorMessage:
-          '通報一覧を取得できませんでした。Backend API の起動状態を確認してください。',
-      },
-    };
-  }
+        return {
+          props: {
+            reports,
+            selectedStatus,
+          },
+        };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AdminSessionUnauthorizedError') {
+          throw error;
+        }
+        return {
+          props: {
+            reports: [],
+            selectedStatus,
+            errorMessage:
+              '通報一覧を取得できませんでした。Backend API の起動状態を確認してください。',
+          },
+        };
+      }
+    },
+  );
 };

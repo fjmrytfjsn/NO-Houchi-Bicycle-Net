@@ -5,6 +5,7 @@ import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { FormScaffold } from '../../components/FormScaffold';
 import { fetchAdminReport } from '../../lib/adminReports';
+import { withAdminPageAuth } from '../../lib/adminSession';
 import type { ReportDetail } from '../../lib/types';
 
 type CollectionResultPageProps = {
@@ -104,6 +105,7 @@ export default function CollectionResultPage({
 
 export const getServerSideProps: GetServerSideProps<CollectionResultPageProps> = async ({
   params,
+  ...context
 }) => {
   const id = typeof params?.id === 'string' ? params.id : undefined;
 
@@ -115,20 +117,31 @@ export const getServerSideProps: GetServerSideProps<CollectionResultPageProps> =
     };
   }
 
-  try {
-    const report = await fetchAdminReport(id);
+  return withAdminPageAuth<CollectionResultPageProps>(
+    {
+      params,
+      ...context,
+    } as never,
+    async (token) => {
+      try {
+        const report = await fetchAdminReport(id, token);
 
-    return {
-      props: {
-        report,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        errorMessage:
-          '回収結果対象を取得できませんでした。Backend API の起動状態を確認してください。',
-      },
-    };
-  }
+        return {
+          props: {
+            report,
+          },
+        };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AdminSessionUnauthorizedError') {
+          throw error;
+        }
+        return {
+          props: {
+            errorMessage:
+              '回収結果対象を取得できませんでした。Backend API の起動状態を確認してください。',
+          },
+        };
+      }
+    },
+  );
 };
