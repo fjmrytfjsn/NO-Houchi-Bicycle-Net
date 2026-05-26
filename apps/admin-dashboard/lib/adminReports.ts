@@ -192,6 +192,24 @@ export async function updateCollectionCandidate(
   return mapApiReportSummaryToDetailWithNow(updatedReport, now);
 }
 
+export async function requestCollection(id: string, notes?: string, now: Date = new Date()) {
+  const updatedReport = await fetchAdminApiJson<ApiReportSummary>(
+    `/api/session/reports/collection-request`,
+    undefined,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        id,
+        ...(notes ? { notes } : {}),
+      }),
+    },
+  );
+  return mapApiReportSummaryToDetailWithNow(updatedReport, now);
+}
+
 export function normalizeSelectedUnresolvedView(
   value: string | string[] | undefined,
 ): SelectedUnresolvedView {
