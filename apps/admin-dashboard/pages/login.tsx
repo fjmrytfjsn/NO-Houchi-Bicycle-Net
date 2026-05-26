@@ -3,7 +3,7 @@ import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { getAdminSessionToken, normalizeNextPath } from '../lib/adminSession';
+import { getAdminSessionToken, normalizeNextPath } from '../lib/adminSessionShared';
 
 type LoginPageProps = {
   nextPath?: string;

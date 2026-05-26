@@ -337,8 +337,8 @@ button:disabled {
   gap: 8px;
 }
 
+.form-field input,
 .form-field textarea {
-.form-field input {
   width: 100%;
   box-sizing: border-box;
   padding: 12px;

@@ -532,7 +532,7 @@ describe('Admin Dashboard pages', () => {
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/session/reports/r-1/collection-candidate',
+        '/api/session/reports/collection-candidate',
         expect.objectContaining({
           method: 'PATCH',
         }),

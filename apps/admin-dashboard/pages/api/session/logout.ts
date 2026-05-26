@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { clearAdminSessionCookie } from '../../../lib/adminSession';
+import { clearAdminSessionCookie } from '../../../lib/adminSessionShared';
 
 export default function handler(
   req: NextApiRequest,

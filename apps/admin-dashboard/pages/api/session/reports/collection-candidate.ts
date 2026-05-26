@@ -1,11 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getAdminApiBaseUrl } from '../../../../lib/adminApiConfig';
 import {
   AdminSessionUnauthorizedError,
-  appendResponseCookie,
   clearAdminSessionCookie,
   getAdminSessionToken,
-} from '../../../../../lib/adminSession';
-import { getAdminApiBaseUrl } from '../../../../../lib/adminReports';
+} from '../../../../lib/adminSessionShared';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'PATCH') {
@@ -14,14 +13,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const token = getAdminSessionToken(req.headers.cookie);
+  const id = typeof req.body?.id === 'string' ? req.body.id : undefined;
 
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  if (!id) {
+    return res.status(400).json({ error: 'report id required' });
+  }
+
   try {
     const response = await fetch(
-      `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(String(req.query.id))}/collection-candidate`,
+      `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}/collection-candidate`,
       {
         method: 'PATCH',
         headers: {
@@ -42,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(response.status).json(payload);
   } catch (error) {
     if (error instanceof AdminSessionUnauthorizedError) {
-      appendResponseCookie(res, clearAdminSessionCookie());
+      res.setHeader('Set-Cookie', clearAdminSessionCookie());
       return res.status(401).json({ error: 'Unauthorized' });
     }
 

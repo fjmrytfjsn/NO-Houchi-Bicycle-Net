@@ -4,7 +4,8 @@ import type {
   ReportHistoryEntry,
   ReportStatus,
 } from './types';
-import { AdminSessionUnauthorizedError } from './adminSession';
+import { getAdminApiBaseUrl } from './adminApiConfig';
+import { AdminSessionUnauthorizedError } from './adminSessionShared';
 
 export const reportStatusFilters = [
   'reported',
@@ -50,14 +51,6 @@ type ApiReportDetail = ApiReportSummary & {
 };
 
 type FetchInit = NonNullable<Parameters<typeof fetch>[1]>;
-
-export function getAdminApiBaseUrl() {
-  return (
-    process.env.ADMIN_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'http://localhost:3000'
-  ).replace(/\/$/, '');
-}
 
 function buildAuthorizedRequestInit(token?: string, init: FetchInit = {}) {
   const headers: Record<string, string> = {};
@@ -186,14 +179,14 @@ export async function updateCollectionCandidate(
   now: Date = new Date(),
 ) {
   const updatedReport = await fetchAdminApiJson<ApiReportSummary>(
-    `/api/session/reports/${encodeURIComponent(id)}/collection-candidate`,
+    `/api/session/reports/collection-candidate`,
     undefined,
     {
       method: 'PATCH',
       headers: {
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ isCollectionCandidate }),
+      body: JSON.stringify({ id, isCollectionCandidate }),
     },
   );
   return mapApiReportSummaryToDetailWithNow(updatedReport, now);

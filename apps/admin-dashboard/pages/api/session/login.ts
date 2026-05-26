@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createAdminSessionCookie, normalizeNextPath } from '../../../lib/adminSession';
-import { getAdminApiBaseUrl } from '../../../lib/adminReports';
+import { getAdminApiBaseUrl } from '../../../lib/adminApiConfig';
+import { createAdminSessionCookie, normalizeNextPath } from '../../../lib/adminSessionShared';
 
 type LoginResponse = {
   ok?: boolean;
