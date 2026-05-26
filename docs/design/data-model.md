@@ -37,8 +37,17 @@
 - `address` (text, nullable; 通報時点の座標から Google Geocoding API で取得した住所スナップショット)
 - `identifier_text` (text)
 - `status` (enum: reported | temporary | resolved | collection_requested | collected | not_found_on_collection)
+- `is_collection_candidate` (bool, default: false; 管理画面で回収依頼候補として扱うか)
+- `collection_candidate_decision` (enum: none | auto | manual_on | manual_off)
+- `collection_candidate_flagged_at` (timestamp, nullable)
 - `notes` (text, nullable)
 - `created_at`, `updated_at`
+
+補足:
+
+- `reported` が 24 時間を超えた時点で、read 時の遅延反映により `is_collection_candidate = true`, `collection_candidate_decision = auto` へ更新できる。
+- 管理者が候補から外した案件は `manual_off` を保持し、自動判定では再ONしない。
+- `collection_requested` は「回収依頼済み」を表し、回収依頼候補フラグとは別に扱う。
 
 ## Declaration（移動宣言）
 

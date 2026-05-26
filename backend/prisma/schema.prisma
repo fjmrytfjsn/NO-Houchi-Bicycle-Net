@@ -61,6 +61,9 @@ model BicycleReport {
   address            String?
   identifierText     String
   status             String              @default("reported")
+  isCollectionCandidate Boolean          @default(false)
+  collectionCandidateDecision String     @default("none")
+  collectionCandidateFlaggedAt DateTime?
   notes              String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt

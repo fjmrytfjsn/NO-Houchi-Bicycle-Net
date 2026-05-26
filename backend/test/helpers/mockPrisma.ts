@@ -47,6 +47,9 @@ type BicycleReportRecord = {
   address: string | null;
   identifierText: string;
   status: string;
+  isCollectionCandidate: boolean;
+  collectionCandidateDecision: string;
+  collectionCandidateFlaggedAt: Date | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -336,6 +339,9 @@ export function createMockPrisma() {
           address?: string | null;
           identifierText: string;
           status: string;
+          isCollectionCandidate?: boolean;
+          collectionCandidateDecision?: string;
+          collectionCandidateFlaggedAt?: Date | null;
           notes?: string | null;
         };
       }) => {
@@ -350,6 +356,9 @@ export function createMockPrisma() {
           address: data.address ?? null,
           identifierText: data.identifierText,
           status: data.status,
+          isCollectionCandidate: data.isCollectionCandidate ?? false,
+          collectionCandidateDecision: data.collectionCandidateDecision ?? 'none',
+          collectionCandidateFlaggedAt: data.collectionCandidateFlaggedAt ?? null,
           notes: data.notes ?? null,
           createdAt: now,
           updatedAt: now,
@@ -362,7 +371,13 @@ export function createMockPrisma() {
         data,
       }: {
         where: { id: string };
-        data: { status?: string; notes?: string | null };
+        data: {
+          status?: string;
+          notes?: string | null;
+          isCollectionCandidate?: boolean;
+          collectionCandidateDecision?: string;
+          collectionCandidateFlaggedAt?: Date | null;
+        };
       }) => {
         const existing = reports.get(where.id);
         if (!existing) {
@@ -372,6 +387,13 @@ export function createMockPrisma() {
         const updated: BicycleReportRecord = {
           ...existing,
           status: data.status ?? existing.status,
+          isCollectionCandidate: data.isCollectionCandidate ?? existing.isCollectionCandidate,
+          collectionCandidateDecision:
+            data.collectionCandidateDecision ?? existing.collectionCandidateDecision,
+          collectionCandidateFlaggedAt:
+            data.collectionCandidateFlaggedAt !== undefined
+              ? data.collectionCandidateFlaggedAt
+              : existing.collectionCandidateFlaggedAt,
           notes: data.notes ?? existing.notes,
           updatedAt: new Date(),
         };
@@ -382,20 +404,42 @@ export function createMockPrisma() {
         where,
         data,
       }: {
-        where: { id?: string; markerId?: string; status?: string };
-        data: { status?: string; notes?: string | null };
+        where: {
+          id?: string;
+          markerId?: string;
+          status?: string;
+          collectionCandidateDecision?: string;
+        };
+        data: {
+          status?: string;
+          notes?: string | null;
+          isCollectionCandidate?: boolean;
+          collectionCandidateDecision?: string;
+          collectionCandidateFlaggedAt?: Date | null;
+        };
       }) => {
         const matched = Array.from(reports.values()).filter((entry) => {
           const matchesId = where.id === undefined ? true : entry.id === where.id;
           const matchesMarkerId = where.markerId === undefined ? true : entry.markerId === where.markerId;
           const matchesStatus = where.status === undefined ? true : entry.status === where.status;
-          return matchesId && matchesMarkerId && matchesStatus;
+          const matchesCandidateDecision =
+            where.collectionCandidateDecision === undefined
+              ? true
+              : entry.collectionCandidateDecision === where.collectionCandidateDecision;
+          return matchesId && matchesMarkerId && matchesStatus && matchesCandidateDecision;
         });
 
         matched.forEach((existing) => {
           const updated: BicycleReportRecord = {
             ...existing,
             status: data.status ?? existing.status,
+            isCollectionCandidate: data.isCollectionCandidate ?? existing.isCollectionCandidate,
+            collectionCandidateDecision:
+              data.collectionCandidateDecision ?? existing.collectionCandidateDecision,
+            collectionCandidateFlaggedAt:
+              data.collectionCandidateFlaggedAt !== undefined
+                ? data.collectionCandidateFlaggedAt
+                : existing.collectionCandidateFlaggedAt,
             notes: data.notes ?? existing.notes,
             updatedAt: new Date(),
           };

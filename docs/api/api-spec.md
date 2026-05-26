@@ -84,6 +84,9 @@
   - `status` (optional, `reported|temporary|resolved|collection_requested|collected|not_found_on_collection`)
 - レスポンス: `[{ report }]`
 - 備考: `report.address` が存在する場合、管理画面は住所を優先表示する。未設定時は座標表示にフォールバックする。
+- レスポンスには回収依頼候補の判定用として `isCollectionCandidate`, `collectionCandidateDecision`, `collectionCandidateFlaggedAt` を含む。
+- Admin Dashboard の未解除案件確認画面では、この API を `status=reported` で呼び、`reported全件` と `回収対象のみ` を切り替える。
+- backend は read 時に遅延反映を行い、`reported` かつ通報受付から24時間を超え、かつ手動上書きされていない案件を `isCollectionCandidate = true` として自動候補化する。
 
 ### GET /api/reports/:id
 
@@ -101,6 +104,17 @@
   - `CollectionRequest` 由来で `回収依頼を登録` / `回収結果を記録` を組み立てる。
   - 返却順は時系列昇順。
 
+### PATCH /api/reports/:id/collection-candidate
+
+- 説明: 管理者が `reported` の通報を回収依頼候補として手動で ON/OFF する
+- 認証: JWT 必須、`admin` ロールのみ
+- Body: `{ "isCollectionCandidate": boolean, "updatedBy"?: string, "notes"?: string }`
+- 期待挙動:
+  - `true`: `isCollectionCandidate = true`, `collectionCandidateDecision = manual_on`
+  - `false`: `isCollectionCandidate = false`, `collectionCandidateDecision = manual_off`
+  - `collectionCandidateFlaggedAt` は ON 時に更新し、OFF 時は `null`
+  - 対象が `reported` 以外の場合は `409`
+
 ### PATCH /api/reports/:id/status
 
 - 説明: 管理者が通報のステータスを更新（例: `collection_requested` | `collected` | `not_found_on_collection` | `resolved`）
@@ -113,6 +127,7 @@
 - Body: `{ "notes"?: string, "requestedBy"?: string }`
 - 期待挙動:
   - report.status を `collection_requested` に更新する
+  - 回収依頼候補フラグ（`isCollectionCandidate` など）はクリアする
   - 回収依頼の操作履歴を保存する
   - 対象が `reported` 以外の場合は `409`
 
