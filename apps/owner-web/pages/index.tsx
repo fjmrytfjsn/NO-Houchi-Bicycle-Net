@@ -138,6 +138,21 @@ export default function Home() {
           ※ 開発用のテストリンクです
         </p>
       </div>
+
+      {/* Footer / Help Link */}
+      <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', padding: 'var(--space-4) 0', borderTop: '1px solid var(--color-surface)' }}>
+        <Link
+          href="/help"
+          style={{
+            color: 'var(--color-primary)',
+            textDecoration: 'underline',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 500,
+          }}
+        >
+          ヘルプ・お問い合わせはこちら
+        </Link>
+      </div>
     </>
   );
 }

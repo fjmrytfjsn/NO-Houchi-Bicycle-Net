@@ -52,3 +52,23 @@ export async function getCoupons(code: string): Promise<{ coupons: Coupon[] }> {
   }
   return res.json();
 }
+
+export async function resetMarker(code: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`/api/owner/markers/${code}/reset`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to reset marker: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fastForwardTime(code: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`/api/owner/markers/${code}/fast-forward`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fast forward time: ${res.statusText}`);
+  }
+  return res.json();
+}

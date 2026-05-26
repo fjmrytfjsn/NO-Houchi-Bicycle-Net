@@ -70,11 +70,14 @@ type OwnerPrisma = {
     }): Promise<DeclarationRecord>;
     update(args: {
       where: { id: string };
-      data: { status?: string; finalizedAt?: Date };
+      data: { status?: string; finalizedAt?: Date; eligibleFinalAt?: Date; expiresAt?: Date };
     }): Promise<DeclarationRecord>;
     updateMany(args: {
       where: { markerId: string; status: string };
       data: { status: string };
+    }): Promise<{ count: number }>;
+    deleteMany(args: {
+      where: { markerId: string };
     }): Promise<{ count: number }>;
   };
 };
@@ -163,7 +166,8 @@ export class OwnerUnlockService {
 
     const declaredAt = this.now();
     const eligibleFinalAt = new Date(declaredAt.getTime() + 15 * 60 * 1000);
-    const expiresAt = new Date(declaredAt.getTime() + 24 * 60 * 60 * 1000);
+    // 期限は「本解除が可能になってから24時間後」
+    const expiresAt = new Date(eligibleFinalAt.getTime() + 24 * 60 * 60 * 1000);
 
     // 問題3: 古い temporary declaration を expired に更新
     await this.prisma.declaration.updateMany({
@@ -301,5 +305,60 @@ export class OwnerUnlockService {
     return this.prisma.marker.create({
       data: { code },
     });
+  }
+
+  /** デモ用: マーカーの状態を初期化して一連のフローを繰り返せるようにする */
+  async resetMarker(code: string) {
+    const marker = await this.prisma.marker.findUnique({
+      where: { code },
+    });
+
+    if (!marker) {
+      throw new NotFoundError('Marker not found');
+    }
+
+    // declaration を全削除
+    await this.prisma.declaration.deleteMany({
+      where: { markerId: marker.id },
+    });
+
+    // report のステータスを初期状態に戻す
+    await this.prisma.bicycleReport.updateMany({
+      where: { markerId: marker.id },
+      data: { status: 'reported' },
+    });
+
+    return { success: true, message: 'マーカーをリセットしました' };
+  }
+
+  /** デモ用: 15分の待機時間をスキップしてすぐに本解除可能にする */
+  async fastForwardTime(code: string) {
+    const marker = await this.prisma.marker.findUnique({
+      where: { code },
+    });
+
+    if (!marker) {
+      throw new NotFoundError('Marker not found');
+    }
+
+    const declaration = await this.prisma.declaration.findFirst({
+      where: { markerId: marker.id, status: 'temporary' },
+    });
+
+    if (!declaration) {
+      throw new BadRequestError('有効な仮解除データが見つかりません');
+    }
+
+    // eligibleFinalAt (本解除可能時間) を「今」に書き換え、同時に期限(expiresAt)を「今から24時間後」にシフトする
+    const now = this.now();
+    await this.prisma.declaration.update({
+      where: { id: declaration.id },
+      data: { 
+        eligibleFinalAt: now,
+        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    return { success: true, message: '待機時間をスキップしました' };
   }
 }

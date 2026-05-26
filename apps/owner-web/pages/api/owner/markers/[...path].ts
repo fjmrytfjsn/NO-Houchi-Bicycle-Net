@@ -5,6 +5,7 @@ import {
   getCouponsForMarker,
   getMarkerEntry,
   setEligibleFinalAtInPast,
+  resetMarkerEntry,
 } from '../../../../lib/owner/store';
 
 function getPath(queryPath: string | string[] | undefined) {
@@ -39,6 +40,19 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (req.method === 'GET' && action === 'coupons') {
     return res.status(200).json({ coupons: getCouponsForMarker(code) });
+  }
+
+  if (req.method === 'POST' && action === 'fast-forward') {
+    const declaration = setEligibleFinalAtInPast(code);
+    if (!declaration) {
+      return res.status(404).json({ error: 'declaration not found' });
+    }
+    return res.status(200).json({ success: true, message: 'スキップしました' });
+  }
+
+  if (req.method === 'POST' && action === 'reset') {
+    resetMarkerEntry(code);
+    return res.status(200).json({ success: true, message: 'リセットしました' });
   }
 
   if (

@@ -43,10 +43,11 @@ export function getMarkerEntry(code: string) {
 
 export function declareTemporaryUnlock(code: string) {
   const now = new Date();
+  const eligibleFinalAt = new Date(now.getTime() + 15 * 60 * 1000);
   const declaration: Declaration = {
     declaredAt: now.toISOString(),
-    eligibleFinalAt: new Date(now.getTime() + 15 * 60 * 1000).toISOString(),
-    expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    eligibleFinalAt: eligibleFinalAt.toISOString(),
+    expiresAt: new Date(eligibleFinalAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
     status: 'temporary',
   };
 
@@ -62,10 +63,21 @@ export function setEligibleFinalAtInPast(code: string) {
   const entry = store[code];
   if (!entry?.declaration) return null;
 
-  entry.declaration.eligibleFinalAt = new Date(0).toISOString();
+  const now = new Date();
+  entry.declaration.eligibleFinalAt = now.toISOString();
+  entry.declaration.expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
   store[code] = entry;
 
   return entry.declaration;
+}
+
+export function resetMarkerEntry(code: string) {
+  const entry = store[code];
+  if (!entry) return;
+
+  entry.declaration = null;
+  entry.report.status = 'reported';
+  store[code] = entry;
 }
 
 export function finalizeUnlock(code: string): FinalUnlockResult {

@@ -106,5 +106,29 @@ export default function createOwnerRoutes(options: { now?: () => Date } = {}): F
         return sendError(reply, fastify.log, error);
       }
     });
+
+    // デモ用: マーカーの状態をリセットして一連のフローを繰り返す
+    fastify.post<{ Params: MarkerParams }>('/markers/:code/reset', async (request, reply) => {
+      try {
+        const response = await ownerUnlockService.resetMarker(
+          requireNonBlankString(request.params.code, 'marker code required')
+        );
+        return reply.send(response);
+      } catch (error) {
+        return sendError(reply, fastify.log, error);
+      }
+    });
+
+    // デモ用: 15分の待機時間をスキップする
+    fastify.post<{ Params: MarkerParams }>('/markers/:code/fast-forward', async (request, reply) => {
+      try {
+        const response = await ownerUnlockService.fastForwardTime(
+          requireNonBlankString(request.params.code, 'marker code required')
+        );
+        return reply.send(response);
+      } catch (error) {
+        return sendError(reply, fastify.log, error);
+      }
+    });
   };
 }
