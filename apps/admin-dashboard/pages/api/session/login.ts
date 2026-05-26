@@ -17,7 +17,7 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const response = await fetch(`${getAdminApiBaseUrl()}/api/auth/login`, {
+  const response = await fetch(`${getAdminApiBaseUrl()}/auth/login`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
