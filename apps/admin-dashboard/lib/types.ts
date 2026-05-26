@@ -6,6 +6,12 @@ export type ReportStatus =
   | 'collected'
   | 'not_found_on_collection';
 
+export type CollectionCandidateDecision =
+  | 'none'
+  | 'auto'
+  | 'manual_on'
+  | 'manual_off';
+
 export interface ReportHistoryEntry {
   id: string;
   timestamp: string;
@@ -25,6 +31,9 @@ export interface ReportSummaryItem {
   mapLinkUrl: string;
   identifierText: string;
   status: ReportStatus;
+  isCollectionCandidate?: boolean;
+  collectionCandidateDecision?: CollectionCandidateDecision;
+  collectionCandidateFlaggedAt?: string | null;
 }
 
 export interface ReportDetail extends ReportSummaryItem {

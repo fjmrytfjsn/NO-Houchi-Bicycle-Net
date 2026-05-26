@@ -7,12 +7,22 @@ interface ReportsTableProps {
   reports: ReportDetail[];
   showElapsed?: boolean;
   actionMode?: 'details' | 'collectionRequest';
+  showCollectionCandidate?: boolean;
+  // eslint-disable-next-line no-unused-vars
+  getCollectionCandidateLabel?: (report: ReportDetail) => string;
+  // eslint-disable-next-line no-unused-vars
+  onToggleCollectionCandidate?: (report: ReportDetail, nextValue: boolean) => void;
+  updatingReportId?: string | null;
 }
 
 export function ReportsTable({
   reports,
   showElapsed = false,
   actionMode = 'details',
+  showCollectionCandidate = false,
+  getCollectionCandidateLabel,
+  onToggleCollectionCandidate,
+  updatingReportId = null,
 }: ReportsTableProps) {
   return (
     <div className="table-card">
@@ -24,6 +34,7 @@ export function ReportsTable({
             <th>{showElapsed ? '通報日時' : '位置'}</th>
             <th>{showElapsed ? '経過時間' : '識別情報'}</th>
             <th>{showElapsed ? '現在ステータス' : '状態'}</th>
+            {showCollectionCandidate ? <th>回収対象</th> : null}
             <th>操作</th>
           </tr>
         </thead>
@@ -53,11 +64,29 @@ export function ReportsTable({
               <td>
                 <StatusBadge status={report.status} />
               </td>
+              {showCollectionCandidate ? (
+                <td>{getCollectionCandidateLabel ? getCollectionCandidateLabel(report) : '-'}</td>
+              ) : null}
               <td>
                 {actionMode === 'collectionRequest' ? (
-                  <Link href={`/collection-request/${report.id}`}>
-                    回収依頼へ進む
-                  </Link>
+                  <div className="inline-links">
+                    {onToggleCollectionCandidate ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onToggleCollectionCandidate(report, !report.isCollectionCandidate)
+                        }
+                        disabled={updatingReportId === report.id}
+                      >
+                        {report.isCollectionCandidate ? '回収対象から外す' : '回収対象にする'}
+                      </button>
+                    ) : null}
+                    {report.isCollectionCandidate ? (
+                      <Link href={`/collection-request/${report.id}`}>
+                        回収依頼へ進む
+                      </Link>
+                    ) : null}
+                  </div>
                 ) : (
                   <div className="inline-links">
                     <Link href={`/reports/${report.id}`}>詳細を見る</Link>

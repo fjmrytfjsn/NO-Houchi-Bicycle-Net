@@ -15,11 +15,109 @@ export const mockReports: ReportDetail[] = [
     status: 'reported',
     elapsedLabel: '3時間',
     currentStatusLabel: 'reported',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'none',
+    collectionCandidateFlaggedAt: null,
     history: [
       {
         id: 'H-001',
         timestamp: '2026-04-20 09:15',
         label: '通報を受付',
+      },
+    ],
+  },
+  {
+    id: 'R-006',
+    imageUrl: '/mock/report-006.png',
+    reportedAt: '2026-04-19 18:40',
+    location: '大阪市北区南森町 2-6-4',
+    latitude: 34.698921,
+    longitude: 135.513082,
+    address: '大阪市北区南森町 2-6-4',
+    mapEmbedUrl: null,
+    mapLinkUrl: 'https://www.google.com/maps?q=34.698921%2C135.513082',
+    identifierText: '防犯登録 5678 / 紺のシティサイクル',
+    status: 'reported',
+    elapsedLabel: '1日 18時間',
+    currentStatusLabel: 'reported',
+    isCollectionCandidate: true,
+    collectionCandidateDecision: 'auto',
+    collectionCandidateFlaggedAt: '2026-04-20T18:40:00.000Z',
+    history: [
+      {
+        id: 'H-012',
+        timestamp: '2026-04-19 18:40',
+        label: '通報を受付',
+      },
+      {
+        id: 'H-013',
+        timestamp: '2026-04-20 18:40',
+        label: '24時間経過で回収対象に自動追加',
+      },
+    ],
+  },
+  {
+    id: 'R-007',
+    imageUrl: '/mock/report-007.png',
+    reportedAt: '2026-04-21 08:30',
+    location: '大阪市北区大深町 4-20',
+    latitude: 34.705938,
+    longitude: 135.496524,
+    address: '大阪市北区大深町 4-20',
+    mapEmbedUrl: null,
+    mapLinkUrl: 'https://www.google.com/maps?q=34.705938%2C135.496524',
+    identifierText: '防犯登録 2468 / 黄色のクロスバイク',
+    status: 'reported',
+    elapsedLabel: '10時間',
+    currentStatusLabel: 'reported',
+    isCollectionCandidate: true,
+    collectionCandidateDecision: 'manual_on',
+    collectionCandidateFlaggedAt: '2026-04-21T16:30:00.000Z',
+    history: [
+      {
+        id: 'H-014',
+        timestamp: '2026-04-21 08:30',
+        label: '通報を受付',
+      },
+      {
+        id: 'H-015',
+        timestamp: '2026-04-21 16:30',
+        label: '管理者が回収対象に設定',
+      },
+    ],
+  },
+  {
+    id: 'R-008',
+    imageUrl: '/mock/report-008.png',
+    reportedAt: '2026-04-18 06:10',
+    location: '大阪市北区曽根崎 2-11-5',
+    latitude: 34.701454,
+    longitude: 135.504239,
+    address: '大阪市北区曽根崎 2-11-5',
+    mapEmbedUrl: null,
+    mapLinkUrl: 'https://www.google.com/maps?q=34.701454%2C135.504239',
+    identifierText: '防犯登録 1357 / 赤のミニベロ',
+    status: 'reported',
+    elapsedLabel: '3日',
+    currentStatusLabel: 'reported',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'manual_off',
+    collectionCandidateFlaggedAt: null,
+    history: [
+      {
+        id: 'H-016',
+        timestamp: '2026-04-18 06:10',
+        label: '通報を受付',
+      },
+      {
+        id: 'H-017',
+        timestamp: '2026-04-19 06:10',
+        label: '24時間経過で回収対象に自動追加',
+      },
+      {
+        id: 'H-018',
+        timestamp: '2026-04-19 09:00',
+        label: '管理者が回収対象から除外',
       },
     ],
   },
@@ -37,6 +135,9 @@ export const mockReports: ReportDetail[] = [
     status: 'temporary',
     elapsedLabel: '17時間',
     currentStatusLabel: 'temporary',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'none',
+    collectionCandidateFlaggedAt: null,
     history: [
       {
         id: 'H-002',
@@ -64,6 +165,9 @@ export const mockReports: ReportDetail[] = [
     status: 'collection_requested',
     elapsedLabel: '2日',
     currentStatusLabel: 'collection_requested',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'none',
+    collectionCandidateFlaggedAt: null,
     collectionRequestMemo: '歩道上に継続駐輪。回収を依頼済み。',
     history: [
       {
@@ -93,6 +197,9 @@ export const mockReports: ReportDetail[] = [
     status: 'collected',
     elapsedLabel: '3日',
     currentStatusLabel: 'collected',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'none',
+    collectionCandidateFlaggedAt: null,
     collectionResultMemo: '回収業者が現地で回収完了。',
     history: [
       {
@@ -127,6 +234,9 @@ export const mockReports: ReportDetail[] = [
     status: 'not_found_on_collection',
     elapsedLabel: '4日',
     currentStatusLabel: 'not_found_on_collection',
+    isCollectionCandidate: false,
+    collectionCandidateDecision: 'none',
+    collectionCandidateFlaggedAt: null,
     collectionResultMemo: '現地確認時に現物なし。',
     history: [
       {
@@ -150,7 +260,7 @@ export const mockReports: ReportDetail[] = [
 ];
 
 export const unresolvedReports = mockReports.filter((report) =>
-  ['reported', 'temporary'].includes(report.status),
+  report.status === 'reported',
 );
 
 export function getReportById(id?: string | string[]) {

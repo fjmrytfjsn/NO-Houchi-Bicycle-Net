@@ -20,6 +20,9 @@ type ReportRecord = {
   address: string | null;
   identifierText: string;
   status: string;
+  isCollectionCandidate: boolean;
+  collectionCandidateDecision: string;
+  collectionCandidateFlaggedAt: Date | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -38,7 +41,28 @@ type CollectionRequestRecord = {
   updatedAt: Date;
 };
 
+type DeclarationRecord = {
+  id: string;
+  markerId: string;
+  declaredAt: Date;
+  eligibleFinalAt: Date;
+  expiresAt: Date;
+  finalizedAt: Date | null;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ReportHistoryEntry = {
+  id: string;
+  timestamp: string;
+  label: string;
+  notes?: string;
+};
+
 type CollectionResult = 'collected' | 'not_found_on_collection';
+type CollectionCandidateDecision = 'none' | 'auto' | 'manual_on' | 'manual_off';
 
 type ReportTransactionPrisma = {
   bicycleReport: {
@@ -58,6 +82,9 @@ type ReportTransactionPrisma = {
         address?: string | null;
         identifierText: string;
         status: string;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
         notes?: string | null;
       };
     }): Promise<ReportRecord>;
@@ -66,13 +93,19 @@ type ReportTransactionPrisma = {
       data: {
         status?: string;
         notes?: string | null;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
       };
     }): Promise<ReportRecord>;
     updateMany(args: {
-      where: { id: string; status?: string };
+      where: { id: string; status?: string; collectionCandidateDecision?: string };
       data: {
         status?: string;
         notes?: string | null;
+        isCollectionCandidate?: boolean;
+        collectionCandidateDecision?: string;
+        collectionCandidateFlaggedAt?: Date | null;
       };
     }): Promise<{ count: number }>;
   };
@@ -93,6 +126,12 @@ type ReportTransactionPrisma = {
         notes?: string | null;
       };
     }): Promise<CollectionRequestRecord>;
+    findMany(args: {
+      where: {
+        reportId: string;
+      };
+      orderBy?: { requestedAt: 'asc' | 'desc' };
+    }): Promise<CollectionRequestRecord[]>;
     update(args: {
       where: { id: string };
       data: {
@@ -113,23 +152,45 @@ type ReportPrisma = ReportTransactionPrisma & {
       create: { code: string; location?: string | null };
     }): Promise<MarkerRecord>;
   };
+  declaration: {
+    findMany(args: {
+      where: {
+        markerId: string;
+      };
+      orderBy?: { declaredAt: 'asc' | 'desc' };
+    }): Promise<DeclarationRecord[]>;
+  };
   $transaction<T>(fn: (tx: ReportTransactionPrisma) => Promise<T>): Promise<T>;
 };
 
 export class ReportService {
-  constructor(private readonly prisma: ReportPrisma) {}
+  constructor(
+    private readonly prisma: ReportPrisma,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async listReports(input: { status?: string }) {
     const status = validateReportStatus(input.status);
 
-    return this.prisma.bicycleReport.findMany({
+    let reports = await this.prisma.bicycleReport.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: 'desc' },
     });
+
+    const didApplyAutoFlags = await this.applyAutomaticCollectionCandidateFlags(reports);
+
+    if (didApplyAutoFlags) {
+      reports = await this.prisma.bicycleReport.findMany({
+        where: status ? { status } : undefined,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return reports;
   }
 
   async getReport(id: string) {
-    const report = await this.prisma.bicycleReport.findUnique({
+    let report = await this.prisma.bicycleReport.findUnique({
       where: { id },
     });
 
@@ -137,7 +198,23 @@ export class ReportService {
       throw new NotFoundError('report not found');
     }
 
-    return report;
+    report = await this.applyAutomaticCollectionCandidateFlagToReport(report);
+
+    const [declarations, collectionRequests] = await Promise.all([
+      this.prisma.declaration.findMany({
+        where: { markerId: report.markerId },
+        orderBy: { declaredAt: 'asc' },
+      }),
+      this.prisma.collectionRequest.findMany({
+        where: { reportId: report.id },
+        orderBy: { requestedAt: 'asc' },
+      }),
+    ]);
+
+    return {
+      ...report,
+      history: this.buildReportHistory(report, declarations, collectionRequests),
+    };
   }
 
   async createReport(input: {
@@ -170,6 +247,36 @@ export class ReportService {
     });
   }
 
+  async updateCollectionCandidate(
+    id: string,
+    input: { isCollectionCandidate?: boolean; updatedBy?: string | null; notes?: string | null },
+  ) {
+    const report = await this.prisma.bicycleReport.findUnique({
+      where: { id },
+    });
+
+    if (!report) {
+      throw new NotFoundError('report not found');
+    }
+
+    if (report.status !== 'reported') {
+      throw new ConflictError('report is not eligible for collection candidate update');
+    }
+
+    if (typeof input.isCollectionCandidate !== 'boolean') {
+      throw new BadRequestError('isCollectionCandidate must be a boolean');
+    }
+
+    return this.prisma.bicycleReport.update({
+      where: { id: report.id },
+      data: {
+        isCollectionCandidate: input.isCollectionCandidate,
+        collectionCandidateDecision: input.isCollectionCandidate ? 'manual_on' : 'manual_off',
+        collectionCandidateFlaggedAt: input.isCollectionCandidate ? this.now() : null,
+      },
+    });
+  }
+
   async requestCollection(id: string, input: { notes?: string | null; requestedBy?: string | null }) {
     const report = await this.prisma.bicycleReport.findUnique({
       where: { id },
@@ -193,6 +300,9 @@ export class ReportService {
         },
         data: {
           status: 'collection_requested',
+          isCollectionCandidate: false,
+          collectionCandidateDecision: 'none',
+          collectionCandidateFlaggedAt: null,
         },
       });
 
@@ -307,6 +417,61 @@ export class ReportService {
     throw new BadRequestError('collection result must be collected or not_found_on_collection');
   }
 
+  private async applyAutomaticCollectionCandidateFlags(reports: ReportRecord[]) {
+    let didApply = false;
+
+    for (const report of reports) {
+      const updated = await this.applyAutomaticCollectionCandidateFlagToReport(report);
+      if (updated !== report) {
+        didApply = true;
+      }
+    }
+
+    return didApply;
+  }
+
+  private async applyAutomaticCollectionCandidateFlagToReport(report: ReportRecord) {
+    if (!this.shouldAutoFlagCollectionCandidate(report)) {
+      return report;
+    }
+
+    const flaggedAt = this.now();
+    const updateResult = await this.prisma.bicycleReport.updateMany({
+      where: {
+        id: report.id,
+        status: 'reported',
+        collectionCandidateDecision: 'none',
+      },
+      data: {
+        isCollectionCandidate: true,
+        collectionCandidateDecision: 'auto',
+        collectionCandidateFlaggedAt: flaggedAt,
+      },
+    });
+
+    if (updateResult.count !== 1) {
+      return report;
+    }
+
+    const updatedReport = await this.prisma.bicycleReport.findUnique({
+      where: { id: report.id },
+    });
+
+    return updatedReport ?? report;
+  }
+
+  private shouldAutoFlagCollectionCandidate(report: ReportRecord) {
+    if (report.status !== 'reported') {
+      return false;
+    }
+
+    if (report.collectionCandidateDecision !== 'none') {
+      return false;
+    }
+
+    return report.createdAt.getTime() <= this.now().getTime() - 24 * 60 * 60 * 1000;
+  }
+
   private async resolveAddress(latitude: number, longitude: number) {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -339,5 +504,60 @@ export class ReportService {
     } catch (error) {
       return null;
     }
+  }
+
+  private buildReportHistory(
+    report: ReportRecord,
+    declarations: DeclarationRecord[],
+    collectionRequests: CollectionRequestRecord[]
+  ): ReportHistoryEntry[] {
+    const history: ReportHistoryEntry[] = [
+      {
+        id: `${report.id}:reported`,
+        timestamp: report.createdAt.toISOString(),
+        label: '通報を受付',
+      },
+    ];
+
+    for (const declaration of declarations) {
+      history.push({
+        id: `${declaration.id}:temporary`,
+        timestamp: declaration.declaredAt.toISOString(),
+        label: '持ち主が仮解除',
+        ...(declaration.notes ? { notes: declaration.notes } : {}),
+      });
+
+      if (declaration.status === 'resolved' && declaration.finalizedAt) {
+        history.push({
+          id: `${declaration.id}:resolved`,
+          timestamp: declaration.finalizedAt.toISOString(),
+          label: '持ち主が本解除',
+        });
+      }
+    }
+
+    for (const collectionRequest of collectionRequests) {
+      history.push({
+        id: `${collectionRequest.id}:requested`,
+        timestamp: collectionRequest.requestedAt.toISOString(),
+        label: '回収依頼を登録',
+        ...(collectionRequest.notes && collectionRequest.result === 'pending'
+          ? { notes: collectionRequest.notes }
+          : {}),
+      });
+
+      if (collectionRequest.result !== 'pending' && collectionRequest.resultRecordedAt) {
+        history.push({
+          id: `${collectionRequest.id}:result`,
+          timestamp: collectionRequest.resultRecordedAt.toISOString(),
+          label: '回収結果を記録',
+          ...(collectionRequest.notes ? { notes: collectionRequest.notes } : {}),
+        });
+      }
+    }
+
+    return history.sort(
+      (left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
+    );
   }
 }

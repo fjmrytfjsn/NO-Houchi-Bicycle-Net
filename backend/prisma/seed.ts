@@ -9,6 +9,10 @@ function daysAgo(days: number) {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
+function hoursAgo(hours: number) {
+  return new Date(now.getTime() - hours * 60 * 60 * 1000);
+}
+
 function daysFromNow(days: number) {
   return new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 }
@@ -96,6 +100,9 @@ async function main() {
 
   const markers = await Promise.all([
     upsertMarker('seed-marker-reported', 'SEED-REP-001', '大阪市北区中之島 1-2-3'),
+    upsertMarker('seed-marker-reported-auto', 'SEED-REP-002', '大阪市北区南森町 2-6-4'),
+    upsertMarker('seed-marker-reported-manual-on', 'SEED-REP-003', '大阪市北区大深町 4-20'),
+    upsertMarker('seed-marker-reported-manual-off', 'SEED-REP-004', '大阪市北区曽根崎 2-11-5'),
     upsertMarker('seed-marker-temporary', 'SEED-TMP-001', '大阪市北区梅田 2-4-9'),
     upsertMarker('seed-marker-collection', 'SEED-COL-001', '大阪市北区天満 3-8-1'),
     upsertMarker('seed-marker-collected', 'SEED-DONE-001', '大阪市北区堂島 1-5-2'),
@@ -105,6 +112,9 @@ async function main() {
 
   const [
     reportedMarker,
+    reportedAutoMarker,
+    reportedManualOnMarker,
+    reportedManualOffMarker,
     temporaryMarker,
     collectionMarker,
     collectedMarker,
@@ -122,8 +132,53 @@ async function main() {
       address: '大阪市北区中之島 1-2-3',
       identifierText: '防犯登録 SEED-1001 / 黒のシティサイクル',
       status: 'reported',
-      notes: '開発用: 未解除一覧と回収依頼導線の確認用',
-      createdAt: daysAgo(1),
+      notes: '開発用: reported 全件にのみ出る未対象案件',
+      createdAt: hoursAgo(6),
+    }),
+    upsertReport({
+      id: 'seed-report-reported-auto-candidate',
+      markerId: reportedAutoMarker.id,
+      imageUrl: 'https://example.com/seed/report-reported-auto-candidate.jpg',
+      latitude: 34.698921,
+      longitude: 135.513082,
+      address: '大阪市北区南森町 2-6-4',
+      identifierText: '防犯登録 SEED-1002 / 紺のシティサイクル',
+      status: 'reported',
+      notes: '開発用: 24時間経過で自動的に回収対象になった案件',
+      createdAt: daysAgo(2),
+      isCollectionCandidate: true,
+      collectionCandidateDecision: 'auto',
+      collectionCandidateFlaggedAt: daysAgo(1),
+    }),
+    upsertReport({
+      id: 'seed-report-reported-manual-on',
+      markerId: reportedManualOnMarker.id,
+      imageUrl: 'https://example.com/seed/report-reported-manual-on.jpg',
+      latitude: 34.705938,
+      longitude: 135.496524,
+      address: '大阪市北区大深町 4-20',
+      identifierText: '防犯登録 SEED-1003 / 黄色のクロスバイク',
+      status: 'reported',
+      notes: '開発用: 管理者が手動で回収対象にした案件',
+      createdAt: hoursAgo(10),
+      isCollectionCandidate: true,
+      collectionCandidateDecision: 'manual_on',
+      collectionCandidateFlaggedAt: hoursAgo(2),
+    }),
+    upsertReport({
+      id: 'seed-report-reported-manual-off',
+      markerId: reportedManualOffMarker.id,
+      imageUrl: 'https://example.com/seed/report-reported-manual-off.jpg',
+      latitude: 34.701454,
+      longitude: 135.504239,
+      address: '大阪市北区曽根崎 2-11-5',
+      identifierText: '防犯登録 SEED-1004 / 赤のミニベロ',
+      status: 'reported',
+      notes: '開発用: 24時間超過後に手動除外した案件',
+      createdAt: daysAgo(3),
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'manual_off',
+      collectionCandidateFlaggedAt: null,
     }),
     upsertReport({
       id: 'seed-report-temporary',
@@ -148,6 +203,9 @@ async function main() {
       status: 'collection_requested',
       notes: '開発用: 回収依頼中の案件',
       createdAt: daysAgo(3),
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
     }),
     upsertReport({
       id: 'seed-report-collected',
@@ -160,6 +218,9 @@ async function main() {
       status: 'collected',
       notes: '開発用: 回収完了案件',
       createdAt: daysAgo(4),
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
     }),
     upsertReport({
       id: 'seed-report-not-found',
@@ -172,6 +233,9 @@ async function main() {
       status: 'not_found_on_collection',
       notes: '開発用: 現地で現物なしの案件',
       createdAt: daysAgo(5),
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
     }),
     upsertReport({
       id: 'seed-report-resolved',
@@ -184,6 +248,9 @@ async function main() {
       status: 'resolved',
       notes: '開発用: 持ち主が本解除済みの案件',
       createdAt: daysAgo(6),
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
     }),
   ]);
 
@@ -311,6 +378,9 @@ async function upsertReport(input: {
   status: string;
   notes: string;
   createdAt: Date;
+  isCollectionCandidate?: boolean;
+  collectionCandidateDecision?: string;
+  collectionCandidateFlaggedAt?: Date | null;
 }) {
   return prisma.bicycleReport.upsert({
     where: { id: input.id },
@@ -324,6 +394,9 @@ async function upsertReport(input: {
       status: input.status,
       notes: input.notes,
       createdAt: input.createdAt,
+      isCollectionCandidate: input.isCollectionCandidate,
+      collectionCandidateDecision: input.collectionCandidateDecision,
+      collectionCandidateFlaggedAt: input.collectionCandidateFlaggedAt,
     },
     create: input,
   });

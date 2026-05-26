@@ -1,4 +1,9 @@
-import type { ReportDetail, ReportStatus } from './types';
+import type {
+  CollectionCandidateDecision,
+  ReportDetail,
+  ReportHistoryEntry,
+  ReportStatus,
+} from './types';
 
 export const reportStatusFilters = [
   'reported',
@@ -11,16 +16,36 @@ export const reportStatusFilters = [
 
 export type ReportStatusFilter = (typeof reportStatusFilters)[number];
 export type SelectedReportStatus = ReportStatusFilter | 'all';
+export const UNRESOLVED_REPORTED_THRESHOLD_HOURS = 24;
+export const unresolvedViewFilters = ['all', 'candidate'] as const;
+export type SelectedUnresolvedView = (typeof unresolvedViewFilters)[number];
 
-type ApiReport = {
+type ApiReportSummary = {
   id: string;
+  markerId: string;
   imageUrl: string;
   latitude: number;
   longitude: number;
   address?: string | null;
   identifierText: string;
   status: ReportStatus;
+  isCollectionCandidate: boolean;
+  collectionCandidateDecision: CollectionCandidateDecision;
+  collectionCandidateFlaggedAt: string | null;
+  notes?: string | null;
   createdAt: string;
+  updatedAt: string;
+};
+
+type ApiReportHistoryEntry = {
+  id: string;
+  timestamp: string;
+  label: string;
+  notes?: string | null;
+};
+
+type ApiReportDetail = ApiReportSummary & {
+  history: ApiReportHistoryEntry[];
 };
 
 export function getAdminApiBaseUrl() {
@@ -53,7 +78,14 @@ export function buildReportsUrl(selectedStatus: SelectedReportStatus) {
   return url.toString();
 }
 
-export function mapApiReportToDetail(report: ApiReport): ReportDetail {
+export function mapApiReportSummaryToDetail(report: ApiReportSummary): ReportDetail {
+  return mapApiReportSummaryToDetailWithNow(report);
+}
+
+export function mapApiReportSummaryToDetailWithNow(
+  report: ApiReportSummary,
+  now?: Date,
+): ReportDetail {
   const location = report.address ?? formatLocation(report.latitude, report.longitude);
 
   return {
@@ -68,9 +100,21 @@ export function mapApiReportToDetail(report: ApiReport): ReportDetail {
     mapLinkUrl: buildMapLinkUrl(report.latitude, report.longitude),
     identifierText: report.identifierText,
     status: report.status,
-    elapsedLabel: '',
+    elapsedLabel: now ? formatElapsedTime(report.createdAt, now) : '',
     currentStatusLabel: report.status,
+    isCollectionCandidate: report.isCollectionCandidate,
+    collectionCandidateDecision: report.collectionCandidateDecision,
+    collectionCandidateFlaggedAt: report.collectionCandidateFlaggedAt,
     history: [],
+  };
+}
+
+export function mapApiReportDetailToDetail(report: ApiReportDetail): ReportDetail {
+  const mappedReport = mapApiReportSummaryToDetailWithNow(report);
+
+  return {
+    ...mappedReport,
+    history: report.history.map(mapApiReportHistoryEntry),
   };
 }
 
@@ -81,8 +125,22 @@ export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
     throw new Error(`GET /api/reports failed: ${response.status}`);
   }
 
-  const reports = (await response.json()) as ApiReport[];
-  return reports.map(mapApiReportToDetail);
+  const reports = (await response.json()) as ApiReportSummary[];
+  return reports.map(mapApiReportSummaryToDetail);
+}
+
+export async function fetchReportedCandidateReports(now: Date = new Date()) {
+  const response = await fetch(buildReportsUrl('reported'));
+
+  if (!response.ok) {
+    throw new Error(`GET /api/reports?status=reported failed: ${response.status}`);
+  }
+
+  const reports = (await response.json()) as ApiReportSummary[];
+
+  return reports
+    .filter((report) => report.status === 'reported')
+    .map((report) => mapApiReportSummaryToDetailWithNow(report, now));
 }
 
 export async function fetchAdminReport(id: string) {
@@ -94,7 +152,58 @@ export async function fetchAdminReport(id: string) {
     throw new Error(`GET /api/reports/${id} failed: ${response.status}`);
   }
 
-  return mapApiReportToDetail((await response.json()) as ApiReport);
+  return mapApiReportDetailToDetail((await response.json()) as ApiReportDetail);
+}
+
+export async function updateCollectionCandidate(
+  id: string,
+  isCollectionCandidate: boolean,
+  now: Date = new Date(),
+) {
+  const response = await fetch(
+    `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}/collection-candidate`,
+    {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ isCollectionCandidate }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`PATCH /api/reports/${id}/collection-candidate failed: ${response.status}`);
+  }
+
+  return mapApiReportSummaryToDetailWithNow((await response.json()) as ApiReportSummary, now);
+}
+
+export function normalizeSelectedUnresolvedView(
+  value: string | string[] | undefined,
+): SelectedUnresolvedView {
+  const normalized = Array.isArray(value) ? value[0] : value;
+
+  if (normalized && unresolvedViewFilters.includes(normalized as SelectedUnresolvedView)) {
+    return normalized as SelectedUnresolvedView;
+  }
+
+  return 'all';
+}
+
+export function getCollectionCandidateLabel(report: ReportDetail) {
+  if (report.collectionCandidateDecision === 'manual_off') {
+    return '手動除外';
+  }
+
+  if (!report.isCollectionCandidate) {
+    return '未対象';
+  }
+
+  if (report.collectionCandidateDecision === 'manual_on') {
+    return '回収対象（手動）';
+  }
+
+  return '回収対象（自動）';
 }
 
 function formatDateTime(value: string) {
@@ -138,4 +247,45 @@ function buildMapEmbedUrl(latitude: number, longitude: number) {
   url.searchParams.set('key', apiKey);
   url.searchParams.set('q', `${latitude},${longitude}`);
   return url.toString();
+}
+
+function mapApiReportHistoryEntry(entry: ApiReportHistoryEntry): ReportHistoryEntry {
+  return {
+    id: entry.id,
+    timestamp: formatDateTime(entry.timestamp),
+    label: entry.label,
+    ...(entry.notes ? { notes: entry.notes } : {}),
+  };
+}
+
+function formatElapsedTime(createdAt: string, now: Date) {
+  const createdAtDate = new Date(createdAt);
+
+  if (Number.isNaN(createdAtDate.getTime())) {
+    return '';
+  }
+
+  const elapsedHours = getElapsedHours(createdAtDate, now);
+  const days = Math.floor(elapsedHours / 24);
+  const hours = elapsedHours % 24;
+
+  if (days === 0) {
+    return `${hours}時間`;
+  }
+
+  if (hours === 0) {
+    return `${days}日`;
+  }
+
+  return `${days}日 ${hours}時間`;
+}
+
+function getElapsedHours(createdAt: Date, now: Date) {
+  const diffMs = now.getTime() - createdAt.getTime();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.floor(diffMs / (1000 * 60 * 60));
 }

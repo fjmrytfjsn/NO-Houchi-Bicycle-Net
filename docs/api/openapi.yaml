@@ -110,7 +110,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BicycleReport"
+                $ref: "#/components/schemas/BicycleReportDetail"
         "401":
           description: Unauthorized
           content:
@@ -125,6 +125,56 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/reports/{id}/collection-candidate:
+    patch:
+      summary: 回収依頼候補フラグを更新する
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionCandidateBody"
+      responses:
+        "200":
+          description: Collection candidate updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleReport"
+        "400":
+          description: Invalid candidate flag payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Report is not eligible for collection candidate update
           content:
             application/json:
               schema:
@@ -375,6 +425,15 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ReportStatus"
+        isCollectionCandidate:
+          type: boolean
+        collectionCandidateDecision:
+          type: string
+          enum: [none, auto, manual_on, manual_off]
+        collectionCandidateFlaggedAt:
+          type: string
+          format: date-time
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -384,12 +443,44 @@ components:
         updatedAt:
           type: string
           format: date-time
+    ReportHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        label:
+          type: string
+        notes:
+          type: string
+          nullable: true
+    BicycleReportDetail:
+      allOf:
+        - $ref: "#/components/schemas/BicycleReport"
+        - type: object
+          properties:
+            history:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReportHistoryEntry"
     CollectionRequestBody:
       type: object
       properties:
         notes:
           type: string
         requestedBy:
+          type: string
+    CollectionCandidateBody:
+      type: object
+      required: [isCollectionCandidate]
+      properties:
+        isCollectionCandidate:
+          type: boolean
+        updatedBy:
+          type: string
+        notes:
           type: string
     CollectionResultBody:
       type: object

@@ -57,7 +57,7 @@ export function buildServer({ prisma, ocrService, now }: BuildServerOptions = {}
   server.register(authRoutes, { prefix: '/auth' });
 
   console.log('Registering report routes...');
-  server.register(reportRoutes, { prefix: '/api/reports' });
+  server.register(reportRoutes({ now }), { prefix: '/api/reports' });
 
   console.log('Registering bike routes...');
   server.register(bikeRoutes({ ocrService }), { prefix: '/bikes' });

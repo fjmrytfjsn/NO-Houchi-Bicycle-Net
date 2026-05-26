@@ -17,6 +17,7 @@ describe('reports', () => {
     prismaBundle = createMockPrisma();
     server = buildServer({
       prisma: prismaBundle.prisma as any,
+      now: () => new Date('2026-04-21T12:00:00.000Z'),
     });
     await server.ready();
 
@@ -226,6 +227,125 @@ describe('reports', () => {
     ]);
   });
 
+  it('auto flags overdue reported reports as collection candidates when listing reports', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-candidate-auto.jpg',
+        latitude: 34.703,
+        longitude: 135.493,
+        identifierText: 'CANDIDATE-AUTO-0001',
+        status: 'reported',
+      },
+    });
+    prismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T00:00:00.000Z');
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/api/reports?status=reported',
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: report.id,
+          isCollectionCandidate: true,
+          collectionCandidateDecision: 'auto',
+          collectionCandidateFlaggedAt: '2026-04-21T12:00:00.000Z',
+        }),
+      ]),
+    );
+    expect(prismaBundle.state.reports.get(report.id)).toMatchObject({
+      isCollectionCandidate: true,
+      collectionCandidateDecision: 'auto',
+    });
+  });
+
+  it('keeps manual_off reports out of auto candidate updates', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-candidate-manual-off.jpg',
+        latitude: 34.704,
+        longitude: 135.494,
+        identifierText: 'CANDIDATE-MANUAL-OFF-0001',
+        status: 'reported',
+      },
+    });
+
+    prismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T00:00:00.000Z');
+    prismaBundle.state.reports.get(report.id)!.isCollectionCandidate = false as never;
+    prismaBundle.state.reports.get(report.id)!.collectionCandidateDecision = 'manual_off' as never;
+    prismaBundle.state.reports.get(report.id)!.collectionCandidateFlaggedAt = null as never;
+
+    const response = await server.inject({
+      method: 'GET',
+      url: `/api/reports/${report.id}`,
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'manual_off',
+      collectionCandidateFlaggedAt: null,
+    });
+    expect(prismaBundle.state.reports.get(report.id)).toMatchObject({
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'manual_off',
+    });
+  });
+
+  it('updates collection candidate flag manually for reported reports', async () => {
+    const report = await prismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: 'm-2',
+        imageUrl: 'https://example.com/report-candidate-manual.jpg',
+        latitude: 34.705,
+        longitude: 135.495,
+        identifierText: 'CANDIDATE-MANUAL-0001',
+        status: 'reported',
+      },
+    });
+
+    const enableResponse = await server.inject({
+      method: 'PATCH',
+      url: `/api/reports/${report.id}/collection-candidate`,
+      headers: adminAuthHeader,
+      payload: {
+        isCollectionCandidate: true,
+      },
+    });
+
+    expect(enableResponse.statusCode).toBe(200);
+    expect(JSON.parse(enableResponse.payload)).toMatchObject({
+      id: report.id,
+      isCollectionCandidate: true,
+      collectionCandidateDecision: 'manual_on',
+      collectionCandidateFlaggedAt: '2026-04-21T12:00:00.000Z',
+    });
+
+    const disableResponse = await server.inject({
+      method: 'PATCH',
+      url: `/api/reports/${report.id}/collection-candidate`,
+      headers: adminAuthHeader,
+      payload: {
+        isCollectionCandidate: false,
+      },
+    });
+
+    expect(disableResponse.statusCode).toBe(200);
+    expect(JSON.parse(disableResponse.payload)).toMatchObject({
+      id: report.id,
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'manual_off',
+      collectionCandidateFlaggedAt: null,
+    });
+  });
+
   it('gets a report by id', async () => {
     const response = await server.inject({
       method: 'GET',
@@ -240,7 +360,155 @@ describe('reports', () => {
       identifierText: 'LIST-0001',
       status: 'reported',
       address: null,
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+        }),
+      ],
     });
+  });
+
+  it('builds declaration history on report detail', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'DETAIL-MARKER-001',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-detail-1.jpg',
+        latitude: 34.701,
+        longitude: 135.491,
+        identifierText: 'DETAIL-0001',
+        status: 'resolved',
+      },
+    });
+    isolatedPrismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T00:00:00.000Z');
+
+    const declaration = await isolatedPrismaBundle.prisma.declaration.create({
+      data: {
+        markerId: marker.id,
+        declaredAt: new Date('2026-04-20T00:15:00.000Z'),
+        eligibleFinalAt: new Date('2026-04-20T00:30:00.000Z'),
+        expiresAt: new Date('2026-04-21T00:15:00.000Z'),
+        status: 'temporary',
+      },
+    });
+
+    await isolatedPrismaBundle.prisma.declaration.update({
+      where: { id: declaration.id },
+      data: {
+        status: 'resolved',
+        finalizedAt: new Date('2026-04-20T00:45:00.000Z'),
+      },
+    });
+
+    const response = await isolatedServer.inject({
+      method: 'GET',
+      url: `/api/reports/${report.id}`,
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'resolved',
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+          timestamp: '2026-04-20T00:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '持ち主が仮解除',
+          timestamp: '2026-04-20T00:15:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '持ち主が本解除',
+          timestamp: '2026-04-20T00:45:00.000Z',
+        }),
+      ],
+    });
+
+    await isolatedServer.close();
+  });
+
+  it('builds collection request and result history on report detail', async () => {
+    const isolatedPrismaBundle = createMockPrisma();
+    const isolatedServer = buildServer({
+      prisma: isolatedPrismaBundle.prisma as any,
+    });
+
+    const marker = await isolatedPrismaBundle.prisma.marker.create({
+      data: {
+        code: 'DETAIL-MARKER-002',
+      },
+    });
+    const report = await isolatedPrismaBundle.prisma.bicycleReport.create({
+      data: {
+        markerId: marker.id,
+        imageUrl: 'https://example.com/report-detail-2.jpg',
+        latitude: 34.702,
+        longitude: 135.492,
+        identifierText: 'DETAIL-0002',
+        status: 'collected',
+      },
+    });
+    isolatedPrismaBundle.state.reports.get(report.id)!.createdAt = new Date('2026-04-20T01:00:00.000Z');
+
+    const collectionRequest = await isolatedPrismaBundle.prisma.collectionRequest.create({
+      data: {
+        reportId: report.id,
+        requestedAt: new Date('2026-04-20T02:00:00.000Z'),
+        requestedBy: '北区役所 管理担当',
+        result: 'pending',
+        notes: '歩道上のため回収依頼',
+      },
+    });
+
+    await isolatedPrismaBundle.prisma.collectionRequest.update({
+      where: { id: collectionRequest.id },
+      data: {
+        result: 'collected',
+        resultRecordedAt: new Date('2026-04-20T05:00:00.000Z'),
+        resultRecordedBy: '回収業者A',
+        notes: '現地で回収完了',
+      },
+    });
+
+    const response = await isolatedServer.inject({
+      method: 'GET',
+      url: `/api/reports/${report.id}`,
+      headers: adminAuthHeader,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      id: report.id,
+      status: 'collected',
+      history: [
+        expect.objectContaining({
+          label: '通報を受付',
+          timestamp: '2026-04-20T01:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '回収依頼を登録',
+          timestamp: '2026-04-20T02:00:00.000Z',
+        }),
+        expect.objectContaining({
+          label: '回収結果を記録',
+          timestamp: '2026-04-20T05:00:00.000Z',
+          notes: '現地で回収完了',
+        }),
+      ],
+    });
+
+    await isolatedServer.close();
   });
 
   it('returns 404 when report id does not exist', async () => {
@@ -255,6 +523,12 @@ describe('reports', () => {
   });
 
   it('requests collection for a reported report and stores request history', async () => {
+    prismaBundle.state.reports.get('r-2')!.isCollectionCandidate = true as never;
+    prismaBundle.state.reports.get('r-2')!.collectionCandidateDecision = 'manual_on' as never;
+    prismaBundle.state.reports.get('r-2')!.collectionCandidateFlaggedAt = new Date(
+      '2026-04-21T12:00:00.000Z',
+    ) as never;
+
     const response = await server.inject({
       method: 'POST',
       url: '/api/reports/r-2/collection-request',
@@ -269,9 +543,17 @@ describe('reports', () => {
     expect(JSON.parse(response.payload)).toMatchObject({
       id: 'r-2',
       status: 'collection_requested',
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
     });
 
     expect(prismaBundle.state.reports.get('r-2')!.status).toBe('collection_requested');
+    expect(prismaBundle.state.reports.get('r-2')).toMatchObject({
+      isCollectionCandidate: false,
+      collectionCandidateDecision: 'none',
+      collectionCandidateFlaggedAt: null,
+    });
     expect(Array.from(prismaBundle.state.collectionRequests.values())).toEqual([
       expect.objectContaining({
         reportId: 'r-2',
