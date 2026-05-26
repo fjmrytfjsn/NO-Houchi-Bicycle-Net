@@ -14,6 +14,10 @@ body {
     sans-serif;
 }
 
+input {
+  box-sizing: border-box;
+}
+
 a {
   color: #0f5f4b;
   text-decoration: none;
@@ -334,11 +338,15 @@ button:disabled {
 }
 
 .form-field textarea {
+.form-field input {
   width: 100%;
   box-sizing: border-box;
   padding: 12px;
   border: 1px solid #cbd2d9;
   border-radius: 12px;
+}
+
+.form-field textarea {
   min-height: 120px;
   resize: vertical;
 }
@@ -390,6 +398,42 @@ button:disabled {
 .button-primary {
   background: #0f5f4b;
   color: #fff;
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(100%, 420px);
+  padding: 28px;
+  border: 1px solid #d9e2ec;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.auth-card h1 {
+  margin: 0 0 12px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.auth-error {
+  margin: 0;
+  color: #8a341f;
+  font-weight: 700;
+}
+
+.auth-submit {
+  width: 100%;
 }
 
 .button-secondary {

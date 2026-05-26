@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 interface AppLayoutProps extends PropsWithChildren {
@@ -19,6 +20,20 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+
+    try {
+      await fetch('/api/session/logout', {
+        method: 'POST',
+      });
+      await router.push('/login');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <>
@@ -52,7 +67,12 @@ export function AppLayout({
               <p className="eyebrow">運用画面</p>
               <h2>{title}</h2>
             </div>
-            {actions ? <div className="header-actions">{actions}</div> : null}
+            <div className="header-actions">
+              {actions}
+              <button type="button" onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? 'ログアウト中…' : 'ログアウト'}
+              </button>
+            </div>
           </header>
           {children}
         </main>

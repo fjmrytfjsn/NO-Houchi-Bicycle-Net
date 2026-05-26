@@ -8,6 +8,7 @@ import ReportDetailPage, {
 } from '../pages/reports/[id]';
 import CollectionRequestPage from '../pages/collection-request/[id]';
 import CollectionResultPage from '../pages/collection-result/[id]';
+import LoginPage from '../pages/login';
 
 jest.mock('next/router', () => ({
   useRouter: jest.fn(),
@@ -19,7 +20,7 @@ const { useRouter } = jest.requireMock('next/router') as {
 
 describe('Admin Dashboard pages', () => {
   it('shows report summary and main columns on the report list page', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(<HomePage reports={[]} selectedStatus="all" />);
 
@@ -46,7 +47,7 @@ describe('Admin Dashboard pages', () => {
   });
 
   it('shows API report fields on the report list page', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(
       <HomePage
@@ -89,6 +90,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/',
       query: { status: 'temporary' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(<HomePage reports={[]} selectedStatus="temporary" />);
@@ -103,6 +105,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/',
       query: { status: 'resolved' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(<HomePage reports={[]} selectedStatus="resolved" />);
@@ -120,17 +123,27 @@ describe('Admin Dashboard pages', () => {
 
     await getServerSideProps({
       query: { status: 'resolved' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=resolved',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
 
     global.fetch = originalFetch;
   });
 
   it('shows an error when report list API fetch fails', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(
       <HomePage
@@ -171,10 +184,20 @@ describe('Admin Dashboard pages', () => {
 
     const result = await getServerSideProps({
       query: { status: 'temporary' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=temporary',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -197,11 +220,114 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
+  it('redirects to login when report list page is accessed without a token', async () => {
+    const result = await getServerSideProps({
+      resolvedUrl: '/',
+      req: { headers: {} },
+    } as never);
+
+    expect(result).toEqual({
+      redirect: {
+        destination: '/login?next=%2F',
+        permanent: false,
+      },
+    });
+  });
+
+  it('shows the login form', () => {
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: {},
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    render(<LoginPage nextPath="/unresolved" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: '管理者ログイン' })).toBeInTheDocument();
+    expect(screen.getByLabelText('メールアドレス')).toBeInTheDocument();
+    expect(screen.getByLabelText('パスワード')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ログイン' })).toBeInTheDocument();
+  });
+
+  it('logs in from the login page and redirects to the next path', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: { next: '/unresolved' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<LoginPage nextPath="/unresolved" />);
+
+    fireEvent.change(screen.getByLabelText('メールアドレス'), {
+      target: { value: 'admin@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText('パスワード'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'ログイン' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/login',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/unresolved'));
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows an error on the login page when credentials are invalid', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: {},
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid credentials' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('メールアドレス'), {
+      target: { value: 'admin@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText('パスワード'), {
+      target: { value: 'wrong-password' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'ログイン' }));
+
+    expect(
+      await screen.findByText('メールアドレスまたはパスワードが正しくありません。'),
+    ).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
   it('shows reported list filters and collection candidate state on the unresolved page', () => {
     useRouter.mockReturnValue({
       pathname: '/unresolved',
       query: {},
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -270,6 +396,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -330,6 +457,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -349,6 +477,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: {},
       isReady: true,
+      push: jest.fn(),
     });
 
     const originalFetch = global.fetch;
@@ -403,7 +532,7 @@ describe('Admin Dashboard pages', () => {
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:3000/api/reports/r-1/collection-candidate',
+        '/api/session/reports/r-1/collection-candidate',
         expect.objectContaining({
           method: 'PATCH',
         }),
@@ -419,6 +548,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     const originalFetch = global.fetch;
@@ -536,11 +666,16 @@ describe('Admin Dashboard pages', () => {
     global.fetch = fetchMock;
 
     const { getServerSideProps } = await import('../pages/unresolved');
-    const result = await getServerSideProps({} as never);
+    const result = await getServerSideProps({
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
+    } as never);
+    const request = fetchMock.mock.calls[0];
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/reports?status=reported',
-    );
+    expect(request[0]).toBe('http://localhost:3000/api/reports?status=reported');
     expect(result).toMatchObject({
       props: {
         selectedView: 'all',
@@ -607,10 +742,20 @@ describe('Admin Dashboard pages', () => {
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({
       query: { view: 'unexpected' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=reported',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -654,10 +799,20 @@ describe('Admin Dashboard pages', () => {
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({
       query: { view: 'candidate' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=reported',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -675,6 +830,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/reports/[id]',
       query: { id: 'R-002' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -722,6 +878,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/reports/[id]',
       query: { id: 'r-api-3' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -793,10 +950,20 @@ describe('Admin Dashboard pages', () => {
 
     const result = await getReportDetailServerSideProps({
       params: { id: 'r-api-4' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports/r-api-4',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -829,11 +996,44 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
+  it('redirects to login when report detail fetch returns unauthorized', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      headers: new Headers(),
+    } as Response);
+    global.fetch = fetchMock;
+
+    const result = await getReportDetailServerSideProps({
+      params: { id: 'r-api-4' },
+      resolvedUrl: '/reports/r-api-4',
+      req: {
+        headers: {
+          cookie: 'admin_access_token=expired-token',
+        },
+      },
+      res: {
+        setHeader: jest.fn(),
+      },
+    } as never);
+
+    expect(result).toEqual({
+      redirect: {
+        destination: '/login?next=%2Freports%2Fr-api-4',
+        permanent: false,
+      },
+    });
+
+    global.fetch = originalFetch;
+  });
+
   it('shows API-backed history notes on the report detail page', () => {
     useRouter.mockReturnValue({
       pathname: '/reports/[id]',
       query: { id: 'r-api-5' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -878,6 +1078,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/collection-request/[id]',
       query: { id: 'R-001' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -915,6 +1116,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/collection-result/[id]',
       query: { id: 'R-003' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -952,11 +1154,40 @@ describe('Admin Dashboard pages', () => {
       pathname: '/reports/[id]',
       query: {},
       isReady: false,
+      push: jest.fn(),
     });
 
     render(<ReportDetailPage />);
 
     expect(screen.getByText('読み込み中…')).toBeInTheDocument();
     expect(screen.queryByText('対象の通報が見つかりません。')).not.toBeInTheDocument();
+  });
+
+  it('logs out from the app layout', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<HomePage reports={[]} selectedStatus="all" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ログアウト' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/logout',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/login'));
+
+    global.fetch = originalFetch;
   });
 });
