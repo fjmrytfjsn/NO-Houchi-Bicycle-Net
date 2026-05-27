@@ -1357,7 +1357,12 @@ describe('Admin Dashboard pages', () => {
     expect(
       await screen.findByText('回収結果を記録しました（回収完了）'),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByText('collected').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('結果メモ')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
     expect(push).not.toHaveBeenCalled();
 
     global.fetch = originalFetch;
@@ -1432,6 +1437,11 @@ describe('Admin Dashboard pages', () => {
     expect(
       await screen.findByText('回収結果を記録しました（現地で現物なし）'),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('結果メモ')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
 
     global.fetch = originalFetch;
   });
@@ -1529,7 +1539,7 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
-  it('disables collection result submission when the report is not collection_requested', () => {
+  it('disables collection result submission and shows an error when the report is ineligible and not completed', () => {
     useRouter.mockReturnValue({
       pathname: '/collection-result/[id]',
       query: { id: 'R-004' },
@@ -1550,9 +1560,9 @@ describe('Admin Dashboard pages', () => {
           mapEmbedUrl: null,
           mapLinkUrl: 'https://www.google.com/maps?q=34.703%2C135.493',
           identifierText: '防犯登録 9982 / 白のミニベロ',
-          status: 'collected',
+          status: 'resolved',
           elapsedLabel: '2日',
-          currentStatusLabel: 'collected',
+          currentStatusLabel: 'resolved',
           history: [],
         }}
       />,
