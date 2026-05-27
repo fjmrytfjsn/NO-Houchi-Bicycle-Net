@@ -17,7 +17,7 @@
 
 - 前提: シナリオ1 実行後、まだ `eligibleFinalAt` に達していない
 - 手順: POST /api/owner/markers/ABC123/unlock-final を呼ぶ
-- 期待: 4xx (400) が返る（メッセージに `too_early`）
+- 期待: 409 が返る（メッセージに `eligibleFinalAt has not arrived`）
 
 ## シナリオ 3: 本解除（正常）
 

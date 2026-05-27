@@ -152,8 +152,8 @@ export class OwnerUnlockService {
 
     const declaredAt = this.now();
     const eligibleFinalAt = new Date(declaredAt.getTime() + 15 * 60 * 1000);
-    // 期限は「本解除が可能になってから24時間後」
-    const expiresAt = new Date(eligibleFinalAt.getTime() + 24 * 60 * 60 * 1000);
+    // 期限は「仮解除してから24時間後」
+    const expiresAt = new Date(declaredAt.getTime() + 24 * 60 * 60 * 1000);
 
     // 問題3: 古い temporary declaration を expired に更新
     await this.prisma.declaration.updateMany({
@@ -335,13 +335,13 @@ export class OwnerUnlockService {
       throw new BadRequestError('有効な仮解除データが見つかりません');
     }
 
-    // eligibleFinalAt (本解除可能時間) を「今」に書き換え、同時に期限(expiresAt)を「今から24時間後」にシフトする
+    // eligibleFinalAt (本解除可能時間) だけを「今」に寄せ、期限は declaredAt 基準のまま維持する
     const now = this.now();
     await this.prisma.declaration.update({
       where: { id: declaration.id },
-      data: { 
+      data: {
         eligibleFinalAt: now,
-        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+        expiresAt: new Date(declaration.declaredAt.getTime() + 24 * 60 * 60 * 1000),
       },
     });
 

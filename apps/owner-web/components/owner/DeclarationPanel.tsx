@@ -146,7 +146,7 @@ export function DeclarationPanel({
               📱 QRコードを読み込んで本解除
             </button>
             <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-              ※ 本解除が可能になってから24時間（{new Date(declaration.expiresAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）を経過すると、自動的にキャンセルされます。
+              ※ 仮解除から24時間（{new Date(declaration.expiresAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）を経過すると、自動的にキャンセルされます。
             </div>
           </>
         )}
