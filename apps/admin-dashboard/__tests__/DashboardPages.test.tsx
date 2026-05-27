@@ -1111,6 +1111,142 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByRole('button', { name: '回収依頼登録' })).toBeInTheDocument();
   });
 
+  it('submits a collection request and redirects to the report detail page', async () => {
+    const push = jest.fn().mockResolvedValue(true);
+    useRouter.mockReturnValue({
+      pathname: '/collection-request/[id]',
+      query: { id: 'R-001' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              json: async () => ({
+                id: 'R-001',
+                markerId: 'm-1',
+                imageUrl: '/mock/report-001.png',
+                latitude: 34.7,
+                longitude: 135.49,
+                address: '大阪市北区中之島 1-2-3',
+                identifierText: '防犯登録 1234 / 黒のシティサイクル',
+                status: 'collection_requested',
+                createdAt: '2026-04-20T00:15:00.000Z',
+                updatedAt: '2026-04-20T03:30:00.000Z',
+                isCollectionCandidate: false,
+                collectionCandidateDecision: 'none',
+                collectionCandidateFlaggedAt: null,
+              }),
+            } as Response);
+          }, 0);
+        }),
+    );
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionRequestPage
+        report={{
+          id: 'R-001',
+          imageUrl: '/mock/report-001.png',
+          reportedAt: '2026-04-20 09:15',
+          location: '大阪市北区中之島 1-2-3',
+          latitude: 34.7,
+          longitude: 135.49,
+          address: '大阪市北区中之島 1-2-3',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+          identifierText: '防犯登録 1234 / 黒のシティサイクル',
+          status: 'reported',
+          elapsedLabel: '3時間',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('回収依頼時の補足を入力'), {
+      target: { value: '歩道上に継続駐輪' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: '回収依頼登録' }).closest('form')!);
+
+    expect(screen.getByRole('button', { name: '回収依頼登録' })).toBeDisabled();
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-request',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: 'R-001',
+            notes: '歩道上に継続駐輪',
+          }),
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/reports/R-001'));
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows an error message when collection request submission fails', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-request/[id]',
+      query: { id: 'R-001' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'report is not eligible for collection request' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionRequestPage
+        report={{
+          id: 'R-001',
+          imageUrl: '/mock/report-001.png',
+          reportedAt: '2026-04-20 09:15',
+          location: '大阪市北区中之島 1-2-3',
+          latitude: 34.7,
+          longitude: 135.49,
+          address: '大阪市北区中之島 1-2-3',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+          identifierText: '防犯登録 1234 / 黒のシティサイクル',
+          status: 'reported',
+          elapsedLabel: '3時間',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.submit(screen.getByRole('button', { name: '回収依頼登録' }).closest('form')!);
+
+    expect(
+      await screen.findByText(
+        '回収依頼を登録できませんでした。Backend API の起動状態を確認してください。',
+      ),
+    ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '回収依頼登録' })).not.toBeDisabled();
+
+    global.fetch = originalFetch;
+  });
+
   it('shows the collection result options', () => {
     useRouter.mockReturnValue({
       pathname: '/collection-result/[id]',
