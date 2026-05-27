@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { FormScaffold } from '../../components/FormScaffold';
-import { fetchAdminReport } from '../../lib/adminReports';
+import { fetchAdminReport, recordCollectionResult } from '../../lib/adminReports';
 import { withAdminPageAuth } from '../../lib/adminSession';
 import type { ReportDetail } from '../../lib/types';
 
@@ -14,16 +14,19 @@ type CollectionResultPageProps = {
 };
 
 export default function CollectionResultPage({
-  report,
+  report: initialReport,
   errorMessage,
 }: CollectionResultPageProps = {}) {
   const router = useRouter();
   const isReady = router.isReady ?? true;
+  const [report, setReport] = useState(initialReport);
   const [result, setResult] = useState<'collected' | 'not_found_on_collection'>(
     'collected',
   );
   const [memo, setMemo] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isReady) {
     return (
@@ -45,22 +48,66 @@ export default function CollectionResultPage({
     );
   }
 
+  const isEligible = report.status === 'collection_requested';
+
   return (
     <AppLayout title="回収結果記録">
       <form
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          setSuccessMessage(
-            `結果を記録しました。選択結果: ${result} / メモ: ${memo || 'なし'}`,
-          );
+          if (!isEligible || isSubmitting) {
+            return;
+          }
+
+          setIsSubmitting(true);
+          setSubmitError(null);
+          setSuccessMessage(null);
+
+          try {
+            const updatedReport = await recordCollectionResult(report.id, result, memo);
+            setReport((currentReport) =>
+              currentReport
+                ? {
+                    ...currentReport,
+                    ...updatedReport,
+                    history: currentReport.history,
+                  }
+                : currentReport,
+            );
+            setSuccessMessage(
+              result === 'collected'
+                ? '回収結果を記録しました（回収完了）'
+                : '回収結果を記録しました（現地で現物なし）',
+            );
+          } catch (error) {
+            if (error instanceof Error && error.name === 'AdminSessionUnauthorizedError') {
+              await router.push(`/login?next=${encodeURIComponent(`/collection-result/${report.id}`)}`);
+              return;
+            }
+
+            setSubmitError(
+              error instanceof Error && error.message
+                ? error.message
+                : '回収結果を記録できませんでした。Backend API の起動状態を確認してください。',
+            );
+          } finally {
+            setIsSubmitting(false);
+          }
         }}
       >
         <FormScaffold
           title="対象概要"
           confirmation="記録後は collected または not_found_on_collection の完了状態として扱います。"
           successMessage={successMessage}
+          errorMessage={
+            submitError ??
+            (isEligible
+              ? null
+              : 'この通報は回収結果記録の対象外です。最新状態を確認してください。')
+          }
           submitLabel="結果を記録"
           cancelHref={`/reports/${report.id}`}
+          submitDisabled={!isEligible || isSubmitting}
           fields={
             <>
               <fieldset className="form-fieldset">
@@ -91,6 +138,7 @@ export default function CollectionResultPage({
                   onChange={(event) => setMemo(event.target.value)}
                   placeholder="回収業者からの現地結果を記録"
                   rows={5}
+                  disabled={!isEligible || isSubmitting}
                 />
               </label>
             </>

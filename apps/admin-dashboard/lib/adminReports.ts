@@ -51,6 +51,17 @@ type ApiReportDetail = ApiReportSummary & {
 };
 
 type FetchInit = NonNullable<Parameters<typeof fetch>[1]>;
+type CollectionResult = 'collected' | 'not_found_on_collection';
+
+class AdminApiRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'AdminApiRequestError';
+    this.status = status;
+  }
+}
 
 function buildAuthorizedRequestInit(token?: string, init: FetchInit = {}) {
   const headers: Record<string, string> = {};
@@ -81,6 +92,27 @@ async function fetchAdminApiJson<T>(url: string, token?: string, init: FetchInit
   }
 
   return (await response.json()) as T;
+}
+
+async function fetchAdminSessionApiJson<T>(url: string, init: FetchInit = {}) {
+  const response = await fetch(url, init);
+
+  if (response.status === 401 || response.status === 403) {
+    throw new AdminSessionUnauthorizedError();
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | null;
+
+  if (!response.ok) {
+    throw new AdminApiRequestError(
+      payload?.error || `${init.method ?? 'GET'} ${url} failed: ${response.status}`,
+      response.status,
+    );
+  }
+
+  return payload as T;
 }
 
 export function normalizeSelectedStatus(
@@ -208,6 +240,25 @@ export async function requestCollection(id: string, notes?: string, now: Date = 
     },
   );
   return mapApiReportSummaryToDetailWithNow(updatedReport, now);
+}
+
+export async function recordCollectionResult(
+  id: string,
+  result: CollectionResult,
+  notes?: string,
+) {
+  const updatedReport = await fetchAdminSessionApiJson<ApiReportSummary>(
+    `/api/session/reports/collection-result`,
+    {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ id, result, notes: notes ?? '' }),
+    },
+  );
+
+  return mapApiReportSummaryToDetail(updatedReport);
 }
 
 export function normalizeSelectedUnresolvedView(

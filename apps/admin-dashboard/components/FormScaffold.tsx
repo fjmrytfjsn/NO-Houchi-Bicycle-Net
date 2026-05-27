@@ -10,6 +10,7 @@ interface FormScaffoldProps extends PropsWithChildren {
   submitLabel: string;
   cancelHref: string;
   isSubmitting?: boolean;
+  submitDisabled?: boolean;
 }
 
 export function FormScaffold({
@@ -21,8 +22,11 @@ export function FormScaffold({
   submitLabel,
   cancelHref,
   isSubmitting = false,
+  submitDisabled = false,
   children,
 }: FormScaffoldProps) {
+  const disabled = isSubmitting || submitDisabled;
+
   return (
     <section className="panel">
       <div className="panel-header">
@@ -41,7 +45,7 @@ export function FormScaffold({
         <Link href={cancelHref} className="button-secondary">
           キャンセル
         </Link>
-        <button type="submit" className="button-primary" disabled={isSubmitting}>
+        <button type="submit" className="button-primary" disabled={disabled}>
           {submitLabel}
         </button>
       </div>
