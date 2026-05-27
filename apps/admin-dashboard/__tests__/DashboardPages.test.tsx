@@ -1285,6 +1285,285 @@ describe('Admin Dashboard pages', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('records a collected result from the collection result page', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'R-003',
+        markerId: 'm-003',
+        imageUrl: '/mock/report-003.png',
+        latitude: 34.702,
+        longitude: 135.492,
+        address: '大阪市北区天満 3-8-1',
+        identifierText: '防犯登録 9981 / 青のママチャリ',
+        status: 'collected',
+        createdAt: '2026-04-17T22:20:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: false,
+        collectionCandidateDecision: 'none',
+        collectionCandidateFlaggedAt: null,
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('結果メモ'), {
+      target: { value: '回収業者が現地で回収完了' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-result',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            id: 'R-003',
+            result: 'collected',
+            notes: '回収業者が現地で回収完了',
+          }),
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText('回収結果を記録しました（回収完了）'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('collected').length).toBeGreaterThan(0);
+    expect(push).not.toHaveBeenCalled();
+
+    global.fetch = originalFetch;
+  });
+
+  it('records a not found result from the collection result page', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'R-003',
+        markerId: 'm-003',
+        imageUrl: '/mock/report-003.png',
+        latitude: 34.702,
+        longitude: 135.492,
+        address: '大阪市北区天満 3-8-1',
+        identifierText: '防犯登録 9981 / 青のママチャリ',
+        status: 'not_found_on_collection',
+        createdAt: '2026-04-17T22:20:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: false,
+        collectionCandidateDecision: 'none',
+        collectionCandidateFlaggedAt: null,
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('現地で現物なし'));
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-result',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            id: 'R-003',
+            result: 'not_found_on_collection',
+            notes: '',
+          }),
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText('回収結果を記録しました（現地で現物なし）'),
+    ).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  it('redirects to login when collection result API returns unauthorized', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'Unauthorized' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith('/login?next=%2Fcollection-result%2FR-003'),
+    );
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows backend errors on the collection result page', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'report is not eligible for collection result' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    expect(
+      await screen.findByText('report is not eligible for collection result'),
+    ).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  it('disables collection result submission when the report is not collection_requested', () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-004' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-004',
+          imageUrl: '/mock/report-004.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-2',
+          latitude: 34.703,
+          longitude: 135.493,
+          address: '大阪市北区天満 3-8-2',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.703%2C135.493',
+          identifierText: '防犯登録 9982 / 白のミニベロ',
+          status: 'collected',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collected',
+          history: [],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
+  });
+
   it('shows loading state until dynamic route params are ready', () => {
     useRouter.mockReturnValue({
       pathname: '/reports/[id]',
