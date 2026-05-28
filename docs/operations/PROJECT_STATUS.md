@@ -1,6 +1,6 @@
 # プロジェクト状態レポート
 
-**更新日**: 2026年4月27日
+**更新日**: 2026年5月28日
 
 **参照Project**: [NO-Houchi Bicycle Net MVP](https://github.com/users/fjmrytfjsn/projects/3)
 
@@ -10,190 +10,39 @@
 試作品では、通報、持ち主による解除、未解除時の回収依頼、回収結果記録までを中心に扱う。
 ブラックリスト、高度分析、回収後の保管・返還管理、詳細なインセンティブ設計、外部連携は将来構想とする。
 
-## 📊 全体進捗
+## 全体進捗
 
-| コンポーネント  | 状態        | 進捗度 | 備考                               |
-| --------------- | ----------- | ------ | ---------------------------------- |
-| Backend Server  | ✅ 実装中   | 30%    | Fastify, Prisma, JWT 認証基盤、通報・回収依頼・回収結果APIを実装済み |
-| Owner Web       | 🔄 修正完了 | 25%    | API 実装済み、インメモリストア動作 |
-<<<<<<< HEAD
-| Admin Dashboard | 🔄 実装中   | 25%    | 通報一覧/詳細、未解除案件、回収依頼登録、回収結果記録は Backend API 取得/更新に対応 |
-| Android App     | ⏳ 未開始   | 0%     | 試作品では撮影・位置情報付き通報を優先 |
+| コンポーネント | 状態 | 進捗度 | 備考 |
+| --- | --- | --- | --- |
+| Backend Server | 🔄 実装中 | 35% | Fastify、Prisma、JWT 認証、通報/回収依頼/回収結果 API 実装済み。ローカル検証と seed データ運用あり |
+| Owner Web | 🔄 修正完了 | 25% | API 実装済み。インメモリ要素を残しつつローカル検証手順を整備 |
+| Admin Dashboard | 🔄 実装中 | 35% | 通報一覧/詳細、未解除案件、回収依頼登録、回収結果記録、ログイン導線を確認。2026-05-28 に再確認を実施 |
+| Android App | ⏳ 未開始 | 0% | 試作品では撮影・位置情報付き通報を優先 |
 
-## GitHub Project 同期状況
+## 直近の確認事項
 
-2026年4月20日に、現状の実装・仕様書とGitHub Issue / Project Statusの同期を行った。
+- 2026-05-28 に Admin Dashboard の主要フロー再確認を実施した。
+- ログイン、通報一覧、状態フィルター、通報詳細、未解除案件、回収対象フラグ変更、回収依頼、回収結果記録の主要経路は再確認できた。
+- 再確認結果は [manual-verification-2026-05-28.md](../testing/manual-verification-2026-05-28.md) に記録した。
+- 恒久的な手順は [admin-dashboard-manual.md](./admin-dashboard-manual.md) に整理した。
 
-- Projectアイテム数: 56件
-- `Done`: 21件
-- `Todo`: 35件
-- Issue状態とProject Statusの不整合: 0件
-- 現時点では `In Progress` と `Review` は未運用
+## 現在の注意点
 
-今後は [GitHub Project 運用ルール](./project-management.md) に従い、作業開始時に `In Progress`、PR確認時に `Review`、完了時にIssue CloseとProject `Done` を同期する。
+- `backend/package.json` の `npm run prisma:migrate` は `prisma migrate dev --name init` を呼ぶため、非対話環境では失敗する。自動化や headless 実行では `npx prisma migrate deploy` などの別手順が必要。
+- `npm run prisma:seed` は upsert ベースで、既存の回収依頼履歴や結果履歴を削除しない。再確認を繰り返すと履歴が累積するため、完全に初期状態から確認したい場合は DB を作り直す必要がある。
+- 管理画面の動作確認はローカル前提で、CI は導入していない。
 
-## ✅ 完了した作業
+## 今後のアクション
 
-### Backend
+1. Admin Dashboard の手動確認を繰り返しやすいよう、DB 初期化手順または検証専用 DB の運用を整理する。
+2. `prisma:migrate` スクリプトの非対話実行互換性を見直す。
+3. Owner Web と Backend の結合確認、および Admin Dashboard を含む横断 E2E の整備を進める。
+4. 試作品スコープ外の機能は拡張せず、現行フローの検証容易性と文書整合を優先する。
 
-- [x] Fastify サーバーセットアップ
-- [x] JWT 認証実装
-- [x] Prisma ORM 統合
-- [x] PostgreSQL マイグレーション
-- [x] バイク管理 API エンドポイント
-- [x] ユーザー認証ルート（register/login）
-- [x] ユニットテスト（Vitest）
-
-### Owner Web
-
-- [x] Next.js プロジェクトセットアップ
-- [x] マーカー詳細ページコンポーネント
-- [x] 仮解除・本解除API エンドポイント
-- [x] Jest テスト設定修正
-- [x] Playwright E2E テスト設定
-- [x] Backend 設計パターンへの適合化
-- [x] TypeScript 型安全性向上
-- [x] API レスポンス形式統一
-
-### ドキュメント
-
-- [x] 基本設計仕様書
-- [x] API 仕様書
-- [x] データモデル定義
-- [x] 開発者ワークフロー（更新）
-- [x] Owner Web API 仕様（更新）
-- [x] セットアップガイド（新規作成）
-- [x] 基本設計仕様書を試作品スコープへ再整理
-
-## 🔄 進行中の作業
-
-- Owner Web と Backend の実際の統合（現在: インメモリストア使用）
-- 試作品スコープに合わせた API / データモデル / 管理画面仕様の具体化
-
-## 📋 今後のアクション（優先度順）
-
-### 高優先度（次フェーズ）
-
-1. **Backend と Owner Web の API 統合**
-   - Owner Web が Backend API を呼び出すよう修正
-   - 環境変数で API エンドポイント設定
-   - データベース永続化
-
-2. **E2E テストの充実**
-   - marker.spec.ts の実装
-   - より詳細なテストケース追加
-   - CI 環境での自動実行検討
-
-3. **認証機能の実装**
-   - Owner Web への JWT 認証追加（必要な場合）
-   - Backend との連携確認
-
-4. **Admin Dashboard の Backend API 連携**
-   - 通報一覧/詳細は実 API 取得に差し替え済み
-   - 未解除案件の実 API 取得は対応済み
-  - 回収依頼登録は対応済み
-  - 回収結果（回収完了/現地で現物なし）の記録は対応済み
-   - 認証・権限制御
-
-### 中優先度
-
-5. **バリデーション強化**
-   - リクエストパラメータのバリデーション
-   - エラーハンドリングの改善
-   - ユーザーへのエラーメッセージ提供
-
-6. **パフォーマンス最適化**
-   - キャッシング戦略
-   - Database インデックス最適化
-   - API レスポンス時間測定
-
-7. **セキュリティ強化**
-   - CSRF 対策
-   - レート制限
-   - 入力サニタイズ
-
-### 低優先度
-
-8. **CI/CD パイプライン設定**
-   - GitHub Actions ワークフロー
-   - 自動テスト実行
-   - デプロイメント自動化
-
-9. **インフラストラクチャセットアップ**
-   - Docker イメージ作成
-   - AWS/GCP へのデプロイ準備
-   - 本番環境構築
-
-10. **Android アプリケーション実装**
-    - Kotlin/Flutter でのサポーター用アプリ開発
-    - 撮影機能
-    - GPS 位置情報機能
-    - 識別情報の入力/送信
-
-### 将来構想
-
-- ブラックリスト管理
-- ヒートマップや高度分析
-- 回収後の保管・返還管理
-- ポイント/クーポンの詳細インセンティブ設計
-- 不正検知の高度化
-- 撮影品質判定、ジオフェンシング、警察・店舗連携
-
-## 🧪 テスト状況
-
-### Backend
-
-- **Vitest**: 実装済み（2件のテスト）
-- **ステータス**: ✅ 成功
-
-### Owner Web
-
-- **Jest**: ✅ 実装済み（テスト成功）
-- **Playwright**: ✅ 設定完了（テスト設定準備完了）
-- **ステータス**: ✅ 両方成功
-
-## 📁 ファイル構造
-
-```
-NO-Houchi-Bicycle-Net/
-├── backend/                    # Fastify サーバー
-│   ├── src/
-│   │   ├── routes/            # API エンドポイント
-│   │   ├── plugins/           # Prisma プラグイン
-│   │   └── app.ts             # アプリケーション設定
-│   ├── prisma/
-│   │   ├── schema.prisma      # データベーススキーマ
-│   │   └── migrations/        # DB マイグレーション
-│   ├── test/                  # テストファイル
-│   └── package.json
-├── apps/
-│   ├── owner-web/             # Next.js アプリケーション
-│   │   ├── pages/
-│   │   ├── lib/               # API クライアント
-│   │   ├── components/        # React コンポーネント
-│   │   ├── __tests__/         # Jest テスト
-│   │   ├── tests/e2e/         # Playwright E2E テスト
-│   │   └── package.json
-│   └── admin-dashboard/       # Next.js 管理画面基盤（モック画面）
-└── docs/
-    ├── README.md
-    ├── api/
-    ├── design/
-    ├── operations/
-    ├── testing/
-    └── ui/
-```
-
-## 🔗 関連リンク
+## 関連リンク
 
 - [開発者ワークフロー](./developer-workflow.md)
 - [セットアップガイド](./SETUP.md)
-- [Owner Web API 仕様](../api/owner-api.md)
+- [管理者ダッシュボード運用マニュアル](./admin-dashboard-manual.md)
+- [Admin Dashboard 手動確認レポート 2026-05-28](../testing/manual-verification-2026-05-28.md)
 - [Backend API 仕様](../api/api-spec.md)
-- [データモデル定義](../design/data-model.md)
-
-## 📝 メモ
-
-- CI は導入しない方針（ローカル検証を優先）
-- インメモリストア現在使用中 → Backend への統合が次のマイルストーン
-- テスト環境は整備完了（Jest, Vitest, Playwright）
