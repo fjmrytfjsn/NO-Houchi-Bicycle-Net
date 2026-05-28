@@ -49,6 +49,11 @@ export default function CollectionResultPage({
   }
 
   const isEligible = report.status === 'collection_requested';
+  const isCompleted =
+    report.status === 'collected' || report.status === 'not_found_on_collection';
+  const eligibilityErrorMessage = !isEligible && !isCompleted
+    ? 'この通報は回収結果記録の対象外です。最新状態を確認してください。'
+    : null;
 
   return (
     <AppLayout title="回収結果記録">
@@ -99,12 +104,7 @@ export default function CollectionResultPage({
           title="対象概要"
           confirmation="記録後は collected または not_found_on_collection の完了状態として扱います。"
           successMessage={successMessage}
-          errorMessage={
-            submitError ??
-            (isEligible
-              ? null
-              : 'この通報は回収結果記録の対象外です。最新状態を確認してください。')
-          }
+          errorMessage={submitError ?? eligibilityErrorMessage}
           submitLabel="結果を記録"
           cancelHref={`/reports/${report.id}`}
           submitDisabled={!isEligible || isSubmitting}
