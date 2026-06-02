@@ -2,3 +2,7 @@ apps/*/node_modules/
 apps/*/.next/
 apps/*/tsconfig.tsbuildinfo
 apps/admin-dashboard/.env
+
+apps/android-app/.idea/
+apps/android-app/.gradle/
+apps/android-app/.DS_Store
