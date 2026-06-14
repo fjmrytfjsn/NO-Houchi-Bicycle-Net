@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { CouponList } from '../../components/owner/CouponList';
 import { DeclarationPanel } from '../../components/owner/DeclarationPanel';
+import { SMSAuthPanel } from '../../components/owner/SMSAuthPanel';
+import { CouponRoulette } from '../../components/owner/CouponRoulette';
+import { CouponTimer } from '../../components/owner/CouponTimer';
 import { ErrorStatePanel } from '../../components/owner/ErrorStatePanel';
 import { QrScannerPanel } from '../../components/owner/QrScannerPanel';
 import { ReportSummary } from '../../components/owner/ReportSummary';
@@ -11,9 +13,9 @@ import { StatusMessages } from '../../components/owner/StatusMessages';
 import { TempUnlockButton } from '../../components/owner/TempUnlockButton';
 import { useNow } from '../../hooks/useNow';
 import { useQrScanner } from '../../hooks/useQrScanner';
-import { getCoupons, getMarker, resetMarker, unlockFinal, unlockTemp, fastForwardTime } from '../../lib/api';
+import { getMarker, resetMarker, unlockFinal, unlockTemp, fastForwardTime } from '../../lib/api';
 import { getUnlockTiming } from '../../lib/owner/time';
-import type { Coupon, MarkerEntry } from '../../lib/owner/types';
+import type { MarkerEntry } from '../../lib/owner/types';
 import styles from './MarkerPage.module.css';
 
 function isFinalUnlocked(entry: MarkerEntry) {
@@ -32,9 +34,11 @@ export default function MarkerPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [tempUnlockDisabled, setTempUnlockDisabled] = useState(false);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  type CouponStep = 'none' | 'auth' | 'roulette' | 'timer';
+  const [couponStep, setCouponStep] = useState<CouponStep>('none');
+  const [couponAmount, setCouponAmount] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -46,16 +50,14 @@ export default function MarkerPage() {
     getMarker(code)
       .then(async (markerResult) => {
         setData(markerResult);
-        try {
-          const couponResult = await getCoupons(code);
-          setCoupons(couponResult.coupons || []);
-        } catch {
-          setCoupons([]);
+        // モック: 既に本解除済みの場合は auth ステップから再開
+        if (isFinalUnlocked(markerResult) && couponStep === 'none') {
+          setCouponStep('auth');
         }
       })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
-  }, [code]);
+  }, [code, couponStep]);
 
   const showInfo = useCallback((message: string, timeoutMs: number) => {
     setInfo(message);
@@ -117,13 +119,10 @@ export default function MarkerPage() {
     setError(null);
     try {
       await unlockFinal(code);
-      const [marker, couponData] = await Promise.all([
-        getMarker(code),
-        getCoupons(code),
-      ]);
+      const marker = await getMarker(code);
       setData(marker);
-      setCoupons(couponData.coupons || []);
-      showInfo('本解除が完了しました。クーポンをゲットしました！', 5000);
+      setCouponStep('auth');
+      showInfo('本解除が完了しました。続けてクーポンをお受け取りください。', 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : '本解除に失敗しました');
     } finally {
@@ -144,6 +143,15 @@ export default function MarkerPage() {
     },
     [code, handleFinal]
   );
+
+  const handleAuthComplete = useCallback(() => {
+    setCouponStep('roulette');
+  }, []);
+
+  const handleRouletteComplete = useCallback((amount: number) => {
+    setCouponAmount(amount);
+    setCouponStep('timer');
+  }, []);
 
   const handleCameraError = useCallback(() => {
     setError('カメラにアクセスできません。ブラウザの設定からカメラのアクセスを許可し、ページを再読み込みしてください。');
@@ -264,7 +272,15 @@ export default function MarkerPage() {
               </div>
             )}
 
-            <CouponList coupons={coupons} />
+            {finalUnlocked && couponStep === 'auth' && (
+              <SMSAuthPanel onAuthComplete={handleAuthComplete} />
+            )}
+            {finalUnlocked && couponStep === 'roulette' && (
+              <CouponRoulette onComplete={handleRouletteComplete} />
+            )}
+            {finalUnlocked && couponStep === 'timer' && (
+              <CouponTimer amount={couponAmount} />
+            )}
 
             {/* QRスキャナー モーダル */}
             {showQRScanner && (
