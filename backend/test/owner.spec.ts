@@ -339,6 +339,30 @@ describe('owner', () => {
     });
   });
 
+  it('allows final unlock exactly at expiresAt', async () => {
+    currentTime = new Date('2026-04-20T13:00:00.000Z');
+
+    const tempResponse = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/EXPIRES-AT-EDGE/unlock-temp',
+      payload: {},
+    });
+    expect(tempResponse.statusCode).toBe(200);
+
+    currentTime = new Date('2026-04-21T13:00:00.000Z');
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/owner/markers/EXPIRES-AT-EDGE/unlock-final',
+      payload: { scannedCode: 'EXPIRES-AT-EDGE' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toMatchObject({
+      status: 'resolved',
+    });
+  });
+
   it('lists and uses coupons, and rejects expired coupons', async () => {
     currentTime = new Date('2026-04-20T11:00:00.000Z');
     prismaBundle.seedCoupon({ validDays: 1 });

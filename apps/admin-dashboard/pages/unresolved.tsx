@@ -11,6 +11,7 @@ import {
   UNRESOLVED_REPORTED_THRESHOLD_HOURS,
   updateCollectionCandidate,
 } from '../lib/adminReports';
+import { withAdminPageAuth } from '../lib/adminSession';
 import type { ReportDetail } from '../lib/types';
 
 type UnresolvedPageProps = {
@@ -137,26 +138,38 @@ export default function UnresolvedPage({
 
 export const getServerSideProps: GetServerSideProps<UnresolvedPageProps> = async ({
   query = {},
+  ...context
 }) => {
   const selectedView = normalizeSelectedUnresolvedView(query.view);
 
-  try {
-    const reports = await fetchReportedCandidateReports();
+  return withAdminPageAuth<UnresolvedPageProps>(
+    {
+      query,
+      ...context,
+    } as never,
+    async (token) => {
+      try {
+        const reports = await fetchReportedCandidateReports(new Date(), token);
 
-    return {
-      props: {
-        reports,
-        selectedView,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        reports: [],
-        selectedView,
-        errorMessage:
-          '回収依頼候補を取得できませんでした。Backend API の起動状態を確認してください。',
-      },
-    };
-  }
+        return {
+          props: {
+            reports,
+            selectedView,
+          },
+        };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AdminSessionUnauthorizedError') {
+          throw error;
+        }
+        return {
+          props: {
+            reports: [],
+            selectedView,
+            errorMessage:
+              '回収依頼候補を取得できませんでした。Backend API の起動状態を確認してください。',
+          },
+        };
+      }
+    },
+  );
 };

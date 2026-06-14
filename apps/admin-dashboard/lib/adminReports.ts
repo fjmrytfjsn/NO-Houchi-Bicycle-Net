@@ -4,6 +4,8 @@ import type {
   ReportHistoryEntry,
   ReportStatus,
 } from './types';
+import { getAdminApiBaseUrl } from './adminApiConfig';
+import { AdminSessionUnauthorizedError } from './adminSessionShared';
 
 export const reportStatusFilters = [
   'reported',
@@ -48,12 +50,69 @@ type ApiReportDetail = ApiReportSummary & {
   history: ApiReportHistoryEntry[];
 };
 
-export function getAdminApiBaseUrl() {
-  return (
-    process.env.ADMIN_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'http://localhost:3000'
-  ).replace(/\/$/, '');
+type FetchInit = NonNullable<Parameters<typeof fetch>[1]>;
+type CollectionResult = 'collected' | 'not_found_on_collection';
+
+class AdminApiRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'AdminApiRequestError';
+    this.status = status;
+  }
+}
+
+function buildAuthorizedRequestInit(token?: string, init: FetchInit = {}) {
+  const headers: Record<string, string> = {};
+
+  if (init.headers && !Array.isArray(init.headers) && !(init.headers instanceof Headers)) {
+    Object.assign(headers, init.headers);
+  }
+
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+
+  return {
+    ...init,
+    headers,
+  };
+}
+
+async function fetchAdminApiJson<T>(url: string, token?: string, init: FetchInit = {}) {
+  const response = await fetch(url, buildAuthorizedRequestInit(token, init));
+
+  if (response.status === 401 || response.status === 403) {
+    throw new AdminSessionUnauthorizedError();
+  }
+
+  if (!response.ok) {
+    throw new Error(`${init.method ?? 'GET'} ${url} failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+async function fetchAdminSessionApiJson<T>(url: string, init: FetchInit = {}) {
+  const response = await fetch(url, init);
+
+  if (response.status === 401 || response.status === 403) {
+    throw new AdminSessionUnauthorizedError();
+  }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | null;
+
+  if (!response.ok) {
+    throw new AdminApiRequestError(
+      payload?.error || `${init.method ?? 'GET'} ${url} failed: ${response.status}`,
+      response.status,
+    );
+  }
+
+  return payload as T;
 }
 
 export function normalizeSelectedStatus(
@@ -118,41 +177,32 @@ export function mapApiReportDetailToDetail(report: ApiReportDetail): ReportDetai
   };
 }
 
-export async function fetchAdminReports(selectedStatus: SelectedReportStatus) {
-  const response = await fetch(buildReportsUrl(selectedStatus));
-
-  if (!response.ok) {
-    throw new Error(`GET /api/reports failed: ${response.status}`);
-  }
-
-  const reports = (await response.json()) as ApiReportSummary[];
+export async function fetchAdminReports(selectedStatus: SelectedReportStatus, token?: string) {
+  const reports = await fetchAdminApiJson<ApiReportSummary[]>(
+    buildReportsUrl(selectedStatus),
+    token,
+  );
   return reports.map(mapApiReportSummaryToDetail);
 }
 
-export async function fetchReportedCandidateReports(now: Date = new Date()) {
-  const response = await fetch(buildReportsUrl('reported'));
-
-  if (!response.ok) {
-    throw new Error(`GET /api/reports?status=reported failed: ${response.status}`);
-  }
-
-  const reports = (await response.json()) as ApiReportSummary[];
+export async function fetchReportedCandidateReports(now: Date = new Date(), token?: string) {
+  const reports = await fetchAdminApiJson<ApiReportSummary[]>(
+    buildReportsUrl('reported'),
+    token,
+  );
 
   return reports
     .filter((report) => report.status === 'reported')
     .map((report) => mapApiReportSummaryToDetailWithNow(report, now));
 }
 
-export async function fetchAdminReport(id: string) {
-  const response = await fetch(
-    `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}`,
+export async function fetchAdminReport(id: string, token?: string) {
+  return mapApiReportDetailToDetail(
+    await fetchAdminApiJson<ApiReportDetail>(
+      `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}`,
+      token,
+    ),
   );
-
-  if (!response.ok) {
-    throw new Error(`GET /api/reports/${id} failed: ${response.status}`);
-  }
-
-  return mapApiReportDetailToDetail((await response.json()) as ApiReportDetail);
 }
 
 export async function updateCollectionCandidate(
@@ -160,22 +210,55 @@ export async function updateCollectionCandidate(
   isCollectionCandidate: boolean,
   now: Date = new Date(),
 ) {
-  const response = await fetch(
-    `${getAdminApiBaseUrl()}/api/reports/${encodeURIComponent(id)}/collection-candidate`,
+  const updatedReport = await fetchAdminApiJson<ApiReportSummary>(
+    `/api/session/reports/collection-candidate`,
+    undefined,
     {
       method: 'PATCH',
       headers: {
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ isCollectionCandidate }),
+      body: JSON.stringify({ id, isCollectionCandidate }),
+    },
+  );
+  return mapApiReportSummaryToDetailWithNow(updatedReport, now);
+}
+
+export async function requestCollection(id: string, notes?: string, now: Date = new Date()) {
+  const updatedReport = await fetchAdminApiJson<ApiReportSummary>(
+    `/api/session/reports/collection-request`,
+    undefined,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        id,
+        ...(notes ? { notes } : {}),
+      }),
+    },
+  );
+  return mapApiReportSummaryToDetailWithNow(updatedReport, now);
+}
+
+export async function recordCollectionResult(
+  id: string,
+  result: CollectionResult,
+  notes?: string,
+) {
+  const updatedReport = await fetchAdminSessionApiJson<ApiReportSummary>(
+    `/api/session/reports/collection-result`,
+    {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ id, result, notes: notes ?? '' }),
     },
   );
 
-  if (!response.ok) {
-    throw new Error(`PATCH /api/reports/${id}/collection-candidate failed: ${response.status}`);
-  }
-
-  return mapApiReportSummaryToDetailWithNow((await response.json()) as ApiReportSummary, now);
+  return mapApiReportSummaryToDetail(updatedReport);
 }
 
 export function normalizeSelectedUnresolvedView(

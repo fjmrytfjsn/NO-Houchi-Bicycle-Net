@@ -8,6 +8,7 @@ import ReportDetailPage, {
 } from '../pages/reports/[id]';
 import CollectionRequestPage from '../pages/collection-request/[id]';
 import CollectionResultPage from '../pages/collection-result/[id]';
+import LoginPage from '../pages/login';
 
 jest.mock('next/router', () => ({
   useRouter: jest.fn(),
@@ -19,7 +20,7 @@ const { useRouter } = jest.requireMock('next/router') as {
 
 describe('Admin Dashboard pages', () => {
   it('shows report summary and main columns on the report list page', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(<HomePage reports={[]} selectedStatus="all" />);
 
@@ -46,7 +47,7 @@ describe('Admin Dashboard pages', () => {
   });
 
   it('shows API report fields on the report list page', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(
       <HomePage
@@ -89,6 +90,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/',
       query: { status: 'temporary' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(<HomePage reports={[]} selectedStatus="temporary" />);
@@ -103,6 +105,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/',
       query: { status: 'resolved' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(<HomePage reports={[]} selectedStatus="resolved" />);
@@ -120,17 +123,27 @@ describe('Admin Dashboard pages', () => {
 
     await getServerSideProps({
       query: { status: 'resolved' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=resolved',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
 
     global.fetch = originalFetch;
   });
 
   it('shows an error when report list API fetch fails', () => {
-    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true });
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push: jest.fn() });
 
     render(
       <HomePage
@@ -171,10 +184,20 @@ describe('Admin Dashboard pages', () => {
 
     const result = await getServerSideProps({
       query: { status: 'temporary' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=temporary',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -197,11 +220,114 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
+  it('redirects to login when report list page is accessed without a token', async () => {
+    const result = await getServerSideProps({
+      resolvedUrl: '/',
+      req: { headers: {} },
+    } as never);
+
+    expect(result).toEqual({
+      redirect: {
+        destination: '/login?next=%2F',
+        permanent: false,
+      },
+    });
+  });
+
+  it('shows the login form', () => {
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: {},
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    render(<LoginPage nextPath="/unresolved" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: '管理者ログイン' })).toBeInTheDocument();
+    expect(screen.getByLabelText('メールアドレス')).toBeInTheDocument();
+    expect(screen.getByLabelText('パスワード')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ログイン' })).toBeInTheDocument();
+  });
+
+  it('logs in from the login page and redirects to the next path', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: { next: '/unresolved' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<LoginPage nextPath="/unresolved" />);
+
+    fireEvent.change(screen.getByLabelText('メールアドレス'), {
+      target: { value: 'admin@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText('パスワード'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'ログイン' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/login',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/unresolved'));
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows an error on the login page when credentials are invalid', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/login',
+      query: {},
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid credentials' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('メールアドレス'), {
+      target: { value: 'admin@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText('パスワード'), {
+      target: { value: 'wrong-password' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'ログイン' }));
+
+    expect(
+      await screen.findByText('メールアドレスまたはパスワードが正しくありません。'),
+    ).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
   it('shows reported list filters and collection candidate state on the unresolved page', () => {
     useRouter.mockReturnValue({
       pathname: '/unresolved',
       query: {},
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -270,6 +396,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -330,6 +457,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -349,6 +477,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: {},
       isReady: true,
+      push: jest.fn(),
     });
 
     const originalFetch = global.fetch;
@@ -403,7 +532,7 @@ describe('Admin Dashboard pages', () => {
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:3000/api/reports/r-1/collection-candidate',
+        '/api/session/reports/collection-candidate',
         expect.objectContaining({
           method: 'PATCH',
         }),
@@ -419,6 +548,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/unresolved',
       query: { view: 'candidate' },
       isReady: true,
+      push: jest.fn(),
     });
 
     const originalFetch = global.fetch;
@@ -536,11 +666,16 @@ describe('Admin Dashboard pages', () => {
     global.fetch = fetchMock;
 
     const { getServerSideProps } = await import('../pages/unresolved');
-    const result = await getServerSideProps({} as never);
+    const result = await getServerSideProps({
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
+    } as never);
+    const request = fetchMock.mock.calls[0];
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/api/reports?status=reported',
-    );
+    expect(request[0]).toBe('http://localhost:3000/api/reports?status=reported');
     expect(result).toMatchObject({
       props: {
         selectedView: 'all',
@@ -607,10 +742,20 @@ describe('Admin Dashboard pages', () => {
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({
       query: { view: 'unexpected' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=reported',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -654,10 +799,20 @@ describe('Admin Dashboard pages', () => {
     const { getServerSideProps } = await import('../pages/unresolved');
     const result = await getServerSideProps({
       query: { view: 'candidate' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports?status=reported',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -675,6 +830,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/reports/[id]',
       query: { id: 'R-002' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -722,6 +878,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/reports/[id]',
       query: { id: 'r-api-3' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -793,10 +950,20 @@ describe('Admin Dashboard pages', () => {
 
     const result = await getReportDetailServerSideProps({
       params: { id: 'r-api-4' },
+      req: {
+        headers: {
+          cookie: 'admin_access_token=test-token',
+        },
+      },
     } as never);
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/api/reports/r-api-4',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: 'Bearer test-token',
+        }),
+      }),
     );
     expect(result).toMatchObject({
       props: {
@@ -829,11 +996,44 @@ describe('Admin Dashboard pages', () => {
     global.fetch = originalFetch;
   });
 
+  it('redirects to login when report detail fetch returns unauthorized', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      headers: new Headers(),
+    } as Response);
+    global.fetch = fetchMock;
+
+    const result = await getReportDetailServerSideProps({
+      params: { id: 'r-api-4' },
+      resolvedUrl: '/reports/r-api-4',
+      req: {
+        headers: {
+          cookie: 'admin_access_token=expired-token',
+        },
+      },
+      res: {
+        setHeader: jest.fn(),
+      },
+    } as never);
+
+    expect(result).toEqual({
+      redirect: {
+        destination: '/login?next=%2Freports%2Fr-api-4',
+        permanent: false,
+      },
+    });
+
+    global.fetch = originalFetch;
+  });
+
   it('shows API-backed history notes on the report detail page', () => {
     useRouter.mockReturnValue({
       pathname: '/reports/[id]',
       query: { id: 'r-api-5' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -878,6 +1078,7 @@ describe('Admin Dashboard pages', () => {
       pathname: '/collection-request/[id]',
       query: { id: 'R-001' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -910,11 +1111,148 @@ describe('Admin Dashboard pages', () => {
     expect(screen.getByRole('button', { name: '回収依頼登録' })).toBeInTheDocument();
   });
 
+  it('submits a collection request and redirects to the report detail page', async () => {
+    const push = jest.fn().mockResolvedValue(true);
+    useRouter.mockReturnValue({
+      pathname: '/collection-request/[id]',
+      query: { id: 'R-001' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              json: async () => ({
+                id: 'R-001',
+                markerId: 'm-1',
+                imageUrl: '/mock/report-001.png',
+                latitude: 34.7,
+                longitude: 135.49,
+                address: '大阪市北区中之島 1-2-3',
+                identifierText: '防犯登録 1234 / 黒のシティサイクル',
+                status: 'collection_requested',
+                createdAt: '2026-04-20T00:15:00.000Z',
+                updatedAt: '2026-04-20T03:30:00.000Z',
+                isCollectionCandidate: false,
+                collectionCandidateDecision: 'none',
+                collectionCandidateFlaggedAt: null,
+              }),
+            } as Response);
+          }, 0);
+        }),
+    );
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionRequestPage
+        report={{
+          id: 'R-001',
+          imageUrl: '/mock/report-001.png',
+          reportedAt: '2026-04-20 09:15',
+          location: '大阪市北区中之島 1-2-3',
+          latitude: 34.7,
+          longitude: 135.49,
+          address: '大阪市北区中之島 1-2-3',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+          identifierText: '防犯登録 1234 / 黒のシティサイクル',
+          status: 'reported',
+          elapsedLabel: '3時間',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('回収依頼時の補足を入力'), {
+      target: { value: '歩道上に継続駐輪' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: '回収依頼登録' }).closest('form')!);
+
+    expect(screen.getByRole('button', { name: '回収依頼登録' })).toBeDisabled();
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-request',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: 'R-001',
+            notes: '歩道上に継続駐輪',
+          }),
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/reports/R-001'));
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows an error message when collection request submission fails', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-request/[id]',
+      query: { id: 'R-001' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'report is not eligible for collection request' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionRequestPage
+        report={{
+          id: 'R-001',
+          imageUrl: '/mock/report-001.png',
+          reportedAt: '2026-04-20 09:15',
+          location: '大阪市北区中之島 1-2-3',
+          latitude: 34.7,
+          longitude: 135.49,
+          address: '大阪市北区中之島 1-2-3',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.7%2C135.49',
+          identifierText: '防犯登録 1234 / 黒のシティサイクル',
+          status: 'reported',
+          elapsedLabel: '3時間',
+          currentStatusLabel: 'reported',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.submit(screen.getByRole('button', { name: '回収依頼登録' }).closest('form')!);
+
+    expect(
+      await screen.findByText(
+        '回収依頼を登録できませんでした。Backend API の起動状態を確認してください。',
+      ),
+    ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '回収依頼登録' })).not.toBeDisabled();
+
+    global.fetch = originalFetch;
+  });
+
   it('shows the collection result options', () => {
     useRouter.mockReturnValue({
       pathname: '/collection-result/[id]',
       query: { id: 'R-003' },
       isReady: true,
+      push: jest.fn(),
     });
 
     render(
@@ -947,16 +1285,334 @@ describe('Admin Dashboard pages', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('records a collected result from the collection result page', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'R-003',
+        markerId: 'm-003',
+        imageUrl: '/mock/report-003.png',
+        latitude: 34.702,
+        longitude: 135.492,
+        address: '大阪市北区天満 3-8-1',
+        identifierText: '防犯登録 9981 / 青のママチャリ',
+        status: 'collected',
+        createdAt: '2026-04-17T22:20:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: false,
+        collectionCandidateDecision: 'none',
+        collectionCandidateFlaggedAt: null,
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('結果メモ'), {
+      target: { value: '回収業者が現地で回収完了' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-result',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            id: 'R-003',
+            result: 'collected',
+            notes: '回収業者が現地で回収完了',
+          }),
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText('回収結果を記録しました（回収完了）'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('collected').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('結果メモ')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
+    expect(push).not.toHaveBeenCalled();
+
+    global.fetch = originalFetch;
+  });
+
+  it('records a not found result from the collection result page', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'R-003',
+        markerId: 'm-003',
+        imageUrl: '/mock/report-003.png',
+        latitude: 34.702,
+        longitude: 135.492,
+        address: '大阪市北区天満 3-8-1',
+        identifierText: '防犯登録 9981 / 青のママチャリ',
+        status: 'not_found_on_collection',
+        createdAt: '2026-04-17T22:20:00.000Z',
+        updatedAt: '2026-04-21T12:00:00.000Z',
+        isCollectionCandidate: false,
+        collectionCandidateDecision: 'none',
+        collectionCandidateFlaggedAt: null,
+      }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('現地で現物なし'));
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/reports/collection-result',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            id: 'R-003',
+            result: 'not_found_on_collection',
+            notes: '',
+          }),
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText('回収結果を記録しました（現地で現物なし）'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('結果メモ')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
+
+    global.fetch = originalFetch;
+  });
+
+  it('redirects to login when collection result API returns unauthorized', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push,
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'Unauthorized' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith('/login?next=%2Fcollection-result%2FR-003'),
+    );
+
+    global.fetch = originalFetch;
+  });
+
+  it('shows backend errors on the collection result page', async () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-003' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'report is not eligible for collection result' }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-003',
+          imageUrl: '/mock/report-003.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-1',
+          latitude: 34.702,
+          longitude: 135.492,
+          address: '大阪市北区天満 3-8-1',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.702%2C135.492',
+          identifierText: '防犯登録 9981 / 青のママチャリ',
+          status: 'collection_requested',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'collection_requested',
+          history: [],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '結果を記録' }));
+
+    expect(
+      await screen.findByText('report is not eligible for collection result'),
+    ).toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  it('disables collection result submission and shows an error when the report is ineligible and not completed', () => {
+    useRouter.mockReturnValue({
+      pathname: '/collection-result/[id]',
+      query: { id: 'R-004' },
+      isReady: true,
+      push: jest.fn(),
+    });
+
+    render(
+      <CollectionResultPage
+        report={{
+          id: 'R-004',
+          imageUrl: '/mock/report-004.png',
+          reportedAt: '2026-04-18 07:20',
+          location: '大阪市北区天満 3-8-2',
+          latitude: 34.703,
+          longitude: 135.493,
+          address: '大阪市北区天満 3-8-2',
+          mapEmbedUrl: null,
+          mapLinkUrl: 'https://www.google.com/maps?q=34.703%2C135.493',
+          identifierText: '防犯登録 9982 / 白のミニベロ',
+          status: 'resolved',
+          elapsedLabel: '2日',
+          currentStatusLabel: 'resolved',
+          history: [],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText('この通報は回収結果記録の対象外です。最新状態を確認してください。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '結果を記録' })).toBeDisabled();
+  });
+
   it('shows loading state until dynamic route params are ready', () => {
     useRouter.mockReturnValue({
       pathname: '/reports/[id]',
       query: {},
       isReady: false,
+      push: jest.fn(),
     });
 
     render(<ReportDetailPage />);
 
     expect(screen.getByText('読み込み中…')).toBeInTheDocument();
     expect(screen.queryByText('対象の通報が見つかりません。')).not.toBeInTheDocument();
+  });
+
+  it('logs out from the app layout', async () => {
+    const push = jest.fn();
+    useRouter.mockReturnValue({ pathname: '/', query: {}, isReady: true, push });
+
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+    global.fetch = fetchMock;
+
+    render(<HomePage reports={[]} selectedStatus="all" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ログアウト' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/session/logout',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      ),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/login'));
+
+    global.fetch = originalFetch;
   });
 });

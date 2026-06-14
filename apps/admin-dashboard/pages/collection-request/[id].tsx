@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { AppLayout } from '../../components/AppLayout';
 import { DetailCard } from '../../components/DetailCard';
 import { FormScaffold } from '../../components/FormScaffold';
-import { fetchAdminReport } from '../../lib/adminReports';
+import { fetchAdminReport, requestCollection } from '../../lib/adminReports';
+import { withAdminPageAuth } from '../../lib/adminSession';
 import type { ReportDetail } from '../../lib/types';
 
 type CollectionRequestPageProps = {
@@ -19,7 +20,8 @@ export default function CollectionRequestPage({
   const router = useRouter();
   const isReady = router.isReady ?? true;
   const [memo, setMemo] = useState('');
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (!isReady) {
     return (
@@ -44,19 +46,33 @@ export default function CollectionRequestPage({
   return (
     <AppLayout title="回収依頼">
       <form
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          setSuccessMessage(
-            `回収依頼を登録しました。入力メモ: ${memo || 'なし'}`,
-          );
+          if (isSubmitting) {
+            return;
+          }
+
+          setIsSubmitting(true);
+          setActionError(null);
+
+          try {
+            await requestCollection(report.id, memo);
+            await router.push(`/reports/${report.id}`);
+          } catch (error) {
+            setActionError(
+              '回収依頼を登録できませんでした。Backend API の起動状態を確認してください。',
+            );
+            setIsSubmitting(false);
+          }
         }}
       >
         <FormScaffold
           title="対象概要"
           confirmation="確認: collection_requested に更新"
-          successMessage={successMessage}
+          errorMessage={actionError}
           submitLabel="回収依頼登録"
           cancelHref="/unresolved"
+          isSubmitting={isSubmitting}
           fields={
             <label className="form-field">
               <span>依頼メモ</span>
@@ -78,6 +94,7 @@ export default function CollectionRequestPage({
 
 export const getServerSideProps: GetServerSideProps<CollectionRequestPageProps> = async ({
   params,
+  ...context
 }) => {
   const id = typeof params?.id === 'string' ? params.id : undefined;
 
@@ -89,20 +106,31 @@ export const getServerSideProps: GetServerSideProps<CollectionRequestPageProps> 
     };
   }
 
-  try {
-    const report = await fetchAdminReport(id);
+  return withAdminPageAuth<CollectionRequestPageProps>(
+    {
+      params,
+      ...context,
+    } as never,
+    async (token) => {
+      try {
+        const report = await fetchAdminReport(id, token);
 
-    return {
-      props: {
-        report,
-      },
-    };
-  } catch (error) {
-    return {
-      props: {
-        errorMessage:
-          '回収依頼対象を取得できませんでした。Backend API の起動状態を確認してください。',
-      },
-    };
-  }
+        return {
+          props: {
+            report,
+          },
+        };
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AdminSessionUnauthorizedError') {
+          throw error;
+        }
+        return {
+          props: {
+            errorMessage:
+              '回収依頼対象を取得できませんでした。Backend API の起動状態を確認してください。',
+          },
+        };
+      }
+    },
+  );
 };

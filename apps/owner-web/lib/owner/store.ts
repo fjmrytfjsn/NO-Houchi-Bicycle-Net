@@ -12,6 +12,10 @@ const globalOwnerStore = globalThis as typeof globalThis & {
 const store: Record<string, MarkerEntry> =
   globalOwnerStore._owner_store || (globalOwnerStore._owner_store = {});
 
+function getExpiryFromDeclaredAt(declaredAt: Date) {
+  return new Date(declaredAt.getTime() + 24 * 60 * 60 * 1000);
+}
+
 function createMarkerEntry(code: string): MarkerEntry {
   return {
     marker: { code },
@@ -47,7 +51,7 @@ export function declareTemporaryUnlock(code: string) {
   const declaration: Declaration = {
     declaredAt: now.toISOString(),
     eligibleFinalAt: eligibleFinalAt.toISOString(),
-    expiresAt: new Date(eligibleFinalAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: getExpiryFromDeclaredAt(now).toISOString(),
     status: 'temporary',
   };
 
@@ -64,8 +68,9 @@ export function setEligibleFinalAtInPast(code: string) {
   if (!entry?.declaration) return null;
 
   const now = new Date();
+  const declaredAt = new Date(entry.declaration.declaredAt);
   entry.declaration.eligibleFinalAt = now.toISOString();
-  entry.declaration.expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  entry.declaration.expiresAt = getExpiryFromDeclaredAt(declaredAt).toISOString();
   store[code] = entry;
 
   return entry.declaration;
@@ -92,6 +97,12 @@ export function finalizeUnlock(code: string): FinalUnlockResult {
 
   if (now.getTime() < eligibleAt) {
     throw new Error('eligibleFinalAt has not arrived');
+  }
+
+  if (now.getTime() > new Date(entry.declaration.expiresAt).getTime()) {
+    entry.declaration.status = 'expired';
+    store[code] = entry;
+    throw new Error('仮解除の有効期限（24時間）が切れています。再度仮解除を行ってください');
   }
 
   entry.declaration.status = 'finalized';
