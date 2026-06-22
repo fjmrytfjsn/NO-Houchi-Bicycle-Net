@@ -36,7 +36,7 @@ export default function MarkerPage() {
   const [tempUnlockDisabled, setTempUnlockDisabled] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  type CouponStep = 'none' | 'auth' | 'roulette' | 'timer';
+  type CouponStep = 'none' | 'auth' | 'roulette' | 'timer' | 'skipped';
   const [couponStep, setCouponStep] = useState<CouponStep>('none');
   const [couponAmount, setCouponAmount] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,6 +50,20 @@ export default function MarkerPage() {
     getMarker(code)
       .then(async (markerResult) => {
         setData(markerResult);
+        
+        // 状態復元: localStorage から前回のクーポン状態を取得
+        const savedState = localStorage.getItem(`coupon_state_${code}`);
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            if (parsed.step) setCouponStep(parsed.step);
+            if (parsed.amount) setCouponAmount(parsed.amount);
+            return; // localStorageに状態があればそちらを優先
+          } catch (e) {
+            // ignore JSON parse errors
+          }
+        }
+
         // モック: 既に本解除済みの場合は auth ステップから再開
         if (isFinalUnlocked(markerResult) && couponStep === 'none') {
           setCouponStep('auth');
@@ -58,6 +72,15 @@ export default function MarkerPage() {
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
   }, [code, couponStep]);
+
+  // クーポンの状態（ステップ、金額）が変わるたびに localStorage に保存
+  useEffect(() => {
+    if (!code || couponStep === 'none') return;
+    localStorage.setItem(`coupon_state_${code}`, JSON.stringify({
+      step: couponStep,
+      amount: couponAmount
+    }));
+  }, [code, couponStep, couponAmount]);
 
   const showInfo = useCallback((message: string, timeoutMs: number) => {
     setInfo(message);
@@ -145,11 +168,25 @@ export default function MarkerPage() {
   );
 
   const handleAuthComplete = useCallback(() => {
+    // 認証完了直後に金額を決定し、localStorageに保存されるようにする
+    const rand = Math.random() * 100;
+    let decidedAmount = 10;
+    if (rand < 5) decidedAmount = 100; // 1等: 5%
+    else if (rand < 15) decidedAmount = 70; // 2等: 10%
+    else if (rand < 35) decidedAmount = 50; // 3等: 20%
+    else if (rand < 65) decidedAmount = 30; // 4等: 30%
+    else decidedAmount = 10; // 5等: 35%
+    
+    setCouponAmount(decidedAmount);
     setCouponStep('roulette');
   }, []);
 
-  const handleRouletteComplete = useCallback((amount: number) => {
-    setCouponAmount(amount);
+  const handleAuthSkip = useCallback(() => {
+    setCouponStep('skipped');
+    showInfo('クーポンの受け取りをスキップしました', 3000);
+  }, [showInfo]);
+
+  const handleRouletteComplete = useCallback(() => {
     setCouponStep('timer');
   }, []);
 
@@ -220,7 +257,9 @@ export default function MarkerPage() {
 
         {data && (
           <>
-            <ReportSummary report={data.report} declaration={data.declaration} />
+            {!finalUnlocked && (
+              <ReportSummary report={data.report} declaration={data.declaration} />
+            )}
 
             {!declaration && (
               <TempUnlockButton
@@ -242,14 +281,65 @@ export default function MarkerPage() {
             )}
 
             {/* デモ用: 本解除完了後にリセットボタンを表示 */}
+
+            {finalUnlocked && couponStep === 'auth' && (
+              <SMSAuthPanel onAuthComplete={handleAuthComplete} onSkip={handleAuthSkip} />
+            )}
+            {finalUnlocked && couponStep === 'skipped' && (
+              <div style={{
+                marginTop: 'var(--space-4)',
+                padding: 'var(--space-6)',
+                background: 'var(--color-surface)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--color-border)',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: 'var(--space-2)' }}>✅</div>
+                <h3 style={{ margin: '0 0 var(--space-4) 0', fontSize: 'var(--text-lg)' }}>本解除が完了しました</h3>
+                <p style={{ margin: '0 0 var(--space-6) 0', color: 'var(--color-text-muted)' }}>
+                  ご協力ありがとうございます。<br />
+                  速やかに自転車を移動させてください。
+                </p>
+                <a
+                  href="/"
+                  style={{
+                    display: 'inline-block',
+                    padding: 'var(--space-3) var(--space-6)',
+                    background: 'var(--color-primary)',
+                    color: 'var(--color-text-inverse)',
+                    textDecoration: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--text-base)',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  トップページへ戻る
+                </a>
+              </div>
+            )}
+            {finalUnlocked && couponStep === 'roulette' && (
+              <CouponRoulette amount={couponAmount} markerCode={code as string} onComplete={handleRouletteComplete} />
+            )}
+            {finalUnlocked && couponStep === 'timer' && (
+              <CouponTimer amount={couponAmount} markerCode={code as string} />
+            )}
+
+            {/* デモ用: 本解除完了後にリセットボタンを表示 */}
             {finalUnlocked && (
-              <div style={{ marginTop: 'var(--space-4)', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'center' }}>
                 <button
                   onClick={async () => {
                     if (!code) return;
                     setLoading(true);
                     try {
                       await resetMarker(code);
+                      
+                      // 別のテストセッションとしてやり直せるように localStorage の該当マーカーの状態のみクリア
+                      localStorage.removeItem(`coupon_state_${code}`);
+                      localStorage.removeItem(`coupon_timer_${code}`);
+                      localStorage.removeItem(`coupon_roulette_${code}`);
+                      
+                      showInfo('ステータスをリセットしました（デモ用）', 3000);
                       router.push('/');
                     } catch {
                       setError('リセットに失敗しました');
@@ -270,16 +360,6 @@ export default function MarkerPage() {
                   🔄 もう一度試す
                 </button>
               </div>
-            )}
-
-            {finalUnlocked && couponStep === 'auth' && (
-              <SMSAuthPanel onAuthComplete={handleAuthComplete} />
-            )}
-            {finalUnlocked && couponStep === 'roulette' && (
-              <CouponRoulette onComplete={handleRouletteComplete} />
-            )}
-            {finalUnlocked && couponStep === 'timer' && (
-              <CouponTimer amount={couponAmount} />
             )}
 
             {/* QRスキャナー モーダル */}
