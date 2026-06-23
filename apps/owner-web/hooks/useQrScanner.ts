@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect } from 'react';
+import { RefObject, useEffect, useRef } from 'react';
 import jsQR from 'jsqr';
 
 interface UseQrScannerParams {
@@ -16,16 +16,35 @@ export function useQrScanner({
   onDetected,
   onCameraError,
 }: UseQrScannerParams) {
-  const scanQR = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+  const onDetectedRef = useRef(onDetected);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
+
+  useEffect(() => {
+    if (!active) return;
+
+    let isRunning = true;
+    let animationFrameId: number;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const scanLoop = () => {
-      if (!active) return;
+      if (!isRunning) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      if (!video || !canvas) {
+        animationFrameId = requestAnimationFrame(scanLoop);
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        animationFrameId = requestAnimationFrame(scanLoop);
+        return;
+      }
 
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.width = video.videoWidth;
@@ -36,25 +55,19 @@ export function useQrScanner({
         const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (qrCode) {
-          onDetected(qrCode.data);
+          onDetectedRef.current(qrCode.data);
           // 0.5秒待機してからスキャンを再開
-          setTimeout(() => {
-            if (active) {
-              requestAnimationFrame(scanLoop);
+          timeoutId = setTimeout(() => {
+            if (isRunning) {
+              animationFrameId = requestAnimationFrame(scanLoop);
             }
           }, 500);
           return;
         }
       }
 
-      requestAnimationFrame(scanLoop);
+      animationFrameId = requestAnimationFrame(scanLoop);
     };
-
-    scanLoop();
-  }, [active, canvasRef, onDetected, videoRef]);
-
-  useEffect(() => {
-    if (!active) return;
 
     const startCamera = async () => {
       try {
@@ -64,7 +77,9 @@ export function useQrScanner({
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          scanQR();
+          if (isRunning) {
+            scanLoop();
+          }
         }
       } catch {
         onCameraError();
@@ -74,10 +89,14 @@ export function useQrScanner({
     startCamera();
 
     return () => {
+      isRunning = false;
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(timeoutId);
+
       const stream = videoRef.current?.srcObject as MediaStream | null;
       if (stream?.getTracks) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [active, onCameraError, scanQR, videoRef]);
+  }, [active, canvasRef, onCameraError, videoRef]);
 }

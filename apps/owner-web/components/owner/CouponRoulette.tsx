@@ -42,8 +42,10 @@ export function CouponRoulette({ amount, markerCode, onComplete }: CouponRoulett
 
     if (elapsed >= spinDuration) {
       // 既にスピン時間は経過している場合
-      setIsSpinning(false);
-      setCurrentAmount(amount);
+      if (isSpinning) {
+        setIsSpinning(false);
+        setCurrentAmount(amount);
+      }
       const remainingWait = Math.max(0, totalDuration - elapsed);
       timeout = setTimeout(() => {
         onComplete();
@@ -66,11 +68,6 @@ export function CouponRoulette({ amount, markerCode, onComplete }: CouponRoulett
         
         // 親コンポーネントで事前決定された金額で止める
         setCurrentAmount(amount);
-        
-        // 少し待ってから次へ進む
-        setTimeout(() => {
-          onComplete();
-        }, 1500);
       }, remainingSpin);
     }
 

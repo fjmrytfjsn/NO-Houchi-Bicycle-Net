@@ -42,8 +42,14 @@ export default function MarkerPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const couponStepRef = useRef(couponStep);
+  couponStepRef.current = couponStep;
+
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
-    if (!code) return;
+    if (!code || hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
 
     setLoading(true);
     setError(null);
@@ -65,13 +71,13 @@ export default function MarkerPage() {
         }
 
         // モック: 既に本解除済みの場合は auth ステップから再開
-        if (isFinalUnlocked(markerResult) && couponStep === 'none') {
+        if (isFinalUnlocked(markerResult) && couponStepRef.current === 'none') {
           setCouponStep('auth');
         }
       })
       .catch(() => setError('取得に失敗しました'))
       .finally(() => setLoading(false));
-  }, [code, couponStep]);
+  }, [code]);
 
   // クーポンの状態（ステップ、金額）が変わるたびに localStorage に保存
   useEffect(() => {
@@ -82,13 +88,20 @@ export default function MarkerPage() {
     }));
   }, [code, couponStep, couponAmount]);
 
+  // レースコンディション対策: 本解除済みだがクーポンフローが開始されていない(none)場合、強制的に開始する
+  useEffect(() => {
+    if (data && isFinalUnlocked(data) && couponStep === 'none') {
+      setCouponStep('auth');
+    }
+  }, [data, couponStep]);
+
   const showInfo = useCallback((message: string, timeoutMs: number) => {
     setInfo(message);
     setTimeout(() => setInfo(null), timeoutMs);
   }, []);
 
   const handleFastForward = useCallback(async () => {
-    if (!code) return;
+    if (!code || loading) return;
     setLoading(true);
     try {
       await fastForwardTime(code);
@@ -100,10 +113,10 @@ export default function MarkerPage() {
     } finally {
       setLoading(false);
     }
-  }, [code, showInfo]);
+  }, [code, showInfo, loading]);
 
   const handleTemp = async () => {
-    if (!code) return;
+    if (!code || loading) return;
 
     setLoading(true);
     setError(null);
@@ -136,7 +149,7 @@ export default function MarkerPage() {
   };
 
   const handleFinal = useCallback(async () => {
-    if (!code || !data?.declaration) return;
+    if (!code || !data?.declaration || loading) return;
 
     setLoading(true);
     setError(null);
@@ -145,17 +158,29 @@ export default function MarkerPage() {
       const marker = await getMarker(code);
       setData(marker);
       setCouponStep('auth');
-      showInfo('本解除が完了しました。続けてクーポンをお受け取りください。', 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : '本解除に失敗しました');
     } finally {
       setLoading(false);
     }
-  }, [code, data?.declaration, showInfo]);
+  }, [code, data?.declaration, loading]);
 
   const handleQRDetected = useCallback(
     async (qrData: string) => {
-      if (qrData !== code) {
+      // QRデータがURL形式の場合、末尾のコード部分を抽出して比較する
+      // 例: "https://example.com/markers/ABC123" → "ABC123"
+      let extractedCode = qrData.trim();
+      try {
+        const url = new URL(extractedCode);
+        const segments = url.pathname.split('/').filter(Boolean);
+        if (segments.length > 0) {
+          extractedCode = segments[segments.length - 1];
+        }
+      } catch {
+        // URL形式でなければそのまま使う（コード単体の場合）
+      }
+
+      if (extractedCode !== code) {
         setScanError('異なるQRコードです。同じマーカーのQRを読み込んでください。');
         setTimeout(() => setScanError(null), 5000);
         return;
@@ -248,12 +273,14 @@ export default function MarkerPage() {
           {/*ここまで消す*/}
         </div>
 
-        <StatusMessages
-          loading={loading}
-          error={error}
-          info={info}
-          hasData={Boolean(data)}
-        />
+        {!finalUnlocked && (
+          <StatusMessages
+            loading={loading}
+            error={error}
+            info={info}
+            hasData={Boolean(data)}
+          />
+        )}
 
         {data && (
           <>
@@ -283,7 +310,26 @@ export default function MarkerPage() {
             {/* デモ用: 本解除完了後にリセットボタンを表示 */}
 
             {finalUnlocked && couponStep === 'auth' && (
-              <SMSAuthPanel onAuthComplete={handleAuthComplete} onSkip={handleAuthSkip} />
+              <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--space-3)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  borderRadius: 'var(--radius-md)',
+                  borderLeft: '4px solid var(--color-success)',
+                  marginBottom: 'var(--space-4)',
+                  marginTop: 'var(--space-4)',
+                  fontSize: 'var(--text-sm)',
+                  background: 'var(--color-success-light)',
+                  color: '#166534',
+                  fontWeight: 500
+                }}>
+                  <span style={{ fontSize: 'var(--text-lg)', flexShrink: 0, lineHeight: 1.4 }}>✅</span>
+                  <span style={{ flex: 1, lineHeight: 1.5 }}>本解除が完了しました。続けてクーポンをお受け取りください。</span>
+                </div>
+                <SMSAuthPanel onAuthComplete={handleAuthComplete} onSkip={handleAuthSkip} />
+              </>
             )}
             {finalUnlocked && couponStep === 'skipped' && (
               <div style={{

@@ -86,7 +86,11 @@ export function SMSAuthPanel({ onAuthComplete, onSkip }: SMSAuthPanelProps) {
             ※デモ用操作
           </div>
           <button
-            onClick={onAuthComplete}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onAuthComplete();
+            }}
             style={{
               padding: 'var(--space-3) var(--space-4)',
               background: 'var(--color-primary)',
