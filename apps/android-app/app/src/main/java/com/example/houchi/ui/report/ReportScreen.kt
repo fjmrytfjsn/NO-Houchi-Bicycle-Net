@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import com.example.houchi.BuildConfig
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -214,17 +215,19 @@ private fun CameraSection(
             Icon(Icons.Default.CameraAlt, contentDescription = "撮影")
         }
 
-        TextButton(
-            onClick = { createDebugPhoto(context, onPhotoCaptured) },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 8.dp)
-        ) {
-            Text(
-                "（デバッグ）写真をスキップ",
-                color = androidx.compose.ui.graphics.Color.White,
-                style = MaterialTheme.typography.bodySmall
-            )
+        if (BuildConfig.DEBUG) {
+            TextButton(
+                onClick = { createDebugPhoto(context, onPhotoCaptured) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 8.dp)
+            ) {
+                Text(
+                    "（デバッグ）写真をスキップ",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
