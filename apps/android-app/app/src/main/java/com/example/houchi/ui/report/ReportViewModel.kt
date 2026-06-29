@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.houchi.data.local.PointStorage
 import com.example.houchi.data.repository.ReportRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -25,9 +26,13 @@ data class ReportUiState(
     val showQrScanner: Boolean = false
 )
 
+// モック: 通報順に応じたポイント（本番はサーバー側で決定）
+private val MOCK_REPORT_POINTS = 100
+
 class ReportViewModel(
     private val repository: ReportRepository,
-    private val context: Context
+    private val context: Context,
+    private val pointStorage: PointStorage,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReportUiState())
@@ -104,10 +109,11 @@ class ReportViewModel(
         viewModelScope.launch {
             _uiState.value = state.copy(isSubmitting = true, errorMessage = null)
             val result = repository.submitReport(uri, state.latitude, state.longitude, state.markerCode)
-            _uiState.value = if (result.isSuccess) {
-                state.copy(isSubmitting = false, isSubmitted = true)
+            if (result.isSuccess) {
+                pointStorage.addPoints(MOCK_REPORT_POINTS)
+                _uiState.value = state.copy(isSubmitting = false, isSubmitted = true)
             } else {
-                state.copy(isSubmitting = false, errorMessage = result.exceptionOrNull()?.message)
+                _uiState.value = state.copy(isSubmitting = false, errorMessage = result.exceptionOrNull()?.message)
             }
         }
     }

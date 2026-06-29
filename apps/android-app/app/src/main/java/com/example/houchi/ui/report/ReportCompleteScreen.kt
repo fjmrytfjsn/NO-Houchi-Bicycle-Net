@@ -66,7 +66,7 @@ fun ReportCompleteScreen(onBackToHome: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "通報ポイントが付与されました！\n地域クーポンと交換できます",
+                    text = "自転車が解除・撤去されたときにポイントが付与されます。\n早く通報するほど多くのポイントがもらえます！",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
