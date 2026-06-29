@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.houchi.data.local.PointStorage
 import com.example.houchi.data.local.TokenStorage
 import com.example.houchi.data.repository.AuthRepository
 import com.example.houchi.data.repository.ReportRepository
@@ -30,6 +31,7 @@ fun AppNavGraph(
     context: Context
 ) {
     val tokenStorage = remember { TokenStorage(context) }
+    val pointStorage = remember { PointStorage(context) }
     val authRepository = remember { AuthRepository(tokenStorage) }
     val reportRepository = remember { ReportRepository(context, tokenStorage) }
 
@@ -48,7 +50,7 @@ fun AppNavGraph(
         }
 
         composable(Routes.HOME) {
-            val viewModel = remember { HomeViewModel(authRepository) }
+            val viewModel = remember { HomeViewModel(authRepository, pointStorage) }
             HomeScreen(
                 viewModel = viewModel,
                 onReportClick = { navController.navigate(Routes.REPORT) },
@@ -61,7 +63,7 @@ fun AppNavGraph(
         }
 
         composable(Routes.REPORT) {
-            val viewModel = remember { ReportViewModel(reportRepository, context) }
+            val viewModel = remember { ReportViewModel(reportRepository, context, pointStorage) }
             ReportScreen(
                 viewModel = viewModel,
                 onReportComplete = {

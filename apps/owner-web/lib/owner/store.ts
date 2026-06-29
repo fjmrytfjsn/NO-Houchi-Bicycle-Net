@@ -45,20 +45,6 @@ export function getMarkerEntry(code: string) {
   return store[code];
 }
 
-export function updateReportData(code: string, latitude: number, longitude: number) {
-  const entry = getMarkerEntry(code);
-  entry.report.latitude = latitude;
-  entry.report.longitude = longitude;
-  entry.report.createdAt = new Date().toISOString();
-  
-  // 簡易的に緯度経度からダミーの位置識別情報を生成
-  entry.report.identifierText = `電柱: ${Math.floor(Math.abs(latitude * 100))}-${Math.floor(Math.abs(longitude * 100))}`;
-  entry.report.address = `ダミー住所 (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
-  
-  store[code] = entry;
-  return entry;
-}
-
 export function declareTemporaryUnlock(code: string) {
   const now = new Date();
   const eligibleFinalAt = new Date(now.getTime() + 15 * 60 * 1000);

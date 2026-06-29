@@ -22,7 +22,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "BASE_URL", "\"${localProperties.getProperty("BASE_URL", "http://10.0.2.2:3001/")}\"")
+        buildConfigField("String", "BASE_URL", "\"${localProperties.getProperty("BASE_URL", "http://10.0.2.2:3000/")}\"")
     }
 
     buildTypes {
