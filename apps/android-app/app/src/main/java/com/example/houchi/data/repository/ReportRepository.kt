@@ -27,7 +27,7 @@ class ReportRepository(
             val token = tokenStorage.tokenFlow.first()
                 ?: return Result.failure(Exception("認証情報がありません。再度ログインしてください"))
 
-            if (token == "debug-token") return Result.success("debug-report-id")
+            // if (token == "debug-token") return Result.success("debug-report-id")
 
             val imageFile = uriToFile(imageUri)
             val imagePart = MultipartBody.Part.createFormData(
