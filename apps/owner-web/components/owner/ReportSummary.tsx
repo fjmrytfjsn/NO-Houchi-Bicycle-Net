@@ -28,6 +28,22 @@ export function ReportSummary({ report, declaration }: ReportSummaryProps) {
   const effectiveStatus = getEffectiveStatus(report, declaration);
   const statusInfo = getStatusInfo(effectiveStatus);
 
+  let formattedDate = '-';
+  if (report?.createdAt) {
+    try {
+      const d = new Date(report.createdAt);
+      formattedDate = d.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      formattedDate = report.createdAt;
+    }
+  }
+
   return (
     <div className={styles.card}>
       <div className={styles.imageWrap}>
@@ -53,11 +69,19 @@ export function ReportSummary({ report, declaration }: ReportSummaryProps) {
           </span>
         </div>
 
-        {report?.identifierText && (
-          <p className={styles.ocrText} style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
-            {report.identifierText}
-          </p>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px dashed var(--color-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>報告日時</span>
+            <span style={{ fontWeight: 500 }}>{formattedDate}</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--color-text-muted)', flexShrink: 0, marginRight: 'var(--space-2)' }}>位置識別情報</span>
+            <span style={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-all' }}>
+              {report?.identifierText || '未登録'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

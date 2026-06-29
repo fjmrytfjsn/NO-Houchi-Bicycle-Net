@@ -36,6 +36,7 @@ export default function MarkerPage() {
   const [tempUnlockDisabled, setTempUnlockDisabled] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanSuccess, setScanSuccess] = useState(false);
   type CouponStep = 'none' | 'auth' | 'roulette' | 'timer' | 'skipped';
   const [couponStep, setCouponStep] = useState<CouponStep>('none');
   const [couponAmount, setCouponAmount] = useState<number>(0);
@@ -180,16 +181,24 @@ export default function MarkerPage() {
         // URL形式でなければそのまま使う（コード単体の場合）
       }
 
+      if (scanSuccess) return;
+
       if (extractedCode !== code) {
         setScanError('異なるQRコードです。同じマーカーのQRを読み込んでください。');
         setTimeout(() => setScanError(null), 5000);
         return;
       }
 
-      setShowQRScanner(false);
-      await handleFinal();
+      setScanSuccess(true);
+      
+      // 10秒間成功画面を表示してから次へ進む
+      setTimeout(async () => {
+        setShowQRScanner(false);
+        setScanSuccess(false);
+        await handleFinal();
+      }, 10000);
     },
-    [code, handleFinal]
+    [code, handleFinal, scanSuccess]
   );
 
   const handleAuthComplete = useCallback(() => {
@@ -221,7 +230,7 @@ export default function MarkerPage() {
   }, []);
 
   useQrScanner({
-    active: showQRScanner,
+    active: showQRScanner && !scanSuccess,
     videoRef,
     canvasRef,
     onDetected: handleQRDetected,
@@ -414,7 +423,8 @@ export default function MarkerPage() {
                 videoRef={videoRef}
                 canvasRef={canvasRef}
                 errorMessage={scanError}
-                onCancel={() => { setShowQRScanner(false); setScanError(null); }}
+                isSuccess={scanSuccess}
+                onCancel={() => { setShowQRScanner(false); setScanError(null); setScanSuccess(false); }}
               />
             )}
           </>
