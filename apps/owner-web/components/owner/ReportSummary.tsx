@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import type { Declaration, Report, ReportStatus } from '../../lib/owner/types';
+import { useNow } from '../../hooks/useNow';
 import styles from './ReportSummary.module.css';
 
 interface ReportSummaryProps {
@@ -25,24 +27,51 @@ function getEffectiveStatus(report?: Report, declaration?: Declaration | null): 
 }
 
 export function ReportSummary({ report, declaration }: ReportSummaryProps) {
+  const nowTime = useNow(60000); // 1分ごとに更新
+  const [locationText, setLocationText] = useState('-');
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationText('位置情報がサポートされていません');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+          const data = await res.json();
+          if (data && data.address) {
+            const p = data.address;
+            // 取得できた住所パーツを結合して日本の住所っぽく整形
+            const addressText = [p.province, p.state, p.city, p.ward, p.town, p.suburb, p.neighbourhood, p.quarter, p.road].filter(Boolean).join('');
+            setLocationText(addressText || data.display_name || `現在地 (緯度:${lat.toFixed(4)}, 経度:${lon.toFixed(4)})`);
+          } else {
+            setLocationText(`現在地 (緯度:${lat.toFixed(4)}, 経度:${lon.toFixed(4)})`);
+          }
+        } catch {
+          setLocationText(`現在地 (緯度:${lat.toFixed(4)}, 経度:${lon.toFixed(4)})`);
+        }
+      },
+      () => {
+        setLocationText('現在地を取得できませんでした');
+      },
+      { timeout: 10000 }
+    );
+  }, []);
+
   const effectiveStatus = getEffectiveStatus(report, declaration);
   const statusInfo = getStatusInfo(effectiveStatus);
 
-  let formattedDate = '-';
-  if (report?.createdAt) {
-    try {
-      const d = new Date(report.createdAt);
-      formattedDate = d.toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      formattedDate = report.createdAt;
-    }
-  }
+  const formattedDate = new Date(nowTime).toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
     <div className={styles.card}>
@@ -78,7 +107,7 @@ export function ReportSummary({ report, declaration }: ReportSummaryProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--color-text-muted)', flexShrink: 0, marginRight: 'var(--space-2)' }}>位置識別情報</span>
             <span style={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-all' }}>
-              {report?.identifierText || '未登録'}
+              {locationText}
             </span>
           </div>
         </div>
