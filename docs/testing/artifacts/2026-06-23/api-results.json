@@ -1,0 +1,354 @@
+{
+  "generatedAt": "2026-06-23T02:14:17.555Z",
+  "environment": {
+    "backend": "http://127.0.0.1:3000",
+    "adminUser": "admin@example.test"
+  },
+  "data": {
+    "login": {
+      "status": 200,
+      "tokenType": "Bearer"
+    },
+    "api01ReportId": "5ee5597b-bb01-4869-8a51-70a8b522bd54",
+    "owner06ReportId": "599ea36e-fce9-47b5-8d9f-91ced4b3eb74",
+    "collectionRequestReportId": "7b1abbb9-0bce-4298-a18b-89f62a6c159f",
+    "collectionCollectedReportId": "6327e2ea-c99a-41dc-b042-952890bce07a",
+    "collectionNotFoundReportId": "36363f19-96e2-4895-87dd-92bd1bed739a"
+  },
+  "cases": {
+    "API-01": {
+      "request": {
+        "method": "POST",
+        "path": "/api/reports"
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "id": "5ee5597b-bb01-4869-8a51-70a8b522bd54",
+          "markerId": "4647bd54-b938-4725-bd94-500a2b98f25b",
+          "status": "reported",
+          "isCollectionCandidate": false,
+          "collectionCandidateDecision": "none",
+          "createdAt": "2026-06-23T02:14:17.681Z",
+          "identifierText": "API-01 normal report",
+          "address": null
+        }
+      },
+      "pass": true
+    },
+    "API-02": {
+      "request": {
+        "method": "POST",
+        "path": "/api/reports",
+        "invalid": true
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "imageUrl required"
+        }
+      },
+      "pass": true
+    },
+    "API-03": {
+      "request": [
+        {
+          "method": "GET",
+          "path": "/api/reports"
+        },
+        {
+          "method": "GET",
+          "path": "/api/reports?status=reported"
+        }
+      ],
+      "response": {
+        "allStatus": 200,
+        "allCount": 19,
+        "reportedStatus": 200,
+        "reportedCount": 8
+      },
+      "pass": true
+    },
+    "API-04": {
+      "request": {
+        "method": "GET",
+        "path": "/api/reports/seed-report-resolved"
+      },
+      "response": {
+        "status": 200,
+        "report": {
+          "id": "seed-report-resolved",
+          "markerId": "seed-marker-resolved",
+          "status": "resolved",
+          "isCollectionCandidate": false,
+          "collectionCandidateDecision": "none",
+          "createdAt": "2026-05-05T09:00:00.000Z",
+          "identifierText": "防犯登録 SEED-6001 / 緑のシティサイクル",
+          "address": "大阪市北区扇町 2-1-7"
+        },
+        "history": [
+          {
+            "timestamp": "2026-05-05T09:00:00.000Z",
+            "label": "通報を受付"
+          },
+          {
+            "timestamp": "2026-05-05T09:00:00.000Z",
+            "label": "持ち主が仮解除"
+          },
+          {
+            "timestamp": "2026-05-06T09:00:00.000Z",
+            "label": "持ち主が本解除"
+          }
+        ],
+        "historyAscending": true
+      },
+      "pass": true
+    },
+    "API-05": {
+      "request": {
+        "method": "GET",
+        "path": "/owner/markers/SEED-REP-001"
+      },
+      "response": {
+        "status": 200,
+        "marker": {
+          "code": "SEED-REP-001"
+        },
+        "report": {
+          "id": "seed-report-reported",
+          "markerId": "seed-marker-reported",
+          "status": "reported",
+          "isCollectionCandidate": true,
+          "collectionCandidateDecision": "auto",
+          "createdAt": "2026-05-11T03:00:00.000Z",
+          "identifierText": "防犯登録 SEED-1001 / 黒のシティサイクル",
+          "address": "大阪市北区中之島 1-2-3"
+        },
+        "declaration": null
+      },
+      "pass": true
+    },
+    "API-06": {
+      "request": {
+        "method": "POST",
+        "path": "/owner/markers/TEST-20260623R7668-OWNER06/unlock-temp"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "declaredAt": "2026-06-23T02:14:17.739Z",
+          "eligibleFinalAt": "2026-06-23T02:29:17.739Z",
+          "expiresAt": "2026-06-24T02:14:17.739Z",
+          "status": "temporary"
+        }
+      },
+      "pass": true
+    },
+    "API-07": {
+      "request": {
+        "method": "POST",
+        "path": "/owner/markers/TEST-20260623R7668-OWNER06/unlock-final"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "finalizedAt": "2026-06-23T02:14:17.769Z",
+          "status": "resolved",
+          "coupon": {
+            "id": "8dad6e6f-7437-4dd2-920e-da691ec67e0e",
+            "name": "カフェ20%割引券",
+            "description": "カフェ利用時に20%割引",
+            "shopName": "商店街カフェ",
+            "discount": 20,
+            "discountType": "percentage",
+            "expiresAt": "2026-07-07T02:14:17.769Z"
+          },
+          "message": "クーポンを獲得しました！商店街でご利用ください。"
+        }
+      },
+      "pass": true
+    },
+    "API-08": {
+      "request": "multiple abnormal final unlock cases",
+      "response": {
+        "noTemp": {
+          "status": 409,
+          "body": {
+            "error": "No temporary declaration found"
+          }
+        },
+        "notReached": {
+          "status": 409,
+          "body": {
+            "error": "eligibleFinalAt has not arrived",
+            "eligibleFinalAt": "2026-06-23T02:29:17.848Z",
+            "currentTime": "2026-06-23T02:14:17.876Z"
+          }
+        },
+        "expired": {
+          "status": 409,
+          "body": {
+            "error": "No temporary declaration found"
+          }
+        },
+        "mismatch": {
+          "status": 400,
+          "body": {
+            "error": "scannedCode does not match marker code"
+          }
+        }
+      },
+      "pass": true
+    },
+    "API-09": {
+      "request": "PATCH collection-candidate on reported and resolved reports",
+      "response": {
+        "success": {
+          "status": 200,
+          "body": {
+            "id": "7b1abbb9-0bce-4298-a18b-89f62a6c159f",
+            "markerId": "0984e4f1-df98-434e-9f74-c719afab9e52",
+            "status": "reported",
+            "isCollectionCandidate": true,
+            "collectionCandidateDecision": "manual_on",
+            "createdAt": "2026-06-23T02:14:17.950Z",
+            "identifierText": "API-10 collection request",
+            "address": null
+          }
+        },
+        "conflict": {
+          "status": 409,
+          "body": {
+            "error": "report is not eligible for collection candidate update"
+          }
+        }
+      },
+      "pass": true
+    },
+    "API-10": {
+      "request": {
+        "method": "POST",
+        "path": "/api/reports/7b1abbb9-0bce-4298-a18b-89f62a6c159f/collection-request"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "id": "7b1abbb9-0bce-4298-a18b-89f62a6c159f",
+          "markerId": "0984e4f1-df98-434e-9f74-c719afab9e52",
+          "status": "collection_requested",
+          "isCollectionCandidate": false,
+          "collectionCandidateDecision": "none",
+          "createdAt": "2026-06-23T02:14:17.950Z",
+          "identifierText": "API-10 collection request",
+          "address": null
+        }
+      },
+      "pass": true
+    },
+    "API-11": {
+      "request": "PATCH collection-result for collected and not_found_on_collection",
+      "response": {
+        "collected": {
+          "status": 200,
+          "body": {
+            "id": "6327e2ea-c99a-41dc-b042-952890bce07a",
+            "markerId": "716a6a62-5cda-4fab-9d0f-d268016bd4ce",
+            "status": "collected",
+            "isCollectionCandidate": false,
+            "collectionCandidateDecision": "none",
+            "createdAt": "2026-06-23T02:14:17.964Z",
+            "identifierText": "API-11 collected",
+            "address": null
+          }
+        },
+        "notFound": {
+          "status": 200,
+          "body": {
+            "id": "36363f19-96e2-4895-87dd-92bd1bed739a",
+            "markerId": "07beaae0-da6a-4c3d-9e15-e52eb392a904",
+            "status": "not_found_on_collection",
+            "isCollectionCandidate": false,
+            "collectionCandidateDecision": "none",
+            "createdAt": "2026-06-23T02:14:17.982Z",
+            "identifierText": "API-11 not found",
+            "address": null
+          }
+        }
+      },
+      "pass": true
+    },
+    "API-12": {
+      "request": {
+        "method": "PATCH",
+        "path": "/api/reports/bccb354d-7a39-4c35-a04f-752bdb06d55f/collection-result"
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "report is not eligible for collection result"
+        }
+      },
+      "pass": true
+    },
+    "API-13": {
+      "request": "GET detail after owner flow and collection flow",
+      "response": {
+        "ownerFlow": {
+          "status": 200,
+          "report": {
+            "id": "599ea36e-fce9-47b5-8d9f-91ced4b3eb74",
+            "markerId": "f3a1732f-e5ca-4e4f-8847-efb1e12333d5",
+            "status": "resolved",
+            "isCollectionCandidate": false,
+            "collectionCandidateDecision": "none",
+            "createdAt": "2026-06-23T02:14:17.726Z",
+            "identifierText": "API-06 owner temp unlock",
+            "address": null
+          },
+          "history": [
+            {
+              "timestamp": "2026-06-23T02:14:17.726Z",
+              "label": "通報を受付"
+            },
+            {
+              "timestamp": "2026-06-23T02:14:17.739Z",
+              "label": "持ち主が仮解除"
+            },
+            {
+              "timestamp": "2026-06-23T02:14:17.769Z",
+              "label": "持ち主が本解除"
+            }
+          ]
+        },
+        "collectionFlow": {
+          "status": 200,
+          "report": {
+            "id": "6327e2ea-c99a-41dc-b042-952890bce07a",
+            "markerId": "716a6a62-5cda-4fab-9d0f-d268016bd4ce",
+            "status": "collected",
+            "isCollectionCandidate": false,
+            "collectionCandidateDecision": "none",
+            "createdAt": "2026-06-23T02:14:17.964Z",
+            "identifierText": "API-11 collected",
+            "address": null
+          },
+          "history": [
+            {
+              "timestamp": "2026-06-23T02:14:17.964Z",
+              "label": "通報を受付"
+            },
+            {
+              "timestamp": "2026-06-23T02:14:18.057Z",
+              "label": "回収依頼を登録"
+            },
+            {
+              "timestamp": "2026-06-23T02:14:18.074Z",
+              "label": "回収結果を記録"
+            }
+          ]
+        }
+      },
+      "pass": true
+    }
+  }
+}

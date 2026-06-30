@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-06-23T02:17:58.729Z",
+  "screenshots": [
+    "admin-01-login.png",
+    "admin-02-list-all.png",
+    "admin-03-list-resolved.png",
+    "admin-04-report-detail-resolved.png",
+    "admin-05-unresolved-all.png",
+    "admin-06-unresolved-candidate.png",
+    "admin-07-collection-request-initial.png",
+    "admin-08-collection-request-submitted-detail.png",
+    "admin-09-collection-result-not-found-initial.png",
+    "admin-10-collection-result-not-found-submitted.png",
+    "admin-11-collection-result-collected-initial.png",
+    "admin-12-collection-result-collected-submitted.png"
+  ],
+  "capturedSessionResponses": [
+    {
+      "url": "http://127.0.0.1:3002/api/session/login",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "redirectTo": "/"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3002/api/session/reports/collection-candidate",
+      "status": 200,
+      "body": null
+    },
+    {
+      "url": "http://127.0.0.1:3002/api/session/reports/collection-request",
+      "status": 200,
+      "body": {
+        "id": "seed-report-reported-manual-on",
+        "markerId": "seed-marker-reported-manual-on",
+        "imageUrl": "https://example.com/seed/report-reported-manual-on.jpg",
+        "latitude": 34.705938,
+        "longitude": 135.496524,
+        "address": "大阪市北区大深町 4-20",
+        "identifierText": "防犯登録 SEED-1003 / 黄色のクロスバイク",
+        "status": "collection_requested",
+        "isCollectionCandidate": false,
+        "collectionCandidateDecision": "none",
+        "collectionCandidateFlaggedAt": null,
+        "notes": "開発用: 管理者が手動で回収対象にした案件",
+        "createdAt": "2026-05-10T23:00:00.000Z",
+        "updatedAt": "2026-06-23T02:17:55.249Z"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3002/api/session/reports/collection-result",
+      "status": 200,
+      "body": {
+        "id": "seed-report-reported-manual-on",
+        "markerId": "seed-marker-reported-manual-on",
+        "imageUrl": "https://example.com/seed/report-reported-manual-on.jpg",
+        "latitude": 34.705938,
+        "longitude": 135.496524,
+        "address": "大阪市北区大深町 4-20",
+        "identifierText": "防犯登録 SEED-1003 / 黄色のクロスバイク",
+        "status": "not_found_on_collection",
+        "isCollectionCandidate": false,
+        "collectionCandidateDecision": "none",
+        "collectionCandidateFlaggedAt": null,
+        "notes": "開発用: 管理者が手動で回収対象にした案件",
+        "createdAt": "2026-05-10T23:00:00.000Z",
+        "updatedAt": "2026-06-23T02:17:56.676Z"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3002/api/session/reports/collection-request",
+      "status": 200,
+      "body": {
+        "id": "seed-report-reported-manual-off",
+        "markerId": "seed-marker-reported-manual-off",
+        "imageUrl": "https://example.com/seed/report-reported-manual-off.jpg",
+        "latitude": 34.701454,
+        "longitude": 135.504239,
+        "address": "大阪市北区曽根崎 2-11-5",
+        "identifierText": "防犯登録 SEED-1004 / 赤のミニベロ",
+        "status": "collection_requested",
+        "isCollectionCandidate": false,
+        "collectionCandidateDecision": "none",
+        "collectionCandidateFlaggedAt": null,
+        "notes": "開発用: 24時間超過後に手動除外した案件",
+        "createdAt": "2026-05-08T09:00:00.000Z",
+        "updatedAt": "2026-06-23T02:17:57.612Z"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3002/api/session/reports/collection-result",
+      "status": 200,
+      "body": {
+        "id": "seed-report-reported-manual-off",
+        "markerId": "seed-marker-reported-manual-off",
+        "imageUrl": "https://example.com/seed/report-reported-manual-off.jpg",
+        "latitude": 34.701454,
+        "longitude": 135.504239,
+        "address": "大阪市北区曽根崎 2-11-5",
+        "identifierText": "防犯登録 SEED-1004 / 赤のミニベロ",
+        "status": "collected",
+        "isCollectionCandidate": false,
+        "collectionCandidateDecision": "none",
+        "collectionCandidateFlaggedAt": null,
+        "notes": "開発用: 24時間超過後に手動除外した案件",
+        "createdAt": "2026-05-08T09:00:00.000Z",
+        "updatedAt": "2026-06-23T02:17:58.583Z"
+      }
+    }
+  ]
+}
