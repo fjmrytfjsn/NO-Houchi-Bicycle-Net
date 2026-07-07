@@ -6,7 +6,7 @@
   --gap-lg: 4.2mm;
   --gap-md: 3.2mm;
   --gap-sm: 2.2mm;
-  --panel-padding: 4.2mm;
+  --panel-padding: 5mm;
   --radius-lg: 6mm;
   --radius-md: 5mm;
   --radius-sm: 4mm;
@@ -242,7 +242,7 @@ img {
 
 .problem-card,
 .effect-card {
-  padding: 2.4mm;
+  padding: 3mm;
   background: #fffdf8;
   border: 1px solid var(--line);
 }
@@ -292,7 +292,7 @@ img {
 }
 
 .system-card {
-  padding: 2.4mm;
+  padding: 3mm;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -398,7 +398,7 @@ img {
 }
 
 .flow-node {
-  padding: 2.4mm;
+  padding: 3mm;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 231, 213, 0.9));
   border: 1px solid var(--line);
 }
@@ -415,7 +415,7 @@ img {
 
 .state-box {
   margin-top: var(--gap-sm);
-  padding: 2.4mm;
+  padding: 3mm;
   background: var(--mint);
   border: 1px solid rgba(21, 38, 31, 0.08);
 }
