@@ -1,8 +1,6 @@
 :root {
   --paper-width: 1189mm;
   --paper-height: 841mm;
-  --screen-paper-width: 1600px;
-  --screen-paper-height: 1132px;
   --paper-padding: 22px;
   --bg: #edf0ea;
   --paper: #ffffff;
@@ -33,7 +31,7 @@ body {
 }
 
 body {
-  min-width: calc(var(--screen-paper-width) + 64px);
+  min-width: calc(var(--paper-width) + 64px);
 }
 
 img {
@@ -47,8 +45,8 @@ img {
 }
 
 .poster {
-  width: var(--screen-paper-width);
-  height: var(--screen-paper-height);
+  width: var(--paper-width);
+  height: var(--paper-height);
   margin: 0 auto;
   padding: var(--paper-padding);
   background: var(--paper);
