@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NO-Houchi Bicycle Net | A0 Poster</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="poster-shell">
+      <article class="poster">
+        <section class="hero panel panel-dark">
+          <div class="hero-copy">
+            <p class="eyebrow">CIVIC TECH POSTER / EXHIBITION 2026</p>
+            <h1>NO-Houchi Bicycle Net</h1>
+            <p class="hero-lead">
+              放置自転車対策を、行政だけの後追い業務から
+              <strong>地域参加型の即時解決フロー</strong>へ変える試作プロダクト。
+            </p>
+            <div class="hero-metrics">
+              <div>
+                <span class="metric-label">つなぐもの</span>
+                <strong>通報 / 解除 / 回収 / 記録</strong>
+              </div>
+              <div>
+                <span class="metric-label">対象エリア</span>
+                <strong>大阪府北区の放置禁止区間</strong>
+              </div>
+              <div>
+                <span class="metric-label">狙い</span>
+                <strong>空振り削減と自発移動の促進</strong>
+              </div>
+            </div>
+          </div>
+          <figure class="hero-photo card-photo">
+            <img
+              src="../../../apps/owner-web/public/samples/放置自転車.jpg"
+              alt="放置自転車のサンプル写真"
+            />
+            <figcaption>現場で発生している「歩行阻害」と「運用負荷」を起点に設計。</figcaption>
+          </figure>
+        </section>
+
+        <section class="problem-solution">
+          <div class="panel panel-light">
+            <p class="section-kicker">Problem</p>
+            <h2>現状の課題</h2>
+            <div class="issue-grid">
+              <article class="issue-card">
+                <span class="issue-number">01</span>
+                <h3>歩行空間と景観を損なう</h3>
+                <p>駅前や商業地で通行安全性が低下し、店舗前の営業環境や地域景観にも悪影響が出る。</p>
+              </article>
+              <article class="issue-card">
+                <span class="issue-number">02</span>
+                <h3>行政の確認コストが重い</h3>
+                <p>巡回、警告、回収依頼、結果記録が分断され、現地確認の空振りも発生しやすい。</p>
+              </article>
+              <article class="issue-card">
+                <span class="issue-number">03</span>
+                <h3>持ち主を動かす導線が弱い</h3>
+                <p>発見から状況把握までに時間差があり、持ち主の即時移動を促す仕組みが不足している。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="panel panel-accent">
+            <p class="section-kicker">Concept</p>
+            <h2>解決の考え方</h2>
+            <div class="concept-stack">
+              <div class="concept-block">
+                <h3>行政委託型の基盤</h3>
+                <p>通報管理、回収依頼、結果記録を一元化し、運用の見える化と効率化を進める。</p>
+              </div>
+              <div class="concept-block">
+                <h3>地域協賛型の動機付け</h3>
+                <p>クーポンを「違法駐輪への報酬」ではなく、即時移動を促す期限付きトリガーとして使う。</p>
+              </div>
+              <div class="concept-block">
+                <h3>解決までの流れを統合</h3>
+                <p>発見から自己解決または回収完了までをひとつのフローとして扱い、対応履歴を残す。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-light workflow">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Workflow</p>
+              <h2>4ステップでつなぐ運用</h2>
+            </div>
+            <p class="section-note">
+              試作品は「通報→持ち主解除」だけでなく、「未解除→回収依頼→結果記録」まで通します。
+            </p>
+          </div>
+
+          <div class="flow-grid">
+            <article class="flow-card">
+              <span class="flow-step">1</span>
+              <h3>発見・通報</h3>
+              <p>サポーターが Android アプリから写真・位置情報・識別情報を送信。</p>
+              <small>Actor: 住民 / サポーター</small>
+            </article>
+            <article class="flow-card">
+              <span class="flow-step">2</span>
+              <h3>警告・解除</h3>
+              <p>持ち主が QR から Web へアクセスし、仮解除と本解除を実行。</p>
+              <small>Actor: 自転車の持ち主</small>
+            </article>
+            <article class="flow-card">
+              <span class="flow-step">3</span>
+              <h3>未解除案件の回収依頼</h3>
+              <p>管理者が未解除案件を確認し、回収対象を業務フローへ乗せる。</p>
+              <small>Actor: 区役所 / 回収業者</small>
+            </article>
+            <article class="flow-card">
+              <span class="flow-step">4</span>
+              <h3>結果記録</h3>
+              <p>回収完了または現地で現物なしを記録し、案件を状態管理する。</p>
+              <small>Actor: 管理者</small>
+            </article>
+          </div>
+
+          <div class="status-strip">
+            <span>reported</span>
+            <span>temporary</span>
+            <span>resolved</span>
+            <span>collection_requested</span>
+            <span>collected / not_found_on_collection</span>
+          </div>
+        </section>
+
+        <section class="product-grid">
+          <div class="panel panel-dark product-map">
+            <p class="section-kicker">Prototype</p>
+            <h2>試作品の構成</h2>
+            <div class="platform-grid">
+              <article>
+                <h3>Supporter App</h3>
+                <p>放置自転車の撮影、位置送信、識別情報付き通報。</p>
+              </article>
+              <article>
+                <h3>Owner Web</h3>
+                <p>QRからの警告確認、仮解除、本解除、期限付きクーポン導線。</p>
+              </article>
+              <article>
+                <h3>Admin Dashboard</h3>
+                <p>通報一覧、未解除案件確認、回収依頼、回収結果登録。</p>
+              </article>
+              <article>
+                <h3>Backend API</h3>
+                <p>全クライアントのデータを接続し、状態遷移と履歴を一元管理。</p>
+              </article>
+            </div>
+            <div class="architecture-line">
+              <span>Android</span>
+              <span>QR / Web</span>
+              <span>Dashboard</span>
+              <span>API + DB</span>
+            </div>
+          </div>
+
+          <div class="panel panel-light ui-proof">
+            <p class="section-kicker">UI Snapshot</p>
+            <h2>実際の操作イメージ</h2>
+            <div class="shot-grid">
+              <figure class="card-shot">
+                <img
+                  src="../../testing/screenshots/2026-04-27/owner-04-resolved-coupon.png"
+                  alt="持ち主用Webの解除後クーポン画面"
+                />
+                <figcaption>
+                  持ち主向け Web:
+                  解除完了後に期限付きクーポンを提示し、先送りを防いで即時移動を促す。
+                </figcaption>
+              </figure>
+              <figure class="card-shot">
+                <img
+                  src="../../testing/screenshots/2026-05-27/admin-02-list-all.png"
+                  alt="管理者ダッシュボードの通報一覧画面"
+                />
+                <figcaption>
+                  管理者ダッシュボード:
+                  状態別の一覧確認と回収フロー管理を同じ画面群で扱う。
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section class="value-grid">
+          <div class="panel panel-accent value-loop">
+            <p class="section-kicker">Value Loop</p>
+            <h2>お金と価値の循環</h2>
+            <div class="loop-rail">
+              <div class="loop-node">
+                <h3>住民・サポーター</h3>
+                <p>通報参加で地域改善に関与し、ポイント要素の存在も示せる。</p>
+              </div>
+              <div class="loop-node">
+                <h3>持ち主</h3>
+                <p>警告を即時に把握し、撤去前に自発移動してクーポンを得られる。</p>
+              </div>
+              <div class="loop-node">
+                <h3>地域店舗</h3>
+                <p>クーポン提供で来店導線を作り、店舗前の放置減少も期待できる。</p>
+              </div>
+              <div class="loop-node">
+                <h3>区役所・回収業者</h3>
+                <p>回収対象の精度を上げ、巡回・撤去コストや空振りの削減につなげる。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-light target-panel">
+            <p class="section-kicker">Why This Matters</p>
+            <h2>展示で伝えたいポイント</h2>
+            <ul class="poster-points">
+              <li>放置自転車対策を「取り締まり」ではなく「行動変容の設計」として見せる。</li>
+              <li>自己解決できる案件を増やし、行政の回収工数を後ろにずらさず前段で減らす。</li>
+              <li>通報から回収結果まで同一データで追えるため、運用の分断を減らせる。</li>
+              <li>試作品スコープを明確に保ちつつ、将来の地域連携や高度分析へ拡張可能。</li>
+            </ul>
+            <div class="scope-note">
+              <strong>Prototype Scope</strong>
+              <p>
+                今回の試作品は、通報・解除・回収依頼・結果記録までが対象。ブラックリストや高度分析、
+                外部連携は将来構想として切り分けている。
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+    </main>
+  </body>
+</html>
