@@ -155,6 +155,7 @@ img {
 .abstract-card p,
 .header-subtitle,
 .section-lead,
+.section-note,
 .bullet-list li,
 .problem-card p,
 .system-card p,
@@ -182,6 +183,13 @@ img {
   margin-top: var(--gap-sm);
   color: var(--ink-soft);
   font-size: var(--font-body);
+}
+
+.section-note {
+  margin-top: var(--gap-sm);
+  color: var(--ink-soft);
+  font-size: var(--font-body-tight);
+  line-height: 1.22;
 }
 
 .bullet-list {
@@ -321,6 +329,7 @@ img {
 .section-features,
 .section-effects,
 .section-scope,
+.section-visual,
 .section-future,
 .section-conclusion {
   height: auto;
@@ -331,6 +340,7 @@ img {
 .section-objective,
 .section-effects,
 .section-scope,
+.section-visual,
 .section-future,
 .section-conclusion,
 .section-features {
@@ -421,6 +431,44 @@ img {
 
 .effect-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.figure-placeholder {
+  margin: var(--gap-sm) 0 0;
+}
+
+.figure-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58mm;
+  padding: 5mm;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: var(--font-body-tight);
+  line-height: 1.2;
+  border: 1.2mm dashed rgba(21, 38, 31, 0.28);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(237, 240, 234, 0.9)),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(21, 38, 31, 0.035),
+      rgba(21, 38, 31, 0.035) 6mm,
+      transparent 6mm,
+      transparent 12mm
+    );
+}
+
+.figure-placeholder figcaption {
+  margin-top: 2mm;
+  color: var(--ink-soft);
+  font-size: var(--font-body-tight);
+  line-height: 1.2;
+}
+
+.figure-placeholder-tall .figure-box {
+  min-height: 74mm;
 }
 
 .scope-columns {
