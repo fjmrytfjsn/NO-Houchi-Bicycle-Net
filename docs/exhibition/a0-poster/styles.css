@@ -9,14 +9,14 @@
   --radius-lg: 6mm;
   --radius-md: 5mm;
   --radius-sm: 4mm;
-  --font-kicker: 14pt;
-  --font-meta: 20pt;
-  --font-body: 27pt;
-  --font-body-tight: 25pt;
+  --font-kicker: 30pt;
+  --font-meta: 30pt;
+  --font-body: 30pt;
+  --font-body-tight: 30pt;
   --font-h1: 78pt;
   --font-subtitle: 34pt;
   --font-h2: 48pt;
-  --font-h3: 29pt;
+  --font-h3: 30pt;
   --bg: #edf0ea;
   --paper: #ffffff;
   --paper-soft: #f8f6f0;
@@ -245,7 +245,7 @@ img {
   width: 10mm;
   height: 10mm;
   border-radius: 999px;
-  font-size: 18pt;
+  font-size: 30pt;
   font-weight: 800;
 }
 
@@ -301,7 +301,7 @@ img {
 .system-rail span {
   padding: 2mm 1.6mm;
   text-align: center;
-  font-size: 16pt;
+  font-size: 30pt;
   font-weight: 700;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.11);
