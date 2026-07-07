@@ -152,6 +152,12 @@ img {
   color: rgba(248, 244, 235, 0.78);
 }
 
+.meta-block strong,
+.abstract-card p {
+  font-size: 32pt;
+  line-height: 1.2;
+}
+
 .abstract-card p,
 .header-subtitle,
 .section-lead,
