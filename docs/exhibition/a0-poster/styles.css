@@ -75,6 +75,7 @@ img {
 .panel {
   padding: var(--panel-padding);
   border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .panel-dark {
@@ -196,11 +197,23 @@ img {
 
 .bullet-list {
   margin: var(--gap-sm) 0 0;
-  padding-left: 6.2mm;
+  padding-left: 0;
+  list-style: none;
 }
 
 .bullet-list li {
+  position: relative;
+  padding-left: 5.8mm;
   font-size: var(--font-body);
+}
+
+.bullet-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0.02em;
+  color: currentColor;
+  font-weight: 700;
 }
 
 .bullet-list li + li {
@@ -334,6 +347,7 @@ img {
 .section-features {
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(var(--panel-padding) + 1.6mm);
 }
 
 .section-background .bullet-list,
@@ -357,6 +371,14 @@ img {
 .section-scope .scope-note,
 .section-conclusion .section-lead {
   margin-top: auto;
+}
+
+.section-scope .scope-note,
+.section-conclusion .section-lead,
+.section-features .bullet-list,
+.section-objective .bullet-list,
+.section-future .bullet-list {
+  margin-bottom: 1mm;
 }
 
 .flow-lane + .flow-lane {
@@ -430,7 +452,7 @@ img {
 
 .scope-columns ul {
   margin: var(--gap-sm) 0 0;
-  padding-left: 6.2mm;
+  padding-left: 0;
 }
 
 .scope-note {
