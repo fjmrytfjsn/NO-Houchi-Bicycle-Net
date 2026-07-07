@@ -99,7 +99,7 @@ img {
 
 .poster-header {
   display: grid;
-  grid-template-columns: 2.05fr 1.45fr;
+  grid-template-columns: 1.85fr 1.65fr;
   gap: var(--gap-lg);
   margin-bottom: var(--gap-lg);
 }
