@@ -287,6 +287,10 @@ img {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.system-card p {
+  color: rgba(248, 244, 235, 0.72);
+}
+
 .system-rail {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
