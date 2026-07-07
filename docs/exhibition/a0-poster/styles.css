@@ -164,7 +164,7 @@ img {
   display: grid;
   grid-template-columns: 0.9fr 1.18fr 0.88fr;
   gap: var(--gap-lg);
-  height: calc(100% - 78mm);
+  height: calc(100% - 112mm);
 }
 
 .poster-column {
@@ -175,15 +175,15 @@ img {
 }
 
 .poster-grid > .poster-column:first-child {
-  grid-template-rows: 1.02fr 1.18fr 0.98fr;
+  grid-template-rows: 0.9fr 1.18fr 1.02fr;
 }
 
 .poster-column-center {
-  grid-template-rows: 0.92fr 1.36fr 0.9fr;
+  grid-template-rows: 0.86fr 1.28fr 0.98fr;
 }
 
 .poster-grid > .poster-column:last-child {
-  grid-template-rows: 0.92fr 1.06fr 0.74fr 0.68fr;
+  grid-template-rows: 0.88fr 1fr 0.72fr 0.8fr;
 }
 
 .section-lead {
