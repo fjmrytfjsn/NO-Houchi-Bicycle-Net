@@ -171,10 +171,19 @@ img {
   display: grid;
   gap: var(--gap-md);
   align-content: start;
+  height: 100%;
+}
+
+.poster-grid > .poster-column:first-child {
+  grid-template-rows: 1.02fr 1.18fr 0.98fr;
 }
 
 .poster-column-center {
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: 0.92fr 1.36fr 0.9fr;
+}
+
+.poster-grid > .poster-column:last-child {
+  grid-template-rows: 0.92fr 1.06fr 0.74fr 0.68fr;
 }
 
 .section-lead {
@@ -294,6 +303,54 @@ img {
 
 .panel-flow .section-lead {
   margin-bottom: var(--gap-sm);
+}
+
+.section-background,
+.section-problem,
+.section-objective,
+.section-system,
+.section-flow,
+.section-features,
+.section-effects,
+.section-scope,
+.section-future,
+.section-conclusion {
+  height: 100%;
+}
+
+.section-background,
+.section-problem,
+.section-objective,
+.section-effects,
+.section-scope,
+.section-future,
+.section-conclusion,
+.section-features {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-background .bullet-list,
+.section-objective .bullet-list,
+.section-features .bullet-list,
+.section-future .bullet-list {
+  margin-top: auto;
+}
+
+.section-effects .effect-grid,
+.section-problem .problem-stack {
+  flex: 1;
+  align-content: stretch;
+}
+
+.section-problem .problem-card,
+.section-effects .effect-card {
+  height: 100%;
+}
+
+.section-scope .scope-note,
+.section-conclusion .section-lead {
+  margin-top: auto;
 }
 
 .flow-lane + .flow-lane {
