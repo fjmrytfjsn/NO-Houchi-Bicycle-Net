@@ -2,6 +2,7 @@
   --paper-width: 1189mm;
   --paper-height: 841mm;
   --paper-padding: 10mm;
+  --paper-bottom-clearance: 12mm;
   --gap-lg: 4.2mm;
   --gap-md: 3.2mm;
   --gap-sm: 2.2mm;
@@ -63,9 +64,10 @@ img {
   width: var(--paper-width);
   height: var(--paper-height);
   margin: 0 auto;
-  padding: var(--paper-padding);
+  padding: var(--paper-padding) var(--paper-padding) calc(var(--paper-padding) + var(--paper-bottom-clearance));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
   background: var(--paper);
   border: 1px solid rgba(21, 38, 31, 0.08);
   box-shadow: var(--shadow);
@@ -167,26 +169,13 @@ img {
   display: grid;
   grid-template-columns: 0.88fr 1.24fr 0.88fr;
   gap: var(--gap-lg);
-  min-height: 0;
+  align-content: start;
 }
 
 .poster-column {
   display: grid;
   gap: var(--gap-md);
   align-content: start;
-  height: 100%;
-}
-
-.poster-grid > .poster-column:first-child {
-  grid-template-rows: 0.84fr 1.2fr 0.8fr;
-}
-
-.poster-column-center {
-  grid-template-rows: 0.94fr 1.34fr 0.72fr;
-}
-
-.poster-grid > .poster-column:last-child {
-  grid-template-rows: 0.88fr 1fr 0.62fr 0.5fr;
 }
 
 .section-lead {
@@ -334,7 +323,7 @@ img {
 .section-scope,
 .section-future,
 .section-conclusion {
-  height: 100%;
+  height: auto;
 }
 
 .section-background,
@@ -347,7 +336,6 @@ img {
 .section-features {
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(var(--panel-padding) + 1.6mm);
 }
 
 .section-background .bullet-list,
@@ -371,14 +359,6 @@ img {
 .section-scope .scope-note,
 .section-conclusion .section-lead {
   margin-top: auto;
-}
-
-.section-scope .scope-note,
-.section-conclusion .section-lead,
-.section-features .bullet-list,
-.section-objective .bullet-list,
-.section-future .bullet-list {
-  margin-bottom: 1mm;
 }
 
 .flow-lane + .flow-lane {
@@ -504,7 +484,7 @@ img {
   .poster {
     width: var(--paper-width);
     height: var(--paper-height);
-    padding: var(--paper-padding);
+    padding: var(--paper-padding) var(--paper-padding) calc(var(--paper-padding) + var(--paper-bottom-clearance));
     margin: 0;
     border: 0;
     box-shadow: none;
