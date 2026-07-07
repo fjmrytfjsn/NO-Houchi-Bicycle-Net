@@ -15,6 +15,16 @@ function getPath(queryPath: string | string[] | undefined) {
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const [code, action, subAction] = getPath(req.query.path);
 
+  // ターミナルにAPIの結果を出力するためのラッパー
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    const pathStr = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path || '';
+    console.log(`\n[API Response] ${req.method} /api/owner/markers/${pathStr}`);
+    console.log(JSON.stringify(body, null, 2));
+    console.log('----------------------------------------\n');
+    return originalJson(body);
+  };
+
   if (!code) {
     return res.status(400).json({ error: 'marker code is required' });
   }
