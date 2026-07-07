@@ -42,7 +42,7 @@ img {
 
 .poster {
   width: min(100%, 1580px);
-  min-height: calc(1580px / 1.414);
+  aspect-ratio: 1189 / 841;
   margin: 0 auto;
   padding: 22px;
   background:
@@ -339,10 +339,10 @@ img {
   background: var(--mint);
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 1100px) {
   .poster {
     width: 100%;
-    min-height: auto;
+    aspect-ratio: auto;
   }
 
   .poster-header,
