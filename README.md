@@ -169,6 +169,14 @@ cd apps/android-app
 
 ---
 
+
+## 📄 ライセンス (License)
+
+Copyright (c) 2026 fjmrytfjsn
+Released under the MIT License.
+
+---
+
 ## 📝 ドキュメント
 
 詳細な仕様書は [docs](./docs/README.md) ディレクトリを参照してください。
