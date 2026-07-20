@@ -19,6 +19,7 @@ NO-Houchi Bicycle Net の設計・仕様・運用ドキュメントの入口で�
 
 - [Owner Web ワイヤーフレーム](./ui/wireframes-owner.md)
 - [Admin Dashboard ワイヤーフレーム](./ui/wireframes-admin-dashboard.md)
+- [展示会向けアセット](./exhibition/README.md)
 
 ## Testing
 
