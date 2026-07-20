@@ -172,4 +172,5 @@ TMPDIR=/tmp npm run build
 - [セットアップガイド](./SETUP.md)
 - [開発者ワークフロー](./developer-workflow.md)
 - [Admin Dashboard 手動確認レポート 2026-05-28](../testing/manual-verification-2026-05-28.md)
+- [Admin Dashboard UI 評価基準と改善目標](../ui/admin-dashboard-ui-scorecard.md)
 - [Admin Dashboard ワイヤーフレーム](../ui/wireframes-admin-dashboard.md)
