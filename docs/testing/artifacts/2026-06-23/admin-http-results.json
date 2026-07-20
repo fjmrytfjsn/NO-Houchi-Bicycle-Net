@@ -1,0 +1,14 @@
+{
+  "unauthorizedRoot": {
+    "status": 307,
+    "location": "/login?next=%2F"
+  },
+  "login": {
+    "status": 200,
+    "setCookie": true,
+    "body": {
+      "ok": true,
+      "redirectTo": "/"
+    }
+  }
+}
